@@ -25,6 +25,7 @@ var cli struct {
 	LogConfig           log.Config           `embed:"" prefix:"log-"`
 	SchemaServiceConfig schemaservice.Config `embed:""`
 	TimelineEndpoint    *url.URL             `help:"Timeline Service endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8898"`
+	Realm               string               `help:"Realm to use." env:"FTL_REALM" default:"ftl"`
 }
 
 func main() {
@@ -44,7 +45,7 @@ func main() {
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 
-	svc := schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, false)
+	svc := schemaservice.New(ctx, cli.SchemaServiceConfig, timelineClient, cli.Realm, false)
 	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
 	logger.Debugf("Listening on %s", cli.Bind)
 	kctx.FatalIfErrorf(err)

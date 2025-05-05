@@ -47,6 +47,7 @@ const serviceTemplate = "serviceTemplate"
 const serviceAccountTemplate = "serviceAccountTemplate"
 const moduleLabel = "ftl.dev/module"
 const deploymentLabel = "ftl.dev/deployment"
+const realmLabel = "ftl.dev/realm"
 const deployTimeout = time.Minute * 5
 
 var _ scaling.RunnerScaling = &k8sScaling{}
@@ -348,7 +349,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		}
 		service.Name = name
 		service.Spec.Selector = map[string]string{"app": name}
-		addLabels(&service.ObjectMeta, module, name)
+		addLabels(&service.ObjectMeta, realm, module, name)
 		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create service %s", name)
@@ -462,8 +463,8 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		change(deployment)
 	}
 
-	addLabels(&deployment.ObjectMeta, module, name)
-	addLabels(&deployment.Spec.Template.ObjectMeta, module, name)
+	addLabels(&deployment.ObjectMeta, realm, module, name)
+	addLabels(&deployment.Spec.Template.ObjectMeta, realm, module, name)
 	_, err = userDeploymentClient.Create(ctx, deployment, v1.CreateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create deployment %s", name)
@@ -473,13 +474,14 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 	return nil
 }
 
-func addLabels(obj *v1.ObjectMeta, module string, deployment string) {
+func addLabels(obj *v1.ObjectMeta, realm string, module string, deployment string) {
 	if obj.Labels == nil {
 		obj.Labels = map[string]string{}
 	}
 	obj.Labels["app"] = deployment
 	obj.Labels[deploymentLabel] = deployment
 	obj.Labels[moduleLabel] = module
+	obj.Labels[realmLabel] = realm
 }
 
 func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
@@ -606,7 +608,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 
 	// Allow controller ingress
 	err := r.createOrUpdateIstioPolicy(ctx, sec, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
-		addLabels(&policy.ObjectMeta, module, name)
+		addLabels(&policy.ObjectMeta, realm, module, name)
 		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		// At present we only allow ingress from the controller
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}

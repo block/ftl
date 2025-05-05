@@ -66,7 +66,7 @@ var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
 func NewLocalService(ctx context.Context, config Config, timelineClient *timelineclient.Client, devMode bool) *Service {
 	s := &Service{
-		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx)), struct{}{}),
+		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx, "")), struct{}{}),
 		Config:         config,
 		timelineClient: timelineClient,
 		devMode:        devMode,
@@ -84,6 +84,7 @@ func New(
 	ctx context.Context,
 	config Config,
 	timelineClient *timelineclient.Client,
+	realm string,
 	devMode bool,
 ) *Service {
 	logger := log.FromContext(ctx)
@@ -97,7 +98,7 @@ func New(
 		svc = NewLocalService(ctx, config, timelineClient, devMode)
 	} else {
 		clusterBuilder := raft.NewBuilder(&config.Raft)
-		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx))
+		schemaShard := raft.AddShard(ctx, clusterBuilder, 1, newStateMachine(ctx, realm))
 		cluster := clusterBuilder.Build(ctx)
 		rpcOpts = append(rpcOpts, raft.RPCOption(cluster))
 		svc = &Service{

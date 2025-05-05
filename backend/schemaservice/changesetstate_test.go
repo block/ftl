@@ -25,7 +25,7 @@ func TestChangesetState(t *testing.T) {
 	}
 
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	state := schemaservice.NewSchemaState()
+	state := schemaservice.NewSchemaState("")
 
 	assert.Equal(t, 0, len(state.GetDeployments()))
 	assert.Equal(t, 0, len(state.GetChangesets()))
@@ -57,7 +57,7 @@ func TestChangesetState(t *testing.T) {
 				}},
 			},
 		}
-		sm := schemaservice.NewSchemaState()
+		sm := schemaservice.NewSchemaState("")
 		assert.Error(t, sm.ApplyEvent(ctx, event))
 	})
 
@@ -70,7 +70,7 @@ func TestChangesetState(t *testing.T) {
 			},
 		}
 
-		sm := schemaservice.NewSchemaState()
+		sm := schemaservice.NewSchemaState("")
 		assert.Error(t, sm.ApplyEvent(ctx, event))
 	})
 

@@ -33,8 +33,8 @@ type SchemaState struct {
 	realms             map[string]*schema.RealmState
 }
 
-func NewSchemaState() SchemaState {
-	return SchemaState{
+func NewSchemaState(canonicalRealm string) SchemaState {
+	state := SchemaState{
 		deployments:        map[string]*schema.Module{},
 		changesets:         map[key.Changeset]*schema.Changeset{},
 		deploymentEvents:   map[string][]*schema.DeploymentRuntimeEvent{},
@@ -42,19 +42,21 @@ func NewSchemaState() SchemaState {
 		archivedChangesets: []*schema.Changeset{},
 		realms:             map[string]*schema.RealmState{},
 	}
+	if canonicalRealm != "" {
+		state.realms[canonicalRealm] = &schema.RealmState{
+			Name:     canonicalRealm,
+			External: false,
+		}
+	}
+	return state
 }
 
-func NewInMemorySchemaState(ctx context.Context) *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper] {
-	handle := statemachine.NewLocalHandle(newStateMachine(ctx))
-	return statemachine.NewSingleQueryHandle(handle, struct{}{})
-}
-
-func newStateMachine(ctx context.Context) *schemaStateMachine {
+func newStateMachine(ctx context.Context, realm string) *schemaStateMachine {
 	notifier := channels.NewNotifier(ctx)
 	return &schemaStateMachine{
 		notifier:   notifier,
 		runningCtx: ctx,
-		state:      NewSchemaState(),
+		state:      NewSchemaState(realm),
 	}
 }
 
