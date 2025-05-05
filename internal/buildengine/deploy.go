@@ -26,7 +26,6 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
@@ -188,11 +187,12 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 	if !c.schemaSource.Live() {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
 		c.SchemaUpdates <- SchemaUpdatedEvent{
-			schema: builder.Schema(
-				builder.Realm(c.projectConfig.Name).
-					Module(schema.Builtins()).
-					MustBuild()).
-				MustBuild(),
+			schema: &schema.Schema{
+				Realms: []*schema.Realm{{
+					Name:    c.projectConfig.Name,
+					Modules: []*schema.Module{schema.Builtins()},
+				}},
+			},
 		}
 	} else {
 		c.schemaSource.WaitForInitialSync(ctx)
@@ -200,11 +200,10 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		// If there are no realms yet, initialise the internal.
 		sch := c.schemaSource.CanonicalView()
 		if len(sch.Realms) == 0 {
-			sch.Realms = []*schema.Realm{
-				builder.Realm(c.projectConfig.Name).
-					Module(schema.Builtins()).
-					MustBuild(),
-			}
+			sch.Realms = []*schema.Realm{{
+				Name:    c.projectConfig.Name,
+				Modules: []*schema.Module{schema.Builtins()},
+			}}
 		}
 
 		c.SchemaUpdates <- SchemaUpdatedEvent{schema: sch}
@@ -504,18 +503,20 @@ func (c *DeployCoordinator) mergePendingDeployment(d *pendingDeploy, old *pendin
 
 func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Schema, deployment *pendingDeploy, modulesToCheck []string) map[string]bool {
 	out := map[string]bool{}
-	schemaBuilder := builder.Schema()
+	sch := &schema.Schema{}
 	for _, realm := range originalSch.Realms {
-		newRealm := builder.Realm(realm.Name).External(realm.External)
+		newRealm := &schema.Realm{
+			Name:     realm.Name,
+			External: realm.External,
+		}
+		sch.Realms = append(sch.Realms, newRealm)
 		for _, module := range realm.Modules {
 			if _, ok := deployment.modules[module.Name]; ok {
 				continue
 			}
-			newRealm.Module(reflect.DeepCopy(module))
+			newRealm.Modules = append(newRealm.Modules, reflect.DeepCopy(module))
 		}
-		schemaBuilder.Realm(newRealm.MustBuild())
 	}
-	sch := schemaBuilder.MustBuild()
 	for _, m := range deployment.modules {
 		for _, realm := range sch.Realms {
 			if realm.External {
@@ -543,7 +544,10 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	logger := log.FromContext(ctx)
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
-	realmBuilder := builder.Realm(c.projectConfig.Name)
+	realm := &schema.Realm{Name: c.projectConfig.Name}
+	sch := &schema.Schema{
+		Realms: []*schema.Realm{realm},
+	}
 	for _, d := range append(toDeploy, deploying...) {
 		if !d.publishInSchema {
 			continue
@@ -553,7 +557,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 				continue
 			}
 			overridden[mod.moduleName()] = true
-			realmBuilder.Module(mod.schema)
+			realm.Modules = append(realm.Modules, mod.schema)
 		}
 		for mod := range d.waitingForModules {
 			toRemove[mod] = true
@@ -563,20 +567,8 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 		if _, ok := overridden[mod.Name]; ok {
 			continue
 		}
-		realmBuilder.Module(reflect.DeepCopy(mod))
+		realm.Modules = append(realm.Modules, reflect.DeepCopy(mod))
 	}
-
-	realm, err := realmBuilder.Build()
-	if err != nil {
-		logger.Errorf(err, "failed to build realm")
-		return
-	}
-	sch, err := builder.Schema(realm).Build()
-	if err != nil {
-		logger.Errorf(err, "failed to build schema")
-		return
-	}
-
 	// remove modules that we need to rebuild so that the schema is valid
 	for {
 		foundMoreToRemove := false
@@ -606,7 +598,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 		break
 	}
 
-	sch, err = sch.Validate()
+	sch, err := sch.Validate()
 	if err != nil {
 		logger.Errorf(err, "Deploy coordinator could not publish invalid schema")
 		return

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,6 @@ import (
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
@@ -1115,11 +1115,11 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 					fakeDeps[dep] = sch
 					continue
 				}
-
 				// not build yet, probably due to dependency cycle
-				fakeDeps[dep] = builder.Module(dep).
-					Comment("Dependency not built yet due to dependency cycle").
-					MustBuild()
+				fakeDeps[dep] = &schema.Module{
+					Name:     dep,
+					Comments: []string{"Dependency not built yet due to dependency cycle"},
+				}
 			}
 			_, _, _ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
 			close(ignoredSchemas)
@@ -1194,14 +1194,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		return "", nil, errors.Errorf("module %q not found", moduleName)
 	}
 
-	realm, err := builder.Realm("").Module(maps.Values(builtModules)...).Build()
-	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to build realm")
-	}
-	sch, err := builder.Schema(realm).Build()
-	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to build schema")
-	}
+	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
@@ -1292,28 +1285,25 @@ func (e *Engine) gatherSchemas(
 }
 
 func (e *Engine) syncNewStubReferences(ctx context.Context, newModules map[string]*schema.Module, metasMap map[string]moduleMeta) error {
-	schemaBuilder := builder.Schema()
+	fullSchema := &schema.Schema{} //nolint:exptostd
 	for _, r := range e.targetSchema.Load().Realms {
-		realmBuilder := builder.Realm(r.Name).External(r.External)
-		if !r.External {
-			realmBuilder = realmBuilder.Module(maps.Values(newModules)...)
+		realm := &schema.Realm{
+			Name:     r.Name,
+			External: r.External,
+		}
+		if !realm.External {
+			realm.Modules = maps.Values(newModules)
 		}
 
 		for _, module := range r.Modules {
-			if _, ok := newModules[module.Name]; !ok || r.External {
-				realmBuilder = realmBuilder.Module(module)
+			if _, ok := newModules[module.Name]; !ok || realm.External {
+				realm.Modules = append(realm.Modules, module)
 			}
 		}
-		realm, err := realmBuilder.Build()
-		if err != nil {
-			return errors.Wrapf(err, "could not build realm %s", r.Name)
-		}
-		schemaBuilder.Realm(realm)
-	}
-
-	fullSchema, err := schemaBuilder.Build()
-	if err != nil {
-		return errors.Wrap(err, "could not build full schema")
+		sort.SliceStable(realm.Modules, func(i, j int) bool {
+			return realm.Modules[i].Name < realm.Modules[j].Name
+		})
+		fullSchema.Realms = append(fullSchema.Realms, realm)
 	}
 
 	return errors.WithStack(SyncStubReferences(ctx,

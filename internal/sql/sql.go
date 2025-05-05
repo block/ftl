@@ -18,7 +18,6 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/internal"
@@ -91,7 +90,9 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 	}
 
 	// Generate queries for each database (one config per database)
-	sch := builder.Module(mc.Module).MustBuild()
+	sch := &schema.Module{
+		Name: mc.Module,
+	}
 	for i, m := range out.InternalModules() {
 		if m.Name == mc.Module {
 			out.InternalModules()[i] = sch

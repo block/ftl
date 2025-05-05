@@ -8,7 +8,6 @@ import (
 	"github.com/alecthomas/types/either"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/projectconfig"
@@ -47,14 +46,17 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 			moduleSchemas <- either.LeftOf[error](module)
 		}()
 	}
-	sch := builder.Schema()
-	realmBuilder := builder.Realm(s.projConfig.Name)
+	realm := &schema.Realm{
+		Name:    s.projConfig.Name,
+		Modules: []*schema.Module{},
+	}
+	sch := &schema.Schema{Realms: []*schema.Realm{realm}}
 	errs := []error{}
 	for range len(modules) {
 		result := <-moduleSchemas
 		switch result := result.(type) {
 		case either.Left[*schema.Module, error]:
-			realmBuilder = realmBuilder.Module(result.Get())
+			realm.Upsert(result.Get())
 		case either.Right[*schema.Module, error]:
 			errs = append(errs, result.Get())
 		default:
@@ -64,9 +66,5 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 	if len(errs) > 0 {
 		return nil, errors.WithStack(errors.Join(errs...))
 	}
-	realm, err := realmBuilder.Build()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return errors.WithStack2(sch.Realm(realm).Build())
+	return sch, nil
 }

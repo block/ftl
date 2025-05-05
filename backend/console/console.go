@@ -22,7 +22,6 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	frontend "github.com/block/ftl/frontend/console"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/channels"
@@ -429,17 +428,14 @@ func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.S
 
 	realms := []*schema.Realm{}
 	for _, realm := range unfilteredSchema.Realms {
-		filteredRealm, err := builder.Realm(realm.Name).
-			External(realm.External).
-			Module(s.filterDeployments(realm)...).
-			Build()
-		if err != nil {
-			return errors.Wrap(err, "failed to build filtered realm")
-		}
-		realms = append(realms, filteredRealm)
+		realms = append(realms, &schema.Realm{
+			External: realm.External,
+			Name:     realm.Name,
+			Modules:  s.filterDeployments(realm),
+		})
 	}
 
-	sch := &schema.Schema{Pos: schema.Position{}, Realms: realms}
+	sch := &schema.Schema{Realms: realms}
 	builtin := schema.Builtins()
 	for _, realm := range sch.InternalRealms() {
 		realm.Modules = append(realm.Modules, builtin)

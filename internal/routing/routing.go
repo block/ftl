@@ -9,7 +9,6 @@ import (
 	"github.com/alecthomas/types/pubsub"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -102,7 +101,7 @@ func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
 	logger := log.FromContext(ctx)
 
 	if sch == nil {
-		return RouteView{moduleToDeployment: map[string]key.Deployment{}, byDeployment: map[string]*url.URL{}, schema: builder.Schema().MustBuild()}
+		return RouteView{moduleToDeployment: map[string]key.Deployment{}, byDeployment: map[string]*url.URL{}, schema: &schema.Schema{}}
 	}
 
 	modules := sch.InternalModules()

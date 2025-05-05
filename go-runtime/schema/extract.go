@@ -19,7 +19,6 @@ import (
 	"github.com/block/ftl-golang-tools/go/packages"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/go-runtime/schema/call"
 	"github.com/block/ftl/go-runtime/schema/common"
@@ -238,11 +237,7 @@ func (cd *combinedData) toResult() Result {
 
 func (cd *combinedData) updateModule(fr finalize.Result) error {
 	if cd.module == nil {
-		var err error
-		cd.module, err = builder.Module(fr.ModuleName).Comment(fr.ModuleComments...).Build()
-		if err != nil {
-			return errors.WithStack(err)
-		}
+		cd.module = &schema.Module{Name: fr.ModuleName, Comments: fr.ModuleComments}
 	} else {
 		if cd.module.Name != fr.ModuleName {
 			return errors.Errorf("unexpected schema extraction result module name: %s", fr.ModuleName)

@@ -11,7 +11,6 @@ import (
 	"github.com/block/scaffolder"
 
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/moduleconfig"
 )
@@ -27,7 +26,7 @@ func TestExtractMigrations(t *testing.T) {
 
 		// Define schema with a database declaration
 		db := &schema.Database{Name: "testdb"}
-		sch := builder.Module("test").Decl(db).MustBuild()
+		sch := &schema.Module{Decls: []schema.Decl{db}}
 
 		// Test
 		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "db"), sch, targetDir)
@@ -48,7 +47,7 @@ func TestExtractMigrations(t *testing.T) {
 
 	t.Run("Empty migrations directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		sch := builder.Module("test").MustBuild()
+		sch := &schema.Module{Decls: []schema.Decl{}}
 
 		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "db"), sch, t.TempDir())
 		assert.NoError(t, err)
@@ -57,7 +56,7 @@ func TestExtractMigrations(t *testing.T) {
 
 	t.Run("Missing migrations directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		sch := builder.Module("test").MustBuild()
+		sch := &schema.Module{Decls: []schema.Decl{}}
 
 		files, err := extractSQLMigrations(log.ContextWithNewDefaultLogger(t.Context()), getAbsModuleConfig(t, tmpDir, "/non/existent/dir"), sch, t.TempDir())
 		assert.NoError(t, err)
