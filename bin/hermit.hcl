@@ -1,6 +1,7 @@
 env = {
   "DBMATE_MIGRATIONS_DIR": "${HERMIT_ENV}/backend/controller/sql/schema",
   "DBMATE_NO_DUMP_SCHEMA": "true",
+  "GOFLAGS": "-trimpath",
   "FTL_DIR": "$HERMIT_ENV",
   "FTL_INIT_GO_REPLACE": "github.com/block/ftl=${HERMIT_ENV}",
   "FTL_SOURCE": "${HERMIT_ENV}",
