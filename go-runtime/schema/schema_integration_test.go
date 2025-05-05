@@ -15,6 +15,7 @@ import (
 
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/internal/exec"
@@ -62,7 +63,7 @@ func testExtractModuleSchema(t *testing.T) {
 	}
 	assert.NoError(t, prebuildTestModule(t, "testdata/one", "testdata/two"))
 
-	r, err := Extract("testdata/one", &schema.Schema{})
+	r, err := Extract("testdata/one", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	actual := schema.Normalise(r.Module)
 	expected := `module one {
@@ -222,7 +223,7 @@ func testExtractModuleSchemaTwo(t *testing.T) {
 
 	assert.NoError(t, prebuildTestModule(t, "testdata/two"))
 
-	r, err := Extract("testdata/two", &schema.Schema{})
+	r, err := Extract("testdata/two", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	for _, e := range r.Errors {
 		// only warns
@@ -329,7 +330,7 @@ func testExtractModuleSchemaNamedTypes(t *testing.T) {
 		t.SkipNow()
 	}
 	assert.NoError(t, prebuildTestModule(t, "testdata/named", "testdata/namedext"))
-	r, err := Extract("testdata/named", &schema.Schema{})
+	r, err := Extract("testdata/named", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	assert.Equal(t, nil, r.Errors, "expected no schema errors")
 	actual := schema.Normalise(r.Module)
@@ -379,7 +380,7 @@ func testExtractModuleSchemaParent(t *testing.T) {
 		t.SkipNow()
 	}
 	assert.NoError(t, prebuildTestModule(t, "testdata/parent"))
-	r, err := Extract("testdata/parent", &schema.Schema{})
+	r, err := Extract("testdata/parent", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	assert.Equal(t, nil, r.Errors, "expected no schema errors")
 	actual := schema.Normalise(r.Module)
@@ -421,7 +422,7 @@ func testExtractModulePubSub(t *testing.T) {
 
 	assert.NoError(t, prebuildTestModule(t, "testdata/pubsub"))
 
-	r, err := Extract("testdata/pubsub", &schema.Schema{})
+	r, err := Extract("testdata/pubsub", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	assert.Equal(t, nil, r.Errors, "expected no schema errors")
 	actual := schema.Normalise(r.Module)
@@ -458,7 +459,7 @@ func testExtractModuleSubscriber(t *testing.T) {
 		t.SkipNow()
 	}
 	assert.NoError(t, prebuildTestModule(t, "testdata/pubsub", "testdata/subscriber"))
-	r, err := Extract("testdata/subscriber", &schema.Schema{})
+	r, err := Extract("testdata/subscriber", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 	assert.Equal(t, nil, r.Errors, "expected no schema errors")
 	actual := schema.Normalise(r.Module)
@@ -529,7 +530,7 @@ func testErrorReporting(t *testing.T) {
 	assert.NoError(t, err)
 	err = exec.Command(ctx, log.Debug, "testdata/failing", "go", "mod", "tidy").RunBuffered(ctx)
 	assert.NoError(t, err)
-	r, err := Extract("testdata/failing", &schema.Schema{})
+	r, err := Extract("testdata/failing", builder.Schema().MustBuild())
 	assert.NoError(t, err)
 
 	var actualParent []string
@@ -613,7 +614,7 @@ func testValidationFailures(t *testing.T) {
 	assert.NoError(t, err)
 	err = exec.Command(ctx, log.Debug, "testdata/validation", "go", "mod", "tidy").RunBuffered(ctx)
 	assert.NoError(t, err)
-	_, err = Extract("testdata/validation", &schema.Schema{})
+	_, err = Extract("testdata/validation", builder.Schema().MustBuild())
 	assert.Error(t, err)
 	errs := errors.UnwrapAllInnermost(err)
 

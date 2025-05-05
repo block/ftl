@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -59,29 +60,24 @@ func TestSchemaEventSource(t *testing.T) {
 		panic("unreachable")
 	}
 
-	time1 := &schema.Module{
-		Name: "time",
-		Decls: []schema.Decl{
-			&schema.Verb{
-				Name:     "time",
-				Request:  &schema.Unit{},
-				Response: &schema.Time{},
-			},
-		},
-	}
-	echo1 := &schema.Module{
-		Name: "echo",
-		Decls: []schema.Decl{
+	time1 := builder.Module("time").
+		Decl(&schema.Verb{
+			Name:     "time",
+			Request:  &schema.Unit{},
+			Response: &schema.Time{},
+		}).
+		MustBuild()
+	echo1 := builder.Module("echo").
+		Decl(
 			&schema.Verb{
 				Name:     "echo",
 				Request:  &schema.String{},
 				Response: &schema.String{},
 			},
-		},
-	}
-	time2 := &schema.Module{
-		Name: "time",
-		Decls: []schema.Decl{
+		).
+		MustBuild()
+	time2 := builder.Module("time").
+		Decl(
 			&schema.Verb{
 				Name:     "time",
 				Request:  &schema.Unit{},
@@ -92,8 +88,8 @@ func TestSchemaEventSource(t *testing.T) {
 				Request:  &schema.Unit{},
 				Response: &schema.String{},
 			},
-		},
-	}
+		).
+		MustBuild()
 	time1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "time")
 	echo1.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "echo")
 	time2.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey("test", "time")
@@ -133,7 +129,7 @@ func TestSchemaEventSource(t *testing.T) {
 		assert.True(t, changes.WaitForInitialSync(waitCtx))
 
 		var expected schema.Notification = &schema.FullSchemaNotification{
-			Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{time1}}}},
+			Schema: builder.Schema(builder.Realm("", time1).MustBuild()).MustBuild(),
 		}
 		assertEqual(t, expected, recv(t))
 
@@ -147,7 +143,14 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time1, echo1}}}}, changes.CanonicalView())
+		expectedCanonical := builder.Schema(
+			builder.Realm("", // TODO: This should be something
+				schema.Builtins(),
+				time1,
+				echo1,
+			).MustBuild(),
+		).MustBuild()
+		assertEqual(t, expectedCanonical, changes.CanonicalView())
 	})
 
 	t.Run("Mutation", func(t *testing.T) {
@@ -174,7 +177,14 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time2, echo1}}}}, changes.CanonicalView())
+		expectedCanonical := builder.Schema(
+			builder.Realm("", // TODO: This should be something
+				schema.Builtins(),
+				time2,
+				echo1,
+			).MustBuild(),
+		).MustBuild()
+		assertEqual(t, expectedCanonical, changes.CanonicalView())
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -203,7 +213,13 @@ func TestSchemaEventSource(t *testing.T) {
 		}
 		actual := recv(t)
 		assertEqual(t, expected, actual)
-		assertEqual(t, &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{schema.Builtins(), time2}}}}, changes.CanonicalView())
+		expectedCanonical := builder.Schema(
+			builder.Realm("", // TODO: This should be something
+				schema.Builtins(),
+				time2,
+			).MustBuild(),
+		).MustBuild()
+		assertEqual(t, expectedCanonical, changes.CanonicalView())
 	})
 }
 
