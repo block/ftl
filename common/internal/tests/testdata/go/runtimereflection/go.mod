@@ -15,10 +15,10 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alecthomas/atomic v0.1.0-alpha2 // indirect
 	github.com/alecthomas/concurrency v0.0.2 // indirect
-	github.com/alecthomas/errors v0.7.0 // indirect
+	github.com/alecthomas/errors v0.8.2 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
-	github.com/alecthomas/types v0.19.0 // indirect
+	github.com/alecthomas/types v0.20.0 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/block/ftl-golang-tools v0.5.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
@@ -47,7 +47,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
