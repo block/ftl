@@ -61,6 +61,19 @@ func (v *Verb) Kind() VerbKind {
 	}
 }
 
+func (v *Verb) Validate() error {
+	if !ValidateName(v.Name) {
+		return errorf(v, "invalid name %q", v.Name)
+	}
+	if v.Request == nil {
+		return errorf(v, "%s: missing request", v.Name)
+	}
+	if v.Response == nil {
+		return errorf(v, "%s: missing response", v.Name)
+	}
+	return nil
+}
+
 func (v *Verb) Position() Position { return v.Pos }
 
 func (v *Verb) schemaDecl()   {}

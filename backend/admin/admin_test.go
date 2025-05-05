@@ -14,6 +14,7 @@ import (
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
@@ -141,58 +142,55 @@ func testAdminSecrets(
 	}
 }
 
-var testSchema = schema.MustValidate(&schema.Schema{
-	Realms: []*schema.Realm{{
-		Modules: []*schema.Module{
-			{
-				Name:     "batmobile",
-				Comments: []string{"A batmobile comment"},
-				Decls: []schema.Decl{
-					&schema.Secret{
-						Comments: []string{"top secret"},
-						Name:     "owner",
-						Type:     &schema.String{},
-					},
-					&schema.Secret{
-						Comments: []string{"ultra secret"},
-						Name:     "horsepower",
-						Type:     &schema.Int{},
-					},
-					&schema.Config{
-						Comments: []string{"car color"},
-						Name:     "color",
-						Type:     &schema.Ref{Module: "batmobile", Name: "Color"},
-					},
-					&schema.Config{
-						Comments: []string{"car capacity"},
-						Name:     "capacity",
-						Type:     &schema.Ref{Module: "batmobile", Name: "Capacity"},
-					},
-					&schema.Enum{
-						Comments: []string{"Car colors"},
-						Name:     "Color",
-						Type:     &schema.String{},
-						Variants: []*schema.EnumVariant{
-							{Name: "Black", Value: &schema.StringValue{Value: "Black"}},
-							{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
-							{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
-						},
-					},
-					&schema.Enum{
-						Comments: []string{"Car capacities"},
-						Name:     "Capacity",
-						Type:     &schema.Int{},
-						Variants: []*schema.EnumVariant{
-							{Name: "One", Value: &schema.IntValue{Value: int(1)}},
-							{Name: "Two", Value: &schema.IntValue{Value: int(2)}},
-							{Name: "Four", Value: &schema.IntValue{Value: int(4)}},
-						},
+var testSchema = builder.Schema(
+	builder.Realm("test").Module(
+		builder.Module("batmobile").
+			Comment("A batmobile comment").
+			Decl(
+				&schema.Secret{
+					Comments: []string{"top secret"},
+					Name:     "owner",
+					Type:     &schema.String{},
+				},
+				&schema.Secret{
+					Comments: []string{"ultra secret"},
+					Name:     "horsepower",
+					Type:     &schema.Int{},
+				},
+				&schema.Config{
+					Comments: []string{"car color"},
+					Name:     "color",
+					Type:     &schema.Ref{Module: "batmobile", Name: "Color"},
+				},
+				&schema.Config{
+					Comments: []string{"car capacity"},
+					Name:     "capacity",
+					Type:     &schema.Ref{Module: "batmobile", Name: "Capacity"},
+				},
+				&schema.Enum{
+					Comments: []string{"Car colors"},
+					Name:     "Color",
+					Type:     &schema.String{},
+					Variants: []*schema.EnumVariant{
+						{Name: "Black", Value: &schema.StringValue{Value: "Black"}},
+						{Name: "Blue", Value: &schema.StringValue{Value: "Blue"}},
+						{Name: "Green", Value: &schema.StringValue{Value: "Green"}},
 					},
 				},
-			},
-		}},
-	},
-})
+				&schema.Enum{
+					Comments: []string{"Car capacities"},
+					Name:     "Capacity",
+					Type:     &schema.Int{},
+					Variants: []*schema.EnumVariant{
+						{Name: "One", Value: &schema.IntValue{Value: int(1)}},
+						{Name: "Two", Value: &schema.IntValue{Value: int(2)}},
+						{Name: "Four", Value: &schema.IntValue{Value: int(4)}},
+					},
+				},
+			).
+			MustBuild(),
+	).MustBuild(),
+).MustBuild()
 
 type mockSchemaRetriever struct {
 }

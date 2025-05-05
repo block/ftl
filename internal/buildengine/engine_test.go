@@ -9,6 +9,7 @@ import (
 	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
@@ -34,9 +35,8 @@ func TestGraph(t *testing.T) {
 	defer engine.Close()
 
 	// Import the schema from the third module, simulating a remote schema.
-	otherSchema := &schema.Module{
-		Name: "other",
-		Decls: []schema.Decl{
+	otherSchema := builder.Module("other").
+		Decl(
 			&schema.Data{
 				Name: "EchoRequest",
 				Fields: []*schema.Field{
@@ -54,8 +54,8 @@ func TestGraph(t *testing.T) {
 				Request:  &schema.Ref{Module: "other", Name: "EchoRequest"},
 				Response: &schema.Ref{Module: "other", Name: "EchoResponse"},
 			},
-		},
-	}
+		).
+		MustBuild()
 	engine.Import(ctx, "test", otherSchema)
 
 	expected := map[string][]string{
