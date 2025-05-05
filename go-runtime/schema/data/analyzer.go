@@ -41,7 +41,7 @@ func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional
 
 func extractData(pass *analysis.Pass, node *ast.TypeSpec, named *types.Named) optional.Option[*schema.Data] {
 	out := &schema.Data{
-		Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 		Name: strcase.ToUpperCamel(node.Name.Name),
 	}
 	common.ApplyMetadata[*schema.Data](pass, named.Obj(), func(md *common.ExtractedMetadata) {
@@ -51,7 +51,7 @@ func extractData(pass *analysis.Pass, node *ast.TypeSpec, named *types.Named) op
 	for i := range named.TypeParams().Len() {
 		param := named.TypeParams().At(i)
 		out.TypeParameters = append(out.TypeParameters, &schema.TypeParameter{
-			Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+			Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 			Name: param.Obj().Name(),
 		})
 	}
@@ -93,14 +93,14 @@ func extractData(pass *analysis.Pass, node *ast.TypeSpec, named *types.Named) op
 
 				if jsonFieldName != "" {
 					metadata = append(metadata, &schema.MetadataAlias{
-						Pos:   common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+						Pos:   common.GoPosToSchemaPos(pass, node.Pos()),
 						Kind:  schema.AliasKindJSON,
 						Alias: jsonFieldName,
 					})
 				}
 			}
 			out.Fields = append(out.Fields, &schema.Field{
-				Pos:      common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+				Pos:      common.GoPosToSchemaPos(pass, node.Pos()),
 				Name:     strcase.ToLowerCamel(name),
 				Type:     ft,
 				Metadata: metadata,

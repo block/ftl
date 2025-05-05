@@ -46,7 +46,7 @@ var Extractor = common.NewDeclExtractor[*schema.Verb, *ast.FuncDecl]("verb", Ext
 
 func Extract(pass *analysis.Pass, node *ast.FuncDecl, obj types.Object) optional.Option[*schema.Verb] {
 	verb := &schema.Verb{
-		Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 		Name: strcase.ToLowerCamel(node.Name.Name),
 	}
 

@@ -52,7 +52,7 @@ func Extract(pass *analysis.Pass, node *ast.TypeSpec, obj types.Object) optional
 	}
 
 	e := &schema.Enum{
-		Pos:      common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:      common.GoPosToSchemaPos(pass, node.Pos()),
 		Name:     strcase.ToUpperCamel(obj.Name()),
 		Variants: valueVariants,
 		Type:     typ,
@@ -100,7 +100,7 @@ func validateVariant(pass *analysis.Pass, obj types.Object, variant *schema.Enum
 			continue
 		}
 		for _, existingVariant := range existingEnum.Variants {
-			if existingVariant.Name == variant.Name && common.GoPosToSchemaPos(pass.Fset, obj.Pos()) != existingVariant.Pos {
+			if existingVariant.Name == variant.Name && common.GoPosToSchemaPos(pass, obj.Pos()) != existingVariant.Pos {
 				common.TokenErrorf(pass, obj.Pos(), obj.Name(), "enum variant %q conflicts with existing enum "+
 					"variant of %q at %q", variant.Name, existingEnum.GetName(), existingVariant.Pos)
 				return false

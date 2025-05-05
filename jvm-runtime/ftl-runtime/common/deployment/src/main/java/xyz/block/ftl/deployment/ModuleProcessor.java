@@ -93,6 +93,15 @@ public class ModuleProcessor {
         return new ModuleNameBuildItem(ftlModuleName);
     }
 
+    @BuildStep
+    ProjectRootBuildItem projectRoot(ApplicationInfoBuildItem applicationInfoBuildItem) throws IOException {
+        String ftlProjectRoot = System.getenv("FTL_PROJECT_ROOT");
+        if (ftlProjectRoot == null || ftlProjectRoot.isEmpty()) {
+            return new ProjectRootBuildItem(applicationInfoBuildItem.getName());
+        }
+        return new ProjectRootBuildItem(ftlProjectRoot);
+    }
+
     /**
      * Bytecode doesn't retain comments, so they are stored in a separate file.
      */

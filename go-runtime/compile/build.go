@@ -565,7 +565,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	extractResultChan := make(chan result.Result[extract.Result], 1)
 	go func() {
 		logger.Debugf("Extracting schema")
-		extractResultChan <- result.From(extract.Extract(config.Dir, sch))
+		extractResultChan <- result.From(extract.Extract(projectConfig.Root(), config.Dir, sch))
 	}()
 	optimisticHashesChan := make(chan watch.FileHashes, 1)
 	optimisticCompileChan := make(chan []builderrors.Error, 1)
@@ -606,7 +606,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	if mainModuleCtxChanged && builderrors.ContainsTerminalError(extractResult.Errors) {
 		// We may have terminal errors that are resolved by scaffolding queries.
 		logger.Debugf("Re-extracting schema after scaffolding")
-		extractResult, err = extract.Extract(config.Dir, sch)
+		extractResult, err = extract.Extract(projectConfig.Root(), config.Dir, sch)
 		if err != nil {
 			return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not extract schema"))}
 		}

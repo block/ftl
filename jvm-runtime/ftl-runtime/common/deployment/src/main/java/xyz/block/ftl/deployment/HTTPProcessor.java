@@ -86,8 +86,11 @@ public class HTTPProcessor {
     @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
     public SchemaContributorBuildItem registerHttpHandlers(
+            ProjectRootBuildItem projectRootBuildItem,
             FTLRecorder recorder,
             ResteasyReactiveResourceMethodEntriesBuildItem restEndpoints) {
+
+        String projectRoot = projectRootBuildItem.getProjectRoot();
 
         List<Map.Entry<Position, String>> errors = new ArrayList<>();
         for (var endpoint : restEndpoints.getEntries()) {
@@ -96,7 +99,7 @@ public class HTTPProcessor {
                     methodInfo.hasAnnotation(FTLDotNames.CRON) ||
                     methodInfo.hasAnnotation(FTLDotNames.FIXTURE) ||
                     methodInfo.hasAnnotation(FTLDotNames.SUBSCRIPTION)) {
-                errors.add(Map.entry(PositionUtils.forMethod(methodInfo),
+                errors.add(Map.entry(PositionUtils.forMethod(projectRoot, methodInfo),
                         "HTTP handler " + methodInfo.name() + " should not be annotated with other verb defining annotations"));
             }
         }
@@ -207,7 +210,8 @@ public class HTTPProcessor {
                                         .build();
                             });
 
-                    moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(), endpoint.getActualClassInfo().name().toString(),
+                    moduleBuilder.registerVerbMethod(projectRoot, endpoint.getMethodInfo(),
+                            endpoint.getActualClassInfo().name().toString(),
                             Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
             }

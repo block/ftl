@@ -46,13 +46,15 @@ public class EnumProcessor {
     @Record(ExecutionTime.RUNTIME_INIT)
     SchemaContributorBuildItem handleEnums(
             CombinedIndexBuildItem index,
+            ProjectRootBuildItem projectRootBuildItem,
             FTLRecorder recorder,
             CommentsBuildItem commentsBuildItem) {
         var enumAnnotations = index.getIndex().getAnnotations(FTLDotNames.ENUM);
         log.debugf("Processing %d enum annotations into decls", enumAnnotations.size());
         return new SchemaContributorBuildItem(moduleBuilder -> {
             try {
-                var decls = extractEnumDecls(index, enumAnnotations, recorder, moduleBuilder, commentsBuildItem);
+                var decls = extractEnumDecls(index, projectRootBuildItem, enumAnnotations, recorder, moduleBuilder,
+                        commentsBuildItem);
                 for (var decl : decls) {
                     moduleBuilder.addDecls(decl);
                 }
@@ -68,8 +70,9 @@ public class EnumProcessor {
      * sets up Jackson serialization in the runtime.
      * ModuleBuilder.buildType is used, and has the side effect of adding child Decls to the module.
      */
-    private List<Decl> extractEnumDecls(CombinedIndexBuildItem index, Collection<AnnotationInstance> enumAnnotations,
-            FTLRecorder recorder, ModuleBuilder moduleBuilder, CommentsBuildItem commentsBuildItem)
+    private List<Decl> extractEnumDecls(CombinedIndexBuildItem index, ProjectRootBuildItem projectRootBuildItem,
+            Collection<AnnotationInstance> enumAnnotations, FTLRecorder recorder, ModuleBuilder moduleBuilder,
+            CommentsBuildItem commentsBuildItem)
             throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
         List<Decl> decls = new ArrayList<>();
         for (var enumAnnotation : enumAnnotations) {
@@ -83,10 +86,12 @@ public class EnumProcessor {
                 // Value enum
                 recorder.registerEnum(clazz);
                 if (isLocalToModule) {
-                    decls.add(extractValueEnum(classInfo, clazz, visibility, commentsBuildItem));
+                    decls.add(extractValueEnum(projectRootBuildItem.getProjectRoot(), classInfo, clazz, visibility,
+                            commentsBuildItem));
                 }
             } else {
-                var typeEnum = extractTypeEnum(index, moduleBuilder, classInfo, visibility, commentsBuildItem);
+                var typeEnum = extractTypeEnum(index, projectRootBuildItem, moduleBuilder, classInfo, visibility,
+                        commentsBuildItem);
                 recorder.registerEnum(clazz, typeEnum.variantClasses);
                 if (isLocalToModule) {
                     decls.add(typeEnum.decl);
@@ -99,13 +104,13 @@ public class EnumProcessor {
     /**
      * Value enums are Java language enums with a single field 'value'
      */
-    private Decl extractValueEnum(ClassInfo classInfo, Class<?> clazz, Visibility visibility,
+    private Decl extractValueEnum(String projectRoot, ClassInfo classInfo, Class<?> clazz, Visibility visibility,
             CommentsBuildItem commentsBuildItem)
             throws NoSuchFieldException, IllegalAccessException {
         String name = classInfo.simpleName();
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
-                .setPos(PositionUtils.forClass(classInfo.name().toString()))
+                .setPos(PositionUtils.forClass(projectRoot, classInfo.name().toString()))
                 .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         FieldInfo valueField = classInfo.field("value");
@@ -152,12 +157,14 @@ public class EnumProcessor {
      * - a wrapper for a FTL native type e.g. string, [string]. Has @EnumHolder annotation </br>
      * - a class with arbitrary fields </br>
      */
-    private TypeEnum extractTypeEnum(CombinedIndexBuildItem index, ModuleBuilder moduleBuilder,
+    private TypeEnum extractTypeEnum(CombinedIndexBuildItem index, ProjectRootBuildItem projectRootBuildItem,
+            ModuleBuilder moduleBuilder,
             ClassInfo classInfo, Visibility visibility, CommentsBuildItem commentsBuildItem) throws ClassNotFoundException {
+        String projectRoot = projectRootBuildItem.getProjectRoot();
         String name = classInfo.simpleName();
         Enum.Builder enumBuilder = Enum.newBuilder()
                 .setName(name)
-                .setPos(PositionUtils.forClass(classInfo.name().toString()))
+                .setPos(PositionUtils.forClass(projectRoot, classInfo.name().toString()))
                 .setVisibility(visibility)
                 .addAllComments(commentsBuildItem.getComments(name));
         var variants = index.getComputingIndex().getAllKnownImplementors(classInfo.name());
@@ -182,7 +189,7 @@ public class EnumProcessor {
                         Thread.currentThread().getContextClassLoader());
                 variantClasses.add(variantClazz);
             }
-            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, visibility,
+            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(projectRoot, variantType, visibility,
                     Nullability.NOT_NULL);
             TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
 

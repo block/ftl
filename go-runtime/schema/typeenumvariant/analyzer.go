@@ -43,7 +43,7 @@ func extractEnumVariant(pass *analysis.Pass, node *ast.TypeSpec, obj types.Objec
 	}
 
 	variant := &schema.EnumVariant{
-		Pos:  common.GoPosToSchemaPos(pass.Fset, node.Pos()),
+		Pos:  common.GoPosToSchemaPos(pass, node.Pos()),
 		Name: strcase.ToUpperCamel(node.Name.Name),
 	}
 	if md, ok := common.GetFactForObject[*common.ExtractedMetadata](pass, obj).Get(); ok {
@@ -67,7 +67,7 @@ func extractEnumVariant(pass *analysis.Pass, node *ast.TypeSpec, obj types.Objec
 				return optional.None[*schema.TypeValue]()
 			}
 			return optional.Some(&schema.TypeValue{
-				Pos:   common.GoPosToSchemaPos(p.Fset, node.Pos()),
+				Pos:   common.GoPosToSchemaPos(pass, node.Pos()),
 				Value: value,
 			})
 		}

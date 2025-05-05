@@ -14,17 +14,19 @@ public class TypeProcessor {
 
     @BuildStep
     public void handleExportedTypes(CombinedIndexBuildItem index,
+            ProjectRootBuildItem projectRootBuildItem,
             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
             List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
     ) {
+        var projectRoot = projectRootBuildItem.getProjectRoot();
         Collection<AnnotationInstance> exports = index.getIndex().getAnnotations(FTLDotNames.DATA);
         for (var an : exports) {
             if (an.target().kind() != org.jboss.jandex.AnnotationTarget.Kind.CLASS) {
                 continue;
             }
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .buildType(ClassType.create(an.target().asClass().name()), VisibilityUtil.getVisibility(an.target()),
-                            an.target())));
+                    .buildType(projectRoot, ClassType.create(an.target().asClass().name()),
+                            VisibilityUtil.getVisibility(an.target()), an.target())));
         }
     }
 }

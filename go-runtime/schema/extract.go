@@ -116,7 +116,7 @@ func init() {
 }
 
 // Extract statically parses Go FTL module source into a schema.Module
-func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
+func Extract(projectRoot string, moduleDir string, sch *schema.Schema) (Result, error) {
 	pkgConfig := packages.Config{
 		Dir:  moduleDir,
 		Mode: packages.LoadTypes | packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedImports,
@@ -124,6 +124,16 @@ func Extract(moduleDir string, sch *schema.Schema) (Result, error) {
 	pkgs, err := packages.Load(&pkgConfig, "./...")
 	if err != nil {
 		return Result{}, errors.Wrap(err, "failed to load packages")
+	}
+
+	// Set the project_root flag for all analyzers before running them
+	for _, analyzer := range orderedAnalyzers {
+		if exists := analyzer.Flags.Lookup(common.ProjectRootFlagName); exists != nil {
+			err = exists.Value.Set(projectRoot)
+			if err != nil {
+				return Result{}, errors.Wrap(err, fmt.Sprintf("failed to set project_root flag for analyzer: %s", analyzer.Name))
+			}
+		}
 	}
 	graph, err := checker.Analyze(orderedAnalyzers, pkgs, &checker.Options{
 		ReverseImportExecutionOrder: true,
