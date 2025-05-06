@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -36,5 +37,6 @@ func TestZipRelative(t *testing.T) {
 func TestErrorPrefixStripped(t *testing.T) {
 	err := errors.New("test error")
 	errorStr := fmt.Sprintf("%+v", err)
-	assert.Equal(t, "internal/zip_relative_test.go:37: test error", errorStr)
+	gitRoot := internal.GitRoot(".").MustGet()
+	assert.Equal(t, filepath.Join(gitRoot, "internal/zip_relative_test.go")+":38: test error", errorStr)
 }
