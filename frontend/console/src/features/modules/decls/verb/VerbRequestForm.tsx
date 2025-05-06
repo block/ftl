@@ -136,7 +136,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
         }
       })
       .catch((error) => {
-        console.error(error)
+        setError(String(error))
       })
   }
 
