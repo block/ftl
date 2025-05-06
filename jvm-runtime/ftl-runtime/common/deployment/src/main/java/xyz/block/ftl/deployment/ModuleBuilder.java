@@ -979,6 +979,15 @@ public class ModuleBuilder {
         validationFailures.add(new ValidationFailure(toError(position), message));
     }
 
+    public void registerValidationFailure(MethodInfo method, String message) {
+        validationFailures.add(new ValidationFailure(toError(PositionUtils.forMethod(projectRoot, method)), message));
+    }
+
+    public void registerValidationFailure(ClassInfo clzz, String message) {
+        validationFailures
+                .add(new ValidationFailure(toError(PositionUtils.forClass(projectRoot, clzz.name().toString())), message));
+    }
+
     private void addDecl(Decl decl, Position pos, String name) {
         validateName(pos, name);
         var existing = decls.get(name);

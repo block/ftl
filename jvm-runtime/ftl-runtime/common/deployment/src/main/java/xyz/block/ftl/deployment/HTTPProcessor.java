@@ -119,6 +119,13 @@ public class HTTPProcessor {
                 Type stringType = Type.newBuilder().setString(xyz.block.ftl.schema.v1.String.newBuilder().build()).build();
 
                 for (var endpoint : restEndpoints.getEntries()) {
+                    if (endpoint.getMethodInfo().returnType().name().toString().equals("ftl.builtin.HttpResponse")) {
+                        // Guard against users trying to use go style declarations
+                        moduleBuilder.registerValidationFailure(endpoint.getMethodInfo(), "HTTP handler "
+                                + endpoint.getMethodInfo().name()
+                                + " should not return ftl.builtin.HttpResponse directly, it should just return the payload type");
+                        continue;
+                    }
                     var verbName = ModuleBuilder.methodToName(endpoint.getMethodInfo());
 
                     org.jboss.jandex.Type bodyParamType = VoidType.VOID;
