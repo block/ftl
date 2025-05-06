@@ -14,7 +14,7 @@ export const secretPanels = (moduleName: string, secret: Secret, showGraph = tru
         <RightPanelAttribute key='type' name='Type' value={secret.secret?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, secret.schema, secret.edges, secret.secret?.pos),
+    ...DeclDefaultPanels(moduleName, secret.schema, secret.edges, secret.secret?.pos, secret.git),
   ]
 
   if (showGraph) {

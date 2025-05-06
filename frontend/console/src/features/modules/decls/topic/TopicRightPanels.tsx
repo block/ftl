@@ -24,7 +24,7 @@ export const topicPanels = (moduleName: string, topic: Topic, showGraph = true) 
         </div>,
       ],
     },
-    ...DeclDefaultPanels(moduleName, topic.schema, topic.edges, topic.topic?.pos),
+    ...DeclDefaultPanels(moduleName, topic.schema, topic.edges, topic.topic?.pos, topic.git),
   ]
 
   if (showGraph) {

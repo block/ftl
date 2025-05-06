@@ -31,7 +31,7 @@ func (i editCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 		return errors.Wrapf(err, "could not get dev state; is FTL running?")
 	}
 
-	odecl, _ := state.Schema.ResolveWithModule(&schema.Ref{Module: i.Ref.Module, Name: i.Ref.Name})
+	odecl, omod := state.Schema.ResolveWithModule(&schema.Ref{Module: i.Ref.Module, Name: i.Ref.Name})
 	decl, ok := odecl.Get()
 	if !ok {
 		return errors.Errorf("could not find %q", i.Ref)
@@ -40,7 +40,12 @@ func (i editCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect
 		return errors.Errorf("could not find file of %q", i.Ref)
 	}
 
-	err = editor.OpenFileInEditor(ctx, i.Editor, decl.Position(), pc.Root())
+	mod, ok := omod.Get()
+	if !ok {
+		return errors.Errorf("could not find module %q", i.Ref.Module)
+	}
+
+	err = editor.OpenFileInEditor(ctx, i.Editor, decl.Position(), pc.Root(), mod)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open %s in %s", i.Ref, i.Editor)
 	}

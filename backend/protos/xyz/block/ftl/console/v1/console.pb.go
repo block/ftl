@@ -134,6 +134,7 @@ type Config struct {
 	Config        *v1.Config             `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,11 +190,19 @@ func (x *Config) GetSchema() string {
 	return ""
 }
 
+func (x *Config) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Data struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Data          *v1.Data               `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	Schema        string                 `protobuf:"bytes,2,opt,name=schema,proto3" json:"schema,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,3,opt,name=edges,proto3" json:"edges,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,11 +258,19 @@ func (x *Data) GetEdges() *Edges {
 	return nil
 }
 
+func (x *Data) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Database struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Database      *v1.Database           `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -309,11 +326,19 @@ func (x *Database) GetSchema() string {
 	return ""
 }
 
+func (x *Database) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Enum struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enum          *v1.Enum               `protobuf:"bytes,1,opt,name=enum,proto3" json:"enum,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -369,11 +394,19 @@ func (x *Enum) GetSchema() string {
 	return ""
 }
 
+func (x *Enum) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Topic struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Topic         *v1.Topic              `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -429,11 +462,19 @@ func (x *Topic) GetSchema() string {
 	return ""
 }
 
+func (x *Topic) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type TypeAlias struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Typealias     *v1.TypeAlias          `protobuf:"bytes,1,opt,name=typealias,proto3" json:"typealias,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -489,11 +530,19 @@ func (x *TypeAlias) GetSchema() string {
 	return ""
 }
 
+func (x *TypeAlias) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Secret struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Secret        *v1.Secret             `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
 	Edges         *Edges                 `protobuf:"bytes,2,opt,name=edges,proto3" json:"edges,omitempty"`
 	Schema        string                 `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,4,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -549,12 +598,20 @@ func (x *Secret) GetSchema() string {
 	return ""
 }
 
+func (x *Secret) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Verb struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Verb              *v1.Verb               `protobuf:"bytes,1,opt,name=verb,proto3" json:"verb,omitempty"`
 	Schema            string                 `protobuf:"bytes,2,opt,name=schema,proto3" json:"schema,omitempty"`
 	JsonRequestSchema string                 `protobuf:"bytes,3,opt,name=json_request_schema,json=jsonRequestSchema,proto3" json:"json_request_schema,omitempty"`
 	Edges             *Edges                 `protobuf:"bytes,4,opt,name=edges,proto3" json:"edges,omitempty"`
+	Git               *v1.MetadataGit        `protobuf:"bytes,5,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -617,6 +674,13 @@ func (x *Verb) GetEdges() *Edges {
 	return nil
 }
 
+func (x *Verb) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
+	}
+	return nil
+}
+
 type Module struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -631,6 +695,7 @@ type Module struct {
 	Topics        []*Topic               `protobuf:"bytes,10,rep,name=topics,proto3" json:"topics,omitempty"`
 	Typealiases   []*TypeAlias           `protobuf:"bytes,11,rep,name=typealiases,proto3" json:"typealiases,omitempty"`
 	Module        *v1.Module             `protobuf:"bytes,12,opt,name=module,proto3" json:"module,omitempty"`
+	Git           *v1.MetadataGit        `protobuf:"bytes,13,opt,name=git,proto3" json:"git,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -745,6 +810,13 @@ func (x *Module) GetTypealiases() []*TypeAlias {
 func (x *Module) GetModule() *v1.Module {
 	if x != nil {
 		return x.Module
+	}
+	return nil
+}
+
+func (x *Module) GetGit() *v1.MetadataGit {
+	if x != nil {
+		return x.Git
 	}
 	return nil
 }
@@ -1708,40 +1780,48 @@ const file_xyz_block_ftl_console_v1_console_proto_rawDesc = "" +
 	"&xyz/block/ftl/console/v1/console.proto\x12\x18xyz.block.ftl.console.v1\x1a.xyz/block/ftl/buildengine/v1/buildengine.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a(xyz/block/ftl/timeline/v1/timeline.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\x1a\x1bxyz/block/ftl/v1/verb.proto\"e\n" +
 	"\x05Edges\x12,\n" +
 	"\x02in\x18\x01 \x03(\v2\x1c.xyz.block.ftl.schema.v1.RefR\x02in\x12.\n" +
-	"\x03out\x18\x02 \x03(\v2\x1c.xyz.block.ftl.schema.v1.RefR\x03out\"\x90\x01\n" +
+	"\x03out\x18\x02 \x03(\v2\x1c.xyz.block.ftl.schema.v1.RefR\x03out\"\xc8\x01\n" +
 	"\x06Config\x127\n" +
 	"\x06config\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ConfigR\x06config\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\x88\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xc0\x01\n" +
 	"\x04Data\x121\n" +
 	"\x04data\x18\x01 \x01(\v2\x1d.xyz.block.ftl.schema.v1.DataR\x04data\x12\x16\n" +
 	"\x06schema\x18\x02 \x01(\tR\x06schema\x125\n" +
-	"\x05edges\x18\x03 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\"\x98\x01\n" +
+	"\x05edges\x18\x03 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xd0\x01\n" +
 	"\bDatabase\x12=\n" +
 	"\bdatabase\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.DatabaseR\bdatabase\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\x88\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xc0\x01\n" +
 	"\x04Enum\x121\n" +
 	"\x04enum\x18\x01 \x01(\v2\x1d.xyz.block.ftl.schema.v1.EnumR\x04enum\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\x8c\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xc4\x01\n" +
 	"\x05Topic\x124\n" +
 	"\x05topic\x18\x01 \x01(\v2\x1e.xyz.block.ftl.schema.v1.TopicR\x05topic\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\x9c\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xd4\x01\n" +
 	"\tTypeAlias\x12@\n" +
 	"\ttypealias\x18\x01 \x01(\v2\".xyz.block.ftl.schema.v1.TypeAliasR\ttypealias\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\x90\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xc8\x01\n" +
 	"\x06Secret\x127\n" +
 	"\x06secret\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SecretR\x06secret\x125\n" +
 	"\x05edges\x18\x02 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x12\x16\n" +
-	"\x06schema\x18\x03 \x01(\tR\x06schema\"\xb8\x01\n" +
+	"\x06schema\x18\x03 \x01(\tR\x06schema\x126\n" +
+	"\x03git\x18\x04 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xf0\x01\n" +
 	"\x04Verb\x121\n" +
 	"\x04verb\x18\x01 \x01(\v2\x1d.xyz.block.ftl.schema.v1.VerbR\x04verb\x12\x16\n" +
 	"\x06schema\x18\x02 \x01(\tR\x06schema\x12.\n" +
 	"\x13json_request_schema\x18\x03 \x01(\tR\x11jsonRequestSchema\x125\n" +
-	"\x05edges\x18\x04 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\"\x89\x05\n" +
+	"\x05edges\x18\x04 \x01(\v2\x1f.xyz.block.ftl.console.v1.EdgesR\x05edges\x126\n" +
+	"\x03git\x18\x05 \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\"\xc1\x05\n" +
 	"\x06Module\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06schema\x18\x02 \x01(\tR\x06schema\x12@\n" +
@@ -1755,7 +1835,8 @@ const file_xyz_block_ftl_console_v1_console_proto_rawDesc = "" +
 	"\x06topics\x18\n" +
 	" \x03(\v2\x1f.xyz.block.ftl.console.v1.TopicR\x06topics\x12E\n" +
 	"\vtypealiases\x18\v \x03(\v2#.xyz.block.ftl.console.v1.TypeAliasR\vtypealiases\x127\n" +
-	"\x06module\x18\f \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\")\n" +
+	"\x06module\x18\f \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x126\n" +
+	"\x03git\x18\r \x01(\v2$.xyz.block.ftl.schema.v1.MetadataGitR\x03git\")\n" +
 	"\rTopologyGroup\x12\x18\n" +
 	"\amodules\x18\x01 \x03(\tR\amodules\"K\n" +
 	"\bTopology\x12?\n" +
@@ -1880,94 +1961,104 @@ var file_xyz_block_ftl_console_v1_console_proto_goTypes = []any{
 	(*OpenFileInEditorResponse)(nil),       // 30: xyz.block.ftl.console.v1.OpenFileInEditorResponse
 	(*v1.Ref)(nil),                         // 31: xyz.block.ftl.schema.v1.Ref
 	(*v1.Config)(nil),                      // 32: xyz.block.ftl.schema.v1.Config
-	(*v1.Data)(nil),                        // 33: xyz.block.ftl.schema.v1.Data
-	(*v1.Database)(nil),                    // 34: xyz.block.ftl.schema.v1.Database
-	(*v1.Enum)(nil),                        // 35: xyz.block.ftl.schema.v1.Enum
-	(*v1.Topic)(nil),                       // 36: xyz.block.ftl.schema.v1.Topic
-	(*v1.TypeAlias)(nil),                   // 37: xyz.block.ftl.schema.v1.TypeAlias
-	(*v1.Secret)(nil),                      // 38: xyz.block.ftl.schema.v1.Secret
-	(*v1.Verb)(nil),                        // 39: xyz.block.ftl.schema.v1.Verb
-	(*v1.ModuleRuntime)(nil),               // 40: xyz.block.ftl.schema.v1.ModuleRuntime
-	(*v1.Module)(nil),                      // 41: xyz.block.ftl.schema.v1.Module
-	(*v11.PingRequest)(nil),                // 42: xyz.block.ftl.v1.PingRequest
-	(*v12.GetTimelineRequest)(nil),         // 43: xyz.block.ftl.timeline.v1.GetTimelineRequest
-	(*v12.StreamTimelineRequest)(nil),      // 44: xyz.block.ftl.timeline.v1.StreamTimelineRequest
-	(*v11.CallRequest)(nil),                // 45: xyz.block.ftl.v1.CallRequest
-	(*v13.StreamEngineEventsRequest)(nil),  // 46: xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
-	(*v11.PingResponse)(nil),               // 47: xyz.block.ftl.v1.PingResponse
-	(*v12.GetTimelineResponse)(nil),        // 48: xyz.block.ftl.timeline.v1.GetTimelineResponse
-	(*v12.StreamTimelineResponse)(nil),     // 49: xyz.block.ftl.timeline.v1.StreamTimelineResponse
-	(*v11.CallResponse)(nil),               // 50: xyz.block.ftl.v1.CallResponse
-	(*v13.StreamEngineEventsResponse)(nil), // 51: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
+	(*v1.MetadataGit)(nil),                 // 33: xyz.block.ftl.schema.v1.MetadataGit
+	(*v1.Data)(nil),                        // 34: xyz.block.ftl.schema.v1.Data
+	(*v1.Database)(nil),                    // 35: xyz.block.ftl.schema.v1.Database
+	(*v1.Enum)(nil),                        // 36: xyz.block.ftl.schema.v1.Enum
+	(*v1.Topic)(nil),                       // 37: xyz.block.ftl.schema.v1.Topic
+	(*v1.TypeAlias)(nil),                   // 38: xyz.block.ftl.schema.v1.TypeAlias
+	(*v1.Secret)(nil),                      // 39: xyz.block.ftl.schema.v1.Secret
+	(*v1.Verb)(nil),                        // 40: xyz.block.ftl.schema.v1.Verb
+	(*v1.ModuleRuntime)(nil),               // 41: xyz.block.ftl.schema.v1.ModuleRuntime
+	(*v1.Module)(nil),                      // 42: xyz.block.ftl.schema.v1.Module
+	(*v11.PingRequest)(nil),                // 43: xyz.block.ftl.v1.PingRequest
+	(*v12.GetTimelineRequest)(nil),         // 44: xyz.block.ftl.timeline.v1.GetTimelineRequest
+	(*v12.StreamTimelineRequest)(nil),      // 45: xyz.block.ftl.timeline.v1.StreamTimelineRequest
+	(*v11.CallRequest)(nil),                // 46: xyz.block.ftl.v1.CallRequest
+	(*v13.StreamEngineEventsRequest)(nil),  // 47: xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	(*v11.PingResponse)(nil),               // 48: xyz.block.ftl.v1.PingResponse
+	(*v12.GetTimelineResponse)(nil),        // 49: xyz.block.ftl.timeline.v1.GetTimelineResponse
+	(*v12.StreamTimelineResponse)(nil),     // 50: xyz.block.ftl.timeline.v1.StreamTimelineResponse
+	(*v11.CallResponse)(nil),               // 51: xyz.block.ftl.v1.CallResponse
+	(*v13.StreamEngineEventsResponse)(nil), // 52: xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
 }
 var file_xyz_block_ftl_console_v1_console_proto_depIdxs = []int32{
 	31, // 0: xyz.block.ftl.console.v1.Edges.in:type_name -> xyz.block.ftl.schema.v1.Ref
 	31, // 1: xyz.block.ftl.console.v1.Edges.out:type_name -> xyz.block.ftl.schema.v1.Ref
 	32, // 2: xyz.block.ftl.console.v1.Config.config:type_name -> xyz.block.ftl.schema.v1.Config
 	1,  // 3: xyz.block.ftl.console.v1.Config.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	33, // 4: xyz.block.ftl.console.v1.Data.data:type_name -> xyz.block.ftl.schema.v1.Data
-	1,  // 5: xyz.block.ftl.console.v1.Data.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	34, // 6: xyz.block.ftl.console.v1.Database.database:type_name -> xyz.block.ftl.schema.v1.Database
-	1,  // 7: xyz.block.ftl.console.v1.Database.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	35, // 8: xyz.block.ftl.console.v1.Enum.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	1,  // 9: xyz.block.ftl.console.v1.Enum.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	36, // 10: xyz.block.ftl.console.v1.Topic.topic:type_name -> xyz.block.ftl.schema.v1.Topic
-	1,  // 11: xyz.block.ftl.console.v1.Topic.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	37, // 12: xyz.block.ftl.console.v1.TypeAlias.typealias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	1,  // 13: xyz.block.ftl.console.v1.TypeAlias.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	38, // 14: xyz.block.ftl.console.v1.Secret.secret:type_name -> xyz.block.ftl.schema.v1.Secret
-	1,  // 15: xyz.block.ftl.console.v1.Secret.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	39, // 16: xyz.block.ftl.console.v1.Verb.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	1,  // 17: xyz.block.ftl.console.v1.Verb.edges:type_name -> xyz.block.ftl.console.v1.Edges
-	40, // 18: xyz.block.ftl.console.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
-	9,  // 19: xyz.block.ftl.console.v1.Module.verbs:type_name -> xyz.block.ftl.console.v1.Verb
-	3,  // 20: xyz.block.ftl.console.v1.Module.data:type_name -> xyz.block.ftl.console.v1.Data
-	8,  // 21: xyz.block.ftl.console.v1.Module.secrets:type_name -> xyz.block.ftl.console.v1.Secret
-	2,  // 22: xyz.block.ftl.console.v1.Module.configs:type_name -> xyz.block.ftl.console.v1.Config
-	4,  // 23: xyz.block.ftl.console.v1.Module.databases:type_name -> xyz.block.ftl.console.v1.Database
-	5,  // 24: xyz.block.ftl.console.v1.Module.enums:type_name -> xyz.block.ftl.console.v1.Enum
-	6,  // 25: xyz.block.ftl.console.v1.Module.topics:type_name -> xyz.block.ftl.console.v1.Topic
-	7,  // 26: xyz.block.ftl.console.v1.Module.typealiases:type_name -> xyz.block.ftl.console.v1.TypeAlias
-	41, // 27: xyz.block.ftl.console.v1.Module.module:type_name -> xyz.block.ftl.schema.v1.Module
-	11, // 28: xyz.block.ftl.console.v1.Topology.levels:type_name -> xyz.block.ftl.console.v1.TopologyGroup
-	10, // 29: xyz.block.ftl.console.v1.GetModulesResponse.modules:type_name -> xyz.block.ftl.console.v1.Module
-	12, // 30: xyz.block.ftl.console.v1.GetModulesResponse.topology:type_name -> xyz.block.ftl.console.v1.Topology
-	10, // 31: xyz.block.ftl.console.v1.StreamModulesResponse.modules:type_name -> xyz.block.ftl.console.v1.Module
-	12, // 32: xyz.block.ftl.console.v1.StreamModulesResponse.topology:type_name -> xyz.block.ftl.console.v1.Topology
-	0,  // 33: xyz.block.ftl.console.v1.ExecuteGooseResponse.source:type_name -> xyz.block.ftl.console.v1.ExecuteGooseResponse.Source
-	42, // 34: xyz.block.ftl.console.v1.ConsoleService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	13, // 35: xyz.block.ftl.console.v1.ConsoleService.GetModules:input_type -> xyz.block.ftl.console.v1.GetModulesRequest
-	15, // 36: xyz.block.ftl.console.v1.ConsoleService.StreamModules:input_type -> xyz.block.ftl.console.v1.StreamModulesRequest
-	43, // 37: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:input_type -> xyz.block.ftl.timeline.v1.GetTimelineRequest
-	44, // 38: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:input_type -> xyz.block.ftl.timeline.v1.StreamTimelineRequest
-	17, // 39: xyz.block.ftl.console.v1.ConsoleService.GetConfig:input_type -> xyz.block.ftl.console.v1.GetConfigRequest
-	19, // 40: xyz.block.ftl.console.v1.ConsoleService.SetConfig:input_type -> xyz.block.ftl.console.v1.SetConfigRequest
-	21, // 41: xyz.block.ftl.console.v1.ConsoleService.GetSecret:input_type -> xyz.block.ftl.console.v1.GetSecretRequest
-	23, // 42: xyz.block.ftl.console.v1.ConsoleService.SetSecret:input_type -> xyz.block.ftl.console.v1.SetSecretRequest
-	45, // 43: xyz.block.ftl.console.v1.ConsoleService.Call:input_type -> xyz.block.ftl.v1.CallRequest
-	46, // 44: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:input_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
-	25, // 45: xyz.block.ftl.console.v1.ConsoleService.GetInfo:input_type -> xyz.block.ftl.console.v1.GetInfoRequest
-	27, // 46: xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose:input_type -> xyz.block.ftl.console.v1.ExecuteGooseRequest
-	29, // 47: xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor:input_type -> xyz.block.ftl.console.v1.OpenFileInEditorRequest
-	47, // 48: xyz.block.ftl.console.v1.ConsoleService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	14, // 49: xyz.block.ftl.console.v1.ConsoleService.GetModules:output_type -> xyz.block.ftl.console.v1.GetModulesResponse
-	16, // 50: xyz.block.ftl.console.v1.ConsoleService.StreamModules:output_type -> xyz.block.ftl.console.v1.StreamModulesResponse
-	48, // 51: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:output_type -> xyz.block.ftl.timeline.v1.GetTimelineResponse
-	49, // 52: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:output_type -> xyz.block.ftl.timeline.v1.StreamTimelineResponse
-	18, // 53: xyz.block.ftl.console.v1.ConsoleService.GetConfig:output_type -> xyz.block.ftl.console.v1.GetConfigResponse
-	20, // 54: xyz.block.ftl.console.v1.ConsoleService.SetConfig:output_type -> xyz.block.ftl.console.v1.SetConfigResponse
-	22, // 55: xyz.block.ftl.console.v1.ConsoleService.GetSecret:output_type -> xyz.block.ftl.console.v1.GetSecretResponse
-	24, // 56: xyz.block.ftl.console.v1.ConsoleService.SetSecret:output_type -> xyz.block.ftl.console.v1.SetSecretResponse
-	50, // 57: xyz.block.ftl.console.v1.ConsoleService.Call:output_type -> xyz.block.ftl.v1.CallResponse
-	51, // 58: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:output_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
-	26, // 59: xyz.block.ftl.console.v1.ConsoleService.GetInfo:output_type -> xyz.block.ftl.console.v1.GetInfoResponse
-	28, // 60: xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose:output_type -> xyz.block.ftl.console.v1.ExecuteGooseResponse
-	30, // 61: xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor:output_type -> xyz.block.ftl.console.v1.OpenFileInEditorResponse
-	48, // [48:62] is the sub-list for method output_type
-	34, // [34:48] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	33, // 4: xyz.block.ftl.console.v1.Config.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	34, // 5: xyz.block.ftl.console.v1.Data.data:type_name -> xyz.block.ftl.schema.v1.Data
+	1,  // 6: xyz.block.ftl.console.v1.Data.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 7: xyz.block.ftl.console.v1.Data.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	35, // 8: xyz.block.ftl.console.v1.Database.database:type_name -> xyz.block.ftl.schema.v1.Database
+	1,  // 9: xyz.block.ftl.console.v1.Database.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 10: xyz.block.ftl.console.v1.Database.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	36, // 11: xyz.block.ftl.console.v1.Enum.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	1,  // 12: xyz.block.ftl.console.v1.Enum.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 13: xyz.block.ftl.console.v1.Enum.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	37, // 14: xyz.block.ftl.console.v1.Topic.topic:type_name -> xyz.block.ftl.schema.v1.Topic
+	1,  // 15: xyz.block.ftl.console.v1.Topic.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 16: xyz.block.ftl.console.v1.Topic.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	38, // 17: xyz.block.ftl.console.v1.TypeAlias.typealias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	1,  // 18: xyz.block.ftl.console.v1.TypeAlias.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 19: xyz.block.ftl.console.v1.TypeAlias.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	39, // 20: xyz.block.ftl.console.v1.Secret.secret:type_name -> xyz.block.ftl.schema.v1.Secret
+	1,  // 21: xyz.block.ftl.console.v1.Secret.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 22: xyz.block.ftl.console.v1.Secret.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	40, // 23: xyz.block.ftl.console.v1.Verb.verb:type_name -> xyz.block.ftl.schema.v1.Verb
+	1,  // 24: xyz.block.ftl.console.v1.Verb.edges:type_name -> xyz.block.ftl.console.v1.Edges
+	33, // 25: xyz.block.ftl.console.v1.Verb.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	41, // 26: xyz.block.ftl.console.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
+	9,  // 27: xyz.block.ftl.console.v1.Module.verbs:type_name -> xyz.block.ftl.console.v1.Verb
+	3,  // 28: xyz.block.ftl.console.v1.Module.data:type_name -> xyz.block.ftl.console.v1.Data
+	8,  // 29: xyz.block.ftl.console.v1.Module.secrets:type_name -> xyz.block.ftl.console.v1.Secret
+	2,  // 30: xyz.block.ftl.console.v1.Module.configs:type_name -> xyz.block.ftl.console.v1.Config
+	4,  // 31: xyz.block.ftl.console.v1.Module.databases:type_name -> xyz.block.ftl.console.v1.Database
+	5,  // 32: xyz.block.ftl.console.v1.Module.enums:type_name -> xyz.block.ftl.console.v1.Enum
+	6,  // 33: xyz.block.ftl.console.v1.Module.topics:type_name -> xyz.block.ftl.console.v1.Topic
+	7,  // 34: xyz.block.ftl.console.v1.Module.typealiases:type_name -> xyz.block.ftl.console.v1.TypeAlias
+	42, // 35: xyz.block.ftl.console.v1.Module.module:type_name -> xyz.block.ftl.schema.v1.Module
+	33, // 36: xyz.block.ftl.console.v1.Module.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	11, // 37: xyz.block.ftl.console.v1.Topology.levels:type_name -> xyz.block.ftl.console.v1.TopologyGroup
+	10, // 38: xyz.block.ftl.console.v1.GetModulesResponse.modules:type_name -> xyz.block.ftl.console.v1.Module
+	12, // 39: xyz.block.ftl.console.v1.GetModulesResponse.topology:type_name -> xyz.block.ftl.console.v1.Topology
+	10, // 40: xyz.block.ftl.console.v1.StreamModulesResponse.modules:type_name -> xyz.block.ftl.console.v1.Module
+	12, // 41: xyz.block.ftl.console.v1.StreamModulesResponse.topology:type_name -> xyz.block.ftl.console.v1.Topology
+	0,  // 42: xyz.block.ftl.console.v1.ExecuteGooseResponse.source:type_name -> xyz.block.ftl.console.v1.ExecuteGooseResponse.Source
+	43, // 43: xyz.block.ftl.console.v1.ConsoleService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	13, // 44: xyz.block.ftl.console.v1.ConsoleService.GetModules:input_type -> xyz.block.ftl.console.v1.GetModulesRequest
+	15, // 45: xyz.block.ftl.console.v1.ConsoleService.StreamModules:input_type -> xyz.block.ftl.console.v1.StreamModulesRequest
+	44, // 46: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:input_type -> xyz.block.ftl.timeline.v1.GetTimelineRequest
+	45, // 47: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:input_type -> xyz.block.ftl.timeline.v1.StreamTimelineRequest
+	17, // 48: xyz.block.ftl.console.v1.ConsoleService.GetConfig:input_type -> xyz.block.ftl.console.v1.GetConfigRequest
+	19, // 49: xyz.block.ftl.console.v1.ConsoleService.SetConfig:input_type -> xyz.block.ftl.console.v1.SetConfigRequest
+	21, // 50: xyz.block.ftl.console.v1.ConsoleService.GetSecret:input_type -> xyz.block.ftl.console.v1.GetSecretRequest
+	23, // 51: xyz.block.ftl.console.v1.ConsoleService.SetSecret:input_type -> xyz.block.ftl.console.v1.SetSecretRequest
+	46, // 52: xyz.block.ftl.console.v1.ConsoleService.Call:input_type -> xyz.block.ftl.v1.CallRequest
+	47, // 53: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:input_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsRequest
+	25, // 54: xyz.block.ftl.console.v1.ConsoleService.GetInfo:input_type -> xyz.block.ftl.console.v1.GetInfoRequest
+	27, // 55: xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose:input_type -> xyz.block.ftl.console.v1.ExecuteGooseRequest
+	29, // 56: xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor:input_type -> xyz.block.ftl.console.v1.OpenFileInEditorRequest
+	48, // 57: xyz.block.ftl.console.v1.ConsoleService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	14, // 58: xyz.block.ftl.console.v1.ConsoleService.GetModules:output_type -> xyz.block.ftl.console.v1.GetModulesResponse
+	16, // 59: xyz.block.ftl.console.v1.ConsoleService.StreamModules:output_type -> xyz.block.ftl.console.v1.StreamModulesResponse
+	49, // 60: xyz.block.ftl.console.v1.ConsoleService.GetTimeline:output_type -> xyz.block.ftl.timeline.v1.GetTimelineResponse
+	50, // 61: xyz.block.ftl.console.v1.ConsoleService.StreamTimeline:output_type -> xyz.block.ftl.timeline.v1.StreamTimelineResponse
+	18, // 62: xyz.block.ftl.console.v1.ConsoleService.GetConfig:output_type -> xyz.block.ftl.console.v1.GetConfigResponse
+	20, // 63: xyz.block.ftl.console.v1.ConsoleService.SetConfig:output_type -> xyz.block.ftl.console.v1.SetConfigResponse
+	22, // 64: xyz.block.ftl.console.v1.ConsoleService.GetSecret:output_type -> xyz.block.ftl.console.v1.GetSecretResponse
+	24, // 65: xyz.block.ftl.console.v1.ConsoleService.SetSecret:output_type -> xyz.block.ftl.console.v1.SetSecretResponse
+	51, // 66: xyz.block.ftl.console.v1.ConsoleService.Call:output_type -> xyz.block.ftl.v1.CallResponse
+	52, // 67: xyz.block.ftl.console.v1.ConsoleService.StreamEngineEvents:output_type -> xyz.block.ftl.buildengine.v1.StreamEngineEventsResponse
+	26, // 68: xyz.block.ftl.console.v1.ConsoleService.GetInfo:output_type -> xyz.block.ftl.console.v1.GetInfoResponse
+	28, // 69: xyz.block.ftl.console.v1.ConsoleService.ExecuteGoose:output_type -> xyz.block.ftl.console.v1.ExecuteGooseResponse
+	30, // 70: xyz.block.ftl.console.v1.ConsoleService.OpenFileInEditor:output_type -> xyz.block.ftl.console.v1.OpenFileInEditorResponse
+	57, // [57:71] is the sub-list for method output_type
+	43, // [43:57] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_console_v1_console_proto_init() }

@@ -139,42 +139,25 @@ func (s *Service) GetModules(ctx context.Context, req *connect.Request[consolepb
 			continue
 		}
 		allowed[mod.Name] = true
-		var verbs []*consolepb.Verb
-		var data []*consolepb.Data
-		var secrets []*consolepb.Secret
-		var configs []*consolepb.Config
 
-		for _, decl := range mod.Decls {
-			switch decl := decl.(type) {
-			case *schema.Verb:
-				verb, err := verbFromDecl(decl, sch, mod.Name)
-				if err != nil {
-					return nil, errors.WithStack(err)
-				}
-				verbs = append(verbs, verb)
-
-			case *schema.Data:
-				data = append(data, dataFromDecl(decl, sch, mod.Name))
-
-			case *schema.Secret:
-				secrets = append(secrets, secretFromDecl(decl, sch, mod.Name))
-
-			case *schema.Config:
-				configs = append(configs, configFromDecl(decl, sch, mod.Name))
-
-			case *schema.Database, *schema.Enum, *schema.TypeAlias, *schema.Topic:
-			}
+		pbModuleFields, err := moduleFromDecls(mod.Decls, sch, mod)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to process declarations for module %s", mod.Name)
 		}
 
 		modules = append(modules, &consolepb.Module{
-			Name:    mod.Name,
-			Module:  mod.ToProto(),
-			Runtime: mod.Runtime.ToProto(),
-			Verbs:   verbs,
-			Data:    data,
-			Secrets: secrets,
-			Configs: configs,
-			Schema:  mod.String(),
+			Name:        mod.Name,
+			Module:      mod.ToProto(),
+			Runtime:     mod.Runtime.ToProto(),
+			Schema:      mod.String(),
+			Verbs:       pbModuleFields.Verbs,
+			Data:        pbModuleFields.Data,
+			Secrets:     pbModuleFields.Secrets,
+			Configs:     pbModuleFields.Configs,
+			Databases:   pbModuleFields.Databases,
+			Enums:       pbModuleFields.Enums,
+			Topics:      pbModuleFields.Topics,
+			Typealiases: pbModuleFields.Typealiases,
 		})
 	}
 
@@ -228,63 +211,70 @@ func refsToProto(refs []schema.RefKey) []*schemapb.Ref {
 	return out
 }
 
-func configFromDecl(decl *schema.Config, sch *schema.Schema, module string) *consolepb.Config {
+func configFromDecl(decl *schema.Config, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Config {
 	return &consolepb.Config{
 		Config: decl.ToProto(),
 		Edges:  toEdges(sch, module, decl.Name),
 		Schema: decl.String(),
+		Git:    git.ToProto(),
 	}
 }
 
-func dataFromDecl(decl *schema.Data, sch *schema.Schema, module string) *consolepb.Data {
+func dataFromDecl(decl *schema.Data, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Data {
 	return &consolepb.Data{
 		Data:   decl.ToProto(),
 		Schema: decl.String(),
 		Edges:  toEdges(sch, module, decl.Name),
+		Git:    git.ToProto(),
 	}
 }
 
-func databaseFromDecl(decl *schema.Database, sch *schema.Schema, module string) *consolepb.Database {
+func databaseFromDecl(decl *schema.Database, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Database {
 	return &consolepb.Database{
 		Database: decl.ToProto(),
 		Edges:    toEdges(sch, module, decl.Name),
 		Schema:   decl.String(),
+		Git:      git.ToProto(),
 	}
 }
 
-func enumFromDecl(decl *schema.Enum, sch *schema.Schema, module string) *consolepb.Enum {
+func enumFromDecl(decl *schema.Enum, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Enum {
 	return &consolepb.Enum{
 		Enum:   decl.ToProto(),
 		Edges:  toEdges(sch, module, decl.Name),
 		Schema: decl.String(),
+		Git:    git.ToProto(),
 	}
 }
 
-func topicFromDecl(decl *schema.Topic, sch *schema.Schema, module string) *consolepb.Topic {
+func topicFromDecl(decl *schema.Topic, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Topic {
 	return &consolepb.Topic{
 		Topic:  decl.ToProto(),
 		Edges:  toEdges(sch, module, decl.Name),
 		Schema: decl.String(),
+		Git:    git.ToProto(),
 	}
 }
 
-func typealiasFromDecl(decl *schema.TypeAlias, sch *schema.Schema, module string) *consolepb.TypeAlias {
+func typealiasFromDecl(decl *schema.TypeAlias, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.TypeAlias {
 	return &consolepb.TypeAlias{
 		Typealias: decl.ToProto(),
 		Edges:     toEdges(sch, module, decl.Name),
 		Schema:    decl.String(),
+		Git:       git.ToProto(),
 	}
 }
 
-func secretFromDecl(decl *schema.Secret, sch *schema.Schema, module string) *consolepb.Secret {
+func secretFromDecl(decl *schema.Secret, sch *schema.Schema, module string, git *schema.MetadataGit) *consolepb.Secret {
 	return &consolepb.Secret{
 		Secret: decl.ToProto(),
 		Edges:  toEdges(sch, module, decl.Name),
 		Schema: decl.String(),
+		Git:    git.ToProto(),
 	}
 }
 
-func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consolepb.Verb, error) {
+func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string, git *schema.MetadataGit) (*consolepb.Verb, error) {
 	v := decl.ToProto()
 	var jsonRequestSchema string
 	if decl.Request != nil {
@@ -310,11 +300,12 @@ func verbFromDecl(decl *schema.Verb, sch *schema.Schema, module string) (*consol
 		Schema:            schemaString,
 		JsonRequestSchema: jsonRequestSchema,
 		Edges:             toEdges(sch, module, decl.Name),
+		Git:               git.ToProto(),
 	}, nil
 }
 
 func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema) (*consolepb.Module, error) {
-	module, err := moduleFromDecls(deployment.Decls, sch, deployment.Name)
+	module, err := moduleFromDecls(deployment.Decls, sch, deployment)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -325,7 +316,7 @@ func moduleFromDeployment(deployment *schema.Module, sch *schema.Schema) (*conso
 	return module, nil
 }
 
-func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*consolepb.Module, error) {
+func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module *schema.Module) (*consolepb.Module, error) {
 	var configs []*consolepb.Config
 	var data []*consolepb.Data
 	var databases []*consolepb.Database
@@ -335,37 +326,45 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 	var secrets []*consolepb.Secret
 	var verbs []*consolepb.Verb
 
+	var git *schema.MetadataGit
+	for _, metaItem := range module.Metadata {
+		if concreteGitMeta, ok := metaItem.(*schema.MetadataGit); ok {
+			git = concreteGitMeta
+			break
+		}
+	}
+
 	for _, d := range decls {
 		switch decl := d.(type) {
 		case *schema.Config:
-			config := configFromDecl(decl, sch, module)
+			config := configFromDecl(decl, sch, module.Name, git)
 			configs = append(configs, config)
 
 		case *schema.Data:
-			data = append(data, dataFromDecl(decl, sch, module))
+			data = append(data, dataFromDecl(decl, sch, module.Name, git))
 
 		case *schema.Database:
-			database := databaseFromDecl(decl, sch, module)
+			database := databaseFromDecl(decl, sch, module.Name, git)
 			databases = append(databases, database)
 
 		case *schema.Enum:
-			enum := enumFromDecl(decl, sch, module)
+			enum := enumFromDecl(decl, sch, module.Name, git)
 			enums = append(enums, enum)
 
 		case *schema.Topic:
-			topic := topicFromDecl(decl, sch, module)
+			topic := topicFromDecl(decl, sch, module.Name, git)
 			topics = append(topics, topic)
 
 		case *schema.Secret:
-			secret := secretFromDecl(decl, sch, module)
+			secret := secretFromDecl(decl, sch, module.Name, git)
 			secrets = append(secrets, secret)
 
 		case *schema.TypeAlias:
-			typealias := typealiasFromDecl(decl, sch, module)
+			typealias := typealiasFromDecl(decl, sch, module.Name, git)
 			typealiases = append(typealiases, typealias)
 
 		case *schema.Verb:
-			verb, err := verbFromDecl(decl, sch, module)
+			verb, err := verbFromDecl(decl, sch, module.Name, git)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -382,6 +381,7 @@ func moduleFromDecls(decls []schema.Decl, sch *schema.Schema, module string) (*c
 		Typealiases: typealiases,
 		Secrets:     secrets,
 		Verbs:       verbs,
+		Git:         git.ToProto(),
 	}, nil
 }
 
@@ -468,7 +468,7 @@ func (s *Service) sendStreamModulesResp(stream *connect.ServerStream[consolepb.S
 		modules = append(modules, module)
 	}
 
-	builtinModule, err := moduleFromDecls(builtin.Decls, sch, builtin.Name)
+	builtinModule, err := moduleFromDecls(builtin.Decls, sch, builtin)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -693,7 +693,7 @@ func (s *Service) OpenFileInEditor(ctx context.Context, req *connect.Request[con
 		Column:   int(msg.Column),
 	}
 
-	err := editor.OpenFileInEditor(ctx, msg.Editor, pos, pc.Root())
+	err := editor.OpenFileInEditor(ctx, msg.Editor, pos, pc.Root(), nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open %q in %s", pos.Filename, msg.Editor)
 	}
