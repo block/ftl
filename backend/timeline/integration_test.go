@@ -13,6 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
+	slices2 "github.com/block/ftl/common/slices"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -236,8 +237,11 @@ func checkEvents(state *streamState, asc bool, lock *sync.Mutex) in.Action {
 		} else {
 			streamEvents = state.descEvents
 		}
-		assert.Equal(t, len(state.actualEntries), len(streamEvents), "expected all events to have been streamed")
-		for i, event := range streamEvents {
+		filteredEvents := slices2.Filter(streamEvents, func(event *timelinepb.Event) bool {
+			return event.GetChangesetCreated() != nil
+		})
+		assert.Equal(t, len(state.actualEntries), len(filteredEvents), "expected all events to have been streamed")
+		for i, event := range filteredEvents {
 			expectedEntry := state.actualEntries[i]
 			assert.Equal(t, expectedEntry.GetChangesetCreated().Key, event.GetChangesetCreated().Key, "expected streamed event to match publication order")
 		}

@@ -349,9 +349,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				if opts.devMode {
 					command = []string{"dev"}
 				}
-				if os.Getenv("DEBUG") != "" || opts.debugLogging {
-					command = append(command, "--log-level=DEBUG", "--log-timestamps")
-				}
+				command = append(command, "--log-level=DEBUG", "--log-timestamps")
 
 				args := append([]string{filepath.Join(binDir, "ftl")}, command...)
 				if !opts.console {
