@@ -428,17 +428,16 @@ func (x *GetDependenciesResponse) GetModules() []string {
 // For automatic rebuilds, plugins must use the most recent build context they have received.
 type BuildContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The configuration for the module
-	ModuleConfig *ModuleConfig `protobuf:"bytes,2,opt,name=module_config,json=moduleConfig,proto3" json:"module_config,omitempty"`
+	ModuleConfig *ModuleConfig `protobuf:"bytes,1,opt,name=module_config,json=moduleConfig,proto3" json:"module_config,omitempty"`
 	// The FTL schema including all dependencies
-	Schema *v1.Schema `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Schema *v1.Schema `protobuf:"bytes,2,opt,name=schema,proto3" json:"schema,omitempty"`
 	// The dependencies for the module
-	Dependencies []string `protobuf:"bytes,4,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	Dependencies []string `protobuf:"bytes,3,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
 	// Build environment provides environment variables to be set for the build command
-	BuildEnv      []string `protobuf:"bytes,5,rep,name=build_env,json=buildEnv,proto3" json:"build_env,omitempty"`
-	Os            string   `protobuf:"bytes,6,opt,name=os,proto3" json:"os,omitempty"`
-	Arch          string   `protobuf:"bytes,7,opt,name=arch,proto3" json:"arch,omitempty"`
+	BuildEnv      []string `protobuf:"bytes,4,rep,name=build_env,json=buildEnv,proto3" json:"build_env,omitempty"`
+	Os            string   `protobuf:"bytes,5,opt,name=os,proto3" json:"os,omitempty"`
+	Arch          string   `protobuf:"bytes,6,opt,name=arch,proto3" json:"arch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,13 +470,6 @@ func (x *BuildContext) ProtoReflect() protoreflect.Message {
 // Deprecated: Use BuildContext.ProtoReflect.Descriptor instead.
 func (*BuildContext) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *BuildContext) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
 }
 
 func (x *BuildContext) GetModuleConfig() *ModuleConfig {
@@ -791,10 +783,10 @@ type BuildRequest struct {
 	// The path to the directory containing all module stubs. Each module stub is in a subdirectory.
 	StubsRoot string `protobuf:"bytes,2,opt,name=stubs_root,json=stubsRoot,proto3" json:"stubs_root,omitempty"`
 	// Indicates whether to watch for file changes and automatically rebuild
-	RebuildAutomatically bool          `protobuf:"varint,3,opt,name=rebuild_automatically,json=rebuildAutomatically,proto3" json:"rebuild_automatically,omitempty"`
-	BuildContext         *BuildContext `protobuf:"bytes,4,opt,name=build_context,json=buildContext,proto3" json:"build_context,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	DevModeBuild  bool          `protobuf:"varint,3,opt,name=dev_mode_build,json=devModeBuild,proto3" json:"dev_mode_build,omitempty"`
+	BuildContext  *BuildContext `protobuf:"bytes,4,opt,name=build_context,json=buildContext,proto3" json:"build_context,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BuildRequest) Reset() {
@@ -841,9 +833,9 @@ func (x *BuildRequest) GetStubsRoot() string {
 	return ""
 }
 
-func (x *BuildRequest) GetRebuildAutomatically() bool {
+func (x *BuildRequest) GetDevModeBuild() bool {
 	if x != nil {
-		return x.RebuildAutomatically
+		return x.DevModeBuild
 	}
 	return false
 }
@@ -855,90 +847,40 @@ func (x *BuildRequest) GetBuildContext() *BuildContext {
 	return nil
 }
 
-// AutoRebuildStarted should be sent when the plugin decides to start rebuilding automatically.
-//
-// It is not required to send this event, though it helps inform the user that their changes are not yet built.
-// FTL may ignore this event if it does not match FTL's current build context and state.
-// If the plugin decides to cancel the build because another build started, no failure or cancellation event needs
-// to be sent.
-type AutoRebuildStarted struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ContextId     string                 `protobuf:"bytes,1,opt,name=context_id,json=contextId,proto3" json:"context_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AutoRebuildStarted) Reset() {
-	*x = AutoRebuildStarted{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AutoRebuildStarted) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AutoRebuildStarted) ProtoMessage() {}
-
-func (x *AutoRebuildStarted) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AutoRebuildStarted.ProtoReflect.Descriptor instead.
-func (*AutoRebuildStarted) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *AutoRebuildStarted) GetContextId() string {
-	if x != nil {
-		return x.ContextId
-	}
-	return ""
-}
-
 // BuildSuccess should be sent when a build succeeds.
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
 type BuildSuccess struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id of build context used while building.
-	ContextId string `protobuf:"bytes,1,opt,name=context_id,json=contextId,proto3" json:"context_id,omitempty"`
-	// Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-	IsAutomaticRebuild bool `protobuf:"varint,2,opt,name=is_automatic_rebuild,json=isAutomaticRebuild,proto3" json:"is_automatic_rebuild,omitempty"`
 	// Module schema for the built module
-	Module *v1.Module `protobuf:"bytes,3,opt,name=module,proto3" json:"module,omitempty"`
+	Module *v1.Module `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
 	// Paths for files/directories to be deployed
-	Deploy []string `protobuf:"bytes,4,rep,name=deploy,proto3" json:"deploy,omitempty"`
+	Deploy []string `protobuf:"bytes,2,rep,name=deploy,proto3" json:"deploy,omitempty"`
 	// Name of the docker image to use for the runner
-	DockerImage string `protobuf:"bytes,5,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
+	DockerImage string `protobuf:"bytes,3,opt,name=docker_image,json=dockerImage,proto3" json:"docker_image,omitempty"`
 	// Errors contains any errors that occurred during the build
 	// No errors can have a level of ERROR, instead a BuildFailure should be sent
 	// Instead this is useful for INFO and WARN level errors.
-	Errors *ErrorList `protobuf:"bytes,6,opt,name=errors,proto3" json:"errors,omitempty"`
+	Errors *ErrorList `protobuf:"bytes,4,opt,name=errors,proto3" json:"errors,omitempty"`
 	// Dev mode endpoint URI. If this is set then rather than trying to deploy the module, FTL will start a runner that
 	// connects to this endpoint.
-	DevEndpoint *string `protobuf:"bytes,7,opt,name=dev_endpoint,json=devEndpoint,proto3,oneof" json:"dev_endpoint,omitempty"`
+	DevEndpoint *string `protobuf:"bytes,5,opt,name=dev_endpoint,json=devEndpoint,proto3,oneof" json:"dev_endpoint,omitempty"`
 	// Dev mode debug port
-	DebugPort *int32 `protobuf:"varint,8,opt,name=debug_port,json=debugPort,proto3,oneof" json:"debug_port,omitempty"`
+	DebugPort *int32 `protobuf:"varint,6,opt,name=debug_port,json=debugPort,proto3,oneof" json:"debug_port,omitempty"`
 	// Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
-	DevHotReloadEndpoint *string `protobuf:"bytes,9,opt,name=dev_hot_reload_endpoint,json=devHotReloadEndpoint,proto3,oneof" json:"dev_hot_reload_endpoint,omitempty"`
-	DevHotReloadVersion  *int64  `protobuf:"varint,10,opt,name=dev_hot_reload_version,json=devHotReloadVersion,proto3,oneof" json:"dev_hot_reload_version,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	DevHotReloadEndpoint *string `protobuf:"bytes,7,opt,name=dev_hot_reload_endpoint,json=devHotReloadEndpoint,proto3,oneof" json:"dev_hot_reload_endpoint,omitempty"`
+	DevHotReloadVersion  *int64  `protobuf:"varint,8,opt,name=dev_hot_reload_version,json=devHotReloadVersion,proto3,oneof" json:"dev_hot_reload_version,omitempty"`
+	// Files modified during the build, relative to the build dir
+	ModifiedFiles []string `protobuf:"bytes,9,rep,name=modified_files,json=modifiedFiles,proto3" json:"modified_files,omitempty"`
+	// If there have been no structural changes it is possible that no further action is required
+	RedeployNotRequired bool `protobuf:"varint,10,opt,name=redeploy_not_required,json=redeployNotRequired,proto3" json:"redeploy_not_required,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *BuildSuccess) Reset() {
 	*x = BuildSuccess{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[12]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -950,7 +892,7 @@ func (x *BuildSuccess) String() string {
 func (*BuildSuccess) ProtoMessage() {}
 
 func (x *BuildSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[12]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -963,21 +905,7 @@ func (x *BuildSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildSuccess.ProtoReflect.Descriptor instead.
 func (*BuildSuccess) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *BuildSuccess) GetContextId() string {
-	if x != nil {
-		return x.ContextId
-	}
-	return ""
-}
-
-func (x *BuildSuccess) GetIsAutomaticRebuild() bool {
-	if x != nil {
-		return x.IsAutomaticRebuild
-	}
-	return false
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *BuildSuccess) GetModule() *v1.Module {
@@ -1036,28 +964,40 @@ func (x *BuildSuccess) GetDevHotReloadVersion() int64 {
 	return 0
 }
 
+func (x *BuildSuccess) GetModifiedFiles() []string {
+	if x != nil {
+		return x.ModifiedFiles
+	}
+	return nil
+}
+
+func (x *BuildSuccess) GetRedeployNotRequired() bool {
+	if x != nil {
+		return x.RedeployNotRequired
+	}
+	return false
+}
+
 // BuildFailure should be sent when a build fails.
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
 type BuildFailure struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id of build context used while building.
-	ContextId string `protobuf:"bytes,1,opt,name=context_id,json=contextId,proto3" json:"context_id,omitempty"`
-	// Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-	IsAutomaticRebuild bool `protobuf:"varint,2,opt,name=is_automatic_rebuild,json=isAutomaticRebuild,proto3" json:"is_automatic_rebuild,omitempty"`
 	// Errors contains any errors that occurred during the build
-	Errors *ErrorList `protobuf:"bytes,3,opt,name=errors,proto3" json:"errors,omitempty"`
+	Errors *ErrorList `protobuf:"bytes,1,opt,name=errors,proto3" json:"errors,omitempty"`
 	// Indicates the plugin determined that the dependencies in the BuildContext are out of date.
 	// If a Build stream is being kept open for automatic rebuilds, FTL will call GetDependencies, followed by
 	// BuildContextUpdated.
-	InvalidateDependencies bool `protobuf:"varint,4,opt,name=invalidate_dependencies,json=invalidateDependencies,proto3" json:"invalidate_dependencies,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	InvalidateDependencies bool `protobuf:"varint,2,opt,name=invalidate_dependencies,json=invalidateDependencies,proto3" json:"invalidate_dependencies,omitempty"`
+	// Files modified during the build, relative to the build dir
+	ModifiedFiles []string `protobuf:"bytes,9,rep,name=modified_files,json=modifiedFiles,proto3" json:"modified_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BuildFailure) Reset() {
 	*x = BuildFailure{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[13]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1069,7 +1009,7 @@ func (x *BuildFailure) String() string {
 func (*BuildFailure) ProtoMessage() {}
 
 func (x *BuildFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[13]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1082,21 +1022,7 @@ func (x *BuildFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildFailure.ProtoReflect.Descriptor instead.
 func (*BuildFailure) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *BuildFailure) GetContextId() string {
-	if x != nil {
-		return x.ContextId
-	}
-	return ""
-}
-
-func (x *BuildFailure) GetIsAutomaticRebuild() bool {
-	if x != nil {
-		return x.IsAutomaticRebuild
-	}
-	return false
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BuildFailure) GetErrors() *ErrorList {
@@ -1113,12 +1039,18 @@ func (x *BuildFailure) GetInvalidateDependencies() bool {
 	return false
 }
 
+func (x *BuildFailure) GetModifiedFiles() []string {
+	if x != nil {
+		return x.ModifiedFiles
+	}
+	return nil
+}
+
 // Every type of message that can be streamed from the language plugin for a build.
 type BuildResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Event:
 	//
-	//	*BuildResponse_AutoRebuildStarted
 	//	*BuildResponse_BuildSuccess
 	//	*BuildResponse_BuildFailure
 	Event         isBuildResponse_Event `protobuf_oneof:"event"`
@@ -1128,7 +1060,7 @@ type BuildResponse struct {
 
 func (x *BuildResponse) Reset() {
 	*x = BuildResponse{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[14]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1140,7 +1072,7 @@ func (x *BuildResponse) String() string {
 func (*BuildResponse) ProtoMessage() {}
 
 func (x *BuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[14]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1153,21 +1085,12 @@ func (x *BuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildResponse.ProtoReflect.Descriptor instead.
 func (*BuildResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{14}
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BuildResponse) GetEvent() isBuildResponse_Event {
 	if x != nil {
 		return x.Event
-	}
-	return nil
-}
-
-func (x *BuildResponse) GetAutoRebuildStarted() *AutoRebuildStarted {
-	if x != nil {
-		if x, ok := x.Event.(*BuildResponse_AutoRebuildStarted); ok {
-			return x.AutoRebuildStarted
-		}
 	}
 	return nil
 }
@@ -1194,19 +1117,13 @@ type isBuildResponse_Event interface {
 	isBuildResponse_Event()
 }
 
-type BuildResponse_AutoRebuildStarted struct {
-	AutoRebuildStarted *AutoRebuildStarted `protobuf:"bytes,2,opt,name=auto_rebuild_started,json=autoRebuildStarted,proto3,oneof"`
-}
-
 type BuildResponse_BuildSuccess struct {
-	BuildSuccess *BuildSuccess `protobuf:"bytes,3,opt,name=build_success,json=buildSuccess,proto3,oneof"`
+	BuildSuccess *BuildSuccess `protobuf:"bytes,1,opt,name=build_success,json=buildSuccess,proto3,oneof"`
 }
 
 type BuildResponse_BuildFailure struct {
-	BuildFailure *BuildFailure `protobuf:"bytes,4,opt,name=build_failure,json=buildFailure,proto3,oneof"`
+	BuildFailure *BuildFailure `protobuf:"bytes,2,opt,name=build_failure,json=buildFailure,proto3,oneof"`
 }
-
-func (*BuildResponse_AutoRebuildStarted) isBuildResponse_Event() {}
 
 func (*BuildResponse_BuildSuccess) isBuildResponse_Event() {}
 
@@ -1230,7 +1147,7 @@ type GenerateStubsRequest struct {
 
 func (x *GenerateStubsRequest) Reset() {
 	*x = GenerateStubsRequest{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[15]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1159,7 @@ func (x *GenerateStubsRequest) String() string {
 func (*GenerateStubsRequest) ProtoMessage() {}
 
 func (x *GenerateStubsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[15]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1172,7 @@ func (x *GenerateStubsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateStubsRequest.ProtoReflect.Descriptor instead.
 func (*GenerateStubsRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{15}
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GenerateStubsRequest) GetDir() string {
@@ -1294,7 +1211,7 @@ type GenerateStubsResponse struct {
 
 func (x *GenerateStubsResponse) Reset() {
 	*x = GenerateStubsResponse{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[16]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1223,7 @@ func (x *GenerateStubsResponse) String() string {
 func (*GenerateStubsResponse) ProtoMessage() {}
 
 func (x *GenerateStubsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[16]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1236,7 @@ func (x *GenerateStubsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateStubsResponse.ProtoReflect.Descriptor instead.
 func (*GenerateStubsResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{16}
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{15}
 }
 
 type SyncStubReferencesRequest struct {
@@ -1337,7 +1254,7 @@ type SyncStubReferencesRequest struct {
 
 func (x *SyncStubReferencesRequest) Reset() {
 	*x = SyncStubReferencesRequest{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[17]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1349,7 +1266,7 @@ func (x *SyncStubReferencesRequest) String() string {
 func (*SyncStubReferencesRequest) ProtoMessage() {}
 
 func (x *SyncStubReferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[17]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1362,7 +1279,7 @@ func (x *SyncStubReferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncStubReferencesRequest.ProtoReflect.Descriptor instead.
 func (*SyncStubReferencesRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{17}
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SyncStubReferencesRequest) GetModuleConfig() *ModuleConfig {
@@ -1401,7 +1318,7 @@ type SyncStubReferencesResponse struct {
 
 func (x *SyncStubReferencesResponse) Reset() {
 	*x = SyncStubReferencesResponse{}
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[18]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1413,7 +1330,7 @@ func (x *SyncStubReferencesResponse) String() string {
 func (*SyncStubReferencesResponse) ProtoMessage() {}
 
 func (x *SyncStubReferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[18]
+	mi := &file_xyz_block_ftl_language_v1_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1426,7 +1343,7 @@ func (x *SyncStubReferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncStubReferencesResponse.ProtoReflect.Descriptor instead.
 func (*SyncStubReferencesResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{18}
+	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{17}
 }
 
 var File_xyz_block_ftl_language_v1_service_proto protoreflect.FileDescriptor
@@ -1460,15 +1377,14 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\x16GetDependenciesRequest\x12L\n" +
 	"\rmodule_config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\"3\n" +
 	"\x17GetDependenciesResponse\x12\x18\n" +
-	"\amodules\x18\x01 \x03(\tR\amodules\"\x8a\x02\n" +
-	"\fBuildContext\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12L\n" +
-	"\rmodule_config\x18\x02 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\x127\n" +
-	"\x06schema\x18\x03 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\x12\"\n" +
-	"\fdependencies\x18\x04 \x03(\tR\fdependencies\x12\x1b\n" +
-	"\tbuild_env\x18\x05 \x03(\tR\bbuildEnv\x12\x0e\n" +
-	"\x02os\x18\x06 \x01(\tR\x02os\x12\x12\n" +
-	"\x04arch\x18\a \x01(\tR\x04arch\"j\n" +
+	"\amodules\x18\x01 \x03(\tR\amodules\"\xfa\x01\n" +
+	"\fBuildContext\x12L\n" +
+	"\rmodule_config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\x127\n" +
+	"\x06schema\x18\x02 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\x12\"\n" +
+	"\fdependencies\x18\x03 \x03(\tR\fdependencies\x12\x1b\n" +
+	"\tbuild_env\x18\x04 \x03(\tR\bbuildEnv\x12\x0e\n" +
+	"\x02os\x18\x05 \x01(\tR\x02os\x12\x12\n" +
+	"\x04arch\x18\x06 \x01(\tR\x04arch\"j\n" +
 	"\x1aBuildContextUpdatedRequest\x12L\n" +
 	"\rbuild_context\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\x1d\n" +
 	"\x1bBuildContextUpdatedResponse\"\xa4\x03\n" +
@@ -1495,44 +1411,37 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"end_column\x18\x04 \x01(\x03R\tendColumn\"E\n" +
 	"\tErrorList\x128\n" +
-	"\x06errors\x18\x01 \x03(\v2 .xyz.block.ftl.language.v1.ErrorR\x06errors\"\x81\x02\n" +
+	"\x06errors\x18\x01 \x03(\v2 .xyz.block.ftl.language.v1.ErrorR\x06errors\"\xf2\x01\n" +
 	"\fBuildRequest\x12O\n" +
 	"\x0eproject_config\x18\x01 \x01(\v2(.xyz.block.ftl.language.v1.ProjectConfigR\rprojectConfig\x12\x1d\n" +
 	"\n" +
-	"stubs_root\x18\x02 \x01(\tR\tstubsRoot\x123\n" +
-	"\x15rebuild_automatically\x18\x03 \x01(\bR\x14rebuildAutomatically\x12L\n" +
-	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"3\n" +
-	"\x12AutoRebuildStarted\x12\x1d\n" +
+	"stubs_root\x18\x02 \x01(\tR\tstubsRoot\x12$\n" +
+	"\x0edev_mode_build\x18\x03 \x01(\bR\fdevModeBuild\x12L\n" +
+	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\xb4\x04\n" +
+	"\fBuildSuccess\x127\n" +
+	"\x06module\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12\x16\n" +
+	"\x06deploy\x18\x02 \x03(\tR\x06deploy\x12!\n" +
+	"\fdocker_image\x18\x03 \x01(\tR\vdockerImage\x12<\n" +
+	"\x06errors\x18\x04 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x12&\n" +
+	"\fdev_endpoint\x18\x05 \x01(\tH\x00R\vdevEndpoint\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"context_id\x18\x01 \x01(\tR\tcontextId\"\xaa\x04\n" +
-	"\fBuildSuccess\x12\x1d\n" +
-	"\n" +
-	"context_id\x18\x01 \x01(\tR\tcontextId\x120\n" +
-	"\x14is_automatic_rebuild\x18\x02 \x01(\bR\x12isAutomaticRebuild\x127\n" +
-	"\x06module\x18\x03 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12\x16\n" +
-	"\x06deploy\x18\x04 \x03(\tR\x06deploy\x12!\n" +
-	"\fdocker_image\x18\x05 \x01(\tR\vdockerImage\x12<\n" +
-	"\x06errors\x18\x06 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x12&\n" +
-	"\fdev_endpoint\x18\a \x01(\tH\x00R\vdevEndpoint\x88\x01\x01\x12\"\n" +
-	"\n" +
-	"debug_port\x18\b \x01(\x05H\x01R\tdebugPort\x88\x01\x01\x12:\n" +
-	"\x17dev_hot_reload_endpoint\x18\t \x01(\tH\x02R\x14devHotReloadEndpoint\x88\x01\x01\x128\n" +
-	"\x16dev_hot_reload_version\x18\n" +
-	" \x01(\x03H\x03R\x13devHotReloadVersion\x88\x01\x01B\x0f\n" +
+	"debug_port\x18\x06 \x01(\x05H\x01R\tdebugPort\x88\x01\x01\x12:\n" +
+	"\x17dev_hot_reload_endpoint\x18\a \x01(\tH\x02R\x14devHotReloadEndpoint\x88\x01\x01\x128\n" +
+	"\x16dev_hot_reload_version\x18\b \x01(\x03H\x03R\x13devHotReloadVersion\x88\x01\x01\x12%\n" +
+	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFiles\x122\n" +
+	"\x15redeploy_not_required\x18\n" +
+	" \x01(\bR\x13redeployNotRequiredB\x0f\n" +
 	"\r_dev_endpointB\r\n" +
 	"\v_debug_portB\x1a\n" +
 	"\x18_dev_hot_reload_endpointB\x19\n" +
-	"\x17_dev_hot_reload_version\"\xd6\x01\n" +
-	"\fBuildFailure\x12\x1d\n" +
-	"\n" +
-	"context_id\x18\x01 \x01(\tR\tcontextId\x120\n" +
-	"\x14is_automatic_rebuild\x18\x02 \x01(\bR\x12isAutomaticRebuild\x12<\n" +
-	"\x06errors\x18\x03 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x127\n" +
-	"\x17invalidate_dependencies\x18\x04 \x01(\bR\x16invalidateDependencies\"\x9b\x02\n" +
-	"\rBuildResponse\x12a\n" +
-	"\x14auto_rebuild_started\x18\x02 \x01(\v2-.xyz.block.ftl.language.v1.AutoRebuildStartedH\x00R\x12autoRebuildStarted\x12N\n" +
-	"\rbuild_success\x18\x03 \x01(\v2'.xyz.block.ftl.language.v1.BuildSuccessH\x00R\fbuildSuccess\x12N\n" +
-	"\rbuild_failure\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildFailureH\x00R\fbuildFailureB\a\n" +
+	"\x17_dev_hot_reload_version\"\xac\x01\n" +
+	"\fBuildFailure\x12<\n" +
+	"\x06errors\x18\x01 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x127\n" +
+	"\x17invalidate_dependencies\x18\x02 \x01(\bR\x16invalidateDependencies\x12%\n" +
+	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFiles\"\xb8\x01\n" +
+	"\rBuildResponse\x12N\n" +
+	"\rbuild_success\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.BuildSuccessH\x00R\fbuildSuccess\x12N\n" +
+	"\rbuild_failure\x18\x02 \x01(\v2'.xyz.block.ftl.language.v1.BuildFailureH\x00R\fbuildFailureB\a\n" +
 	"\x05event\"\xa8\x02\n" +
 	"\x14GenerateStubsRequest\x12\x10\n" +
 	"\x03dir\x18\x01 \x01(\tR\x03dir\x127\n" +
@@ -1547,12 +1456,11 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"stubs_root\x18\x02 \x01(\tR\tstubsRoot\x12\x18\n" +
 	"\amodules\x18\x03 \x03(\tR\amodules\x127\n" +
 	"\x06schema\x18\x04 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\"\x1c\n" +
-	"\x1aSyncStubReferencesResponse2\xb4\x05\n" +
+	"\x1aSyncStubReferencesResponse2\xab\x04\n" +
 	"\x0fLanguageService\x12J\n" +
 	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12x\n" +
-	"\x0fGetDependencies\x121.xyz.block.ftl.language.v1.GetDependenciesRequest\x1a2.xyz.block.ftl.language.v1.GetDependenciesResponse\x12\\\n" +
-	"\x05Build\x12'.xyz.block.ftl.language.v1.BuildRequest\x1a(.xyz.block.ftl.language.v1.BuildResponse0\x01\x12\x84\x01\n" +
-	"\x13BuildContextUpdated\x125.xyz.block.ftl.language.v1.BuildContextUpdatedRequest\x1a6.xyz.block.ftl.language.v1.BuildContextUpdatedResponse\x12r\n" +
+	"\x0fGetDependencies\x121.xyz.block.ftl.language.v1.GetDependenciesRequest\x1a2.xyz.block.ftl.language.v1.GetDependenciesResponse\x12Z\n" +
+	"\x05Build\x12'.xyz.block.ftl.language.v1.BuildRequest\x1a(.xyz.block.ftl.language.v1.BuildResponse\x12r\n" +
 	"\rGenerateStubs\x12/.xyz.block.ftl.language.v1.GenerateStubsRequest\x1a0.xyz.block.ftl.language.v1.GenerateStubsResponse\x12\x81\x01\n" +
 	"\x12SyncStubReferences\x124.xyz.block.ftl.language.v1.SyncStubReferencesRequest\x1a5.xyz.block.ftl.language.v1.SyncStubReferencesResponseBLP\x01ZHgithub.com/block/ftl/backend/protos/xyz/block/ftl/language/v1;languagepbb\x06proto3"
 
@@ -1569,7 +1477,7 @@ func file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_language_v1_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_xyz_block_ftl_language_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_xyz_block_ftl_language_v1_service_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_xyz_block_ftl_language_v1_service_proto_goTypes = []any{
 	(Error_ErrorLevel)(0),               // 0: xyz.block.ftl.language.v1.Error.ErrorLevel
 	(Error_ErrorType)(0),                // 1: xyz.block.ftl.language.v1.Error.ErrorType
@@ -1584,25 +1492,24 @@ var file_xyz_block_ftl_language_v1_service_proto_goTypes = []any{
 	(*Position)(nil),                    // 10: xyz.block.ftl.language.v1.Position
 	(*ErrorList)(nil),                   // 11: xyz.block.ftl.language.v1.ErrorList
 	(*BuildRequest)(nil),                // 12: xyz.block.ftl.language.v1.BuildRequest
-	(*AutoRebuildStarted)(nil),          // 13: xyz.block.ftl.language.v1.AutoRebuildStarted
-	(*BuildSuccess)(nil),                // 14: xyz.block.ftl.language.v1.BuildSuccess
-	(*BuildFailure)(nil),                // 15: xyz.block.ftl.language.v1.BuildFailure
-	(*BuildResponse)(nil),               // 16: xyz.block.ftl.language.v1.BuildResponse
-	(*GenerateStubsRequest)(nil),        // 17: xyz.block.ftl.language.v1.GenerateStubsRequest
-	(*GenerateStubsResponse)(nil),       // 18: xyz.block.ftl.language.v1.GenerateStubsResponse
-	(*SyncStubReferencesRequest)(nil),   // 19: xyz.block.ftl.language.v1.SyncStubReferencesRequest
-	(*SyncStubReferencesResponse)(nil),  // 20: xyz.block.ftl.language.v1.SyncStubReferencesResponse
-	(*structpb.Struct)(nil),             // 21: google.protobuf.Struct
-	(*v1.Schema)(nil),                   // 22: xyz.block.ftl.schema.v1.Schema
-	(*v1.Module)(nil),                   // 23: xyz.block.ftl.schema.v1.Module
-	(*v11.PingRequest)(nil),             // 24: xyz.block.ftl.v1.PingRequest
-	(*v11.PingResponse)(nil),            // 25: xyz.block.ftl.v1.PingResponse
+	(*BuildSuccess)(nil),                // 13: xyz.block.ftl.language.v1.BuildSuccess
+	(*BuildFailure)(nil),                // 14: xyz.block.ftl.language.v1.BuildFailure
+	(*BuildResponse)(nil),               // 15: xyz.block.ftl.language.v1.BuildResponse
+	(*GenerateStubsRequest)(nil),        // 16: xyz.block.ftl.language.v1.GenerateStubsRequest
+	(*GenerateStubsResponse)(nil),       // 17: xyz.block.ftl.language.v1.GenerateStubsResponse
+	(*SyncStubReferencesRequest)(nil),   // 18: xyz.block.ftl.language.v1.SyncStubReferencesRequest
+	(*SyncStubReferencesResponse)(nil),  // 19: xyz.block.ftl.language.v1.SyncStubReferencesResponse
+	(*structpb.Struct)(nil),             // 20: google.protobuf.Struct
+	(*v1.Schema)(nil),                   // 21: xyz.block.ftl.schema.v1.Schema
+	(*v1.Module)(nil),                   // 22: xyz.block.ftl.schema.v1.Module
+	(*v11.PingRequest)(nil),             // 23: xyz.block.ftl.v1.PingRequest
+	(*v11.PingResponse)(nil),            // 24: xyz.block.ftl.v1.PingResponse
 }
 var file_xyz_block_ftl_language_v1_service_proto_depIdxs = []int32{
-	21, // 0: xyz.block.ftl.language.v1.ModuleConfig.language_config:type_name -> google.protobuf.Struct
+	20, // 0: xyz.block.ftl.language.v1.ModuleConfig.language_config:type_name -> google.protobuf.Struct
 	2,  // 1: xyz.block.ftl.language.v1.GetDependenciesRequest.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
 	2,  // 2: xyz.block.ftl.language.v1.BuildContext.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	22, // 3: xyz.block.ftl.language.v1.BuildContext.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	21, // 3: xyz.block.ftl.language.v1.BuildContext.schema:type_name -> xyz.block.ftl.schema.v1.Schema
 	6,  // 4: xyz.block.ftl.language.v1.BuildContextUpdatedRequest.build_context:type_name -> xyz.block.ftl.language.v1.BuildContext
 	0,  // 5: xyz.block.ftl.language.v1.Error.level:type_name -> xyz.block.ftl.language.v1.Error.ErrorLevel
 	10, // 6: xyz.block.ftl.language.v1.Error.pos:type_name -> xyz.block.ftl.language.v1.Position
@@ -1610,34 +1517,31 @@ var file_xyz_block_ftl_language_v1_service_proto_depIdxs = []int32{
 	9,  // 8: xyz.block.ftl.language.v1.ErrorList.errors:type_name -> xyz.block.ftl.language.v1.Error
 	3,  // 9: xyz.block.ftl.language.v1.BuildRequest.project_config:type_name -> xyz.block.ftl.language.v1.ProjectConfig
 	6,  // 10: xyz.block.ftl.language.v1.BuildRequest.build_context:type_name -> xyz.block.ftl.language.v1.BuildContext
-	23, // 11: xyz.block.ftl.language.v1.BuildSuccess.module:type_name -> xyz.block.ftl.schema.v1.Module
+	22, // 11: xyz.block.ftl.language.v1.BuildSuccess.module:type_name -> xyz.block.ftl.schema.v1.Module
 	11, // 12: xyz.block.ftl.language.v1.BuildSuccess.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
 	11, // 13: xyz.block.ftl.language.v1.BuildFailure.errors:type_name -> xyz.block.ftl.language.v1.ErrorList
-	13, // 14: xyz.block.ftl.language.v1.BuildResponse.auto_rebuild_started:type_name -> xyz.block.ftl.language.v1.AutoRebuildStarted
-	14, // 15: xyz.block.ftl.language.v1.BuildResponse.build_success:type_name -> xyz.block.ftl.language.v1.BuildSuccess
-	15, // 16: xyz.block.ftl.language.v1.BuildResponse.build_failure:type_name -> xyz.block.ftl.language.v1.BuildFailure
-	23, // 17: xyz.block.ftl.language.v1.GenerateStubsRequest.module:type_name -> xyz.block.ftl.schema.v1.Module
-	2,  // 18: xyz.block.ftl.language.v1.GenerateStubsRequest.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	2,  // 19: xyz.block.ftl.language.v1.GenerateStubsRequest.native_module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	2,  // 20: xyz.block.ftl.language.v1.SyncStubReferencesRequest.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
-	22, // 21: xyz.block.ftl.language.v1.SyncStubReferencesRequest.schema:type_name -> xyz.block.ftl.schema.v1.Schema
-	24, // 22: xyz.block.ftl.language.v1.LanguageService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	4,  // 23: xyz.block.ftl.language.v1.LanguageService.GetDependencies:input_type -> xyz.block.ftl.language.v1.GetDependenciesRequest
-	12, // 24: xyz.block.ftl.language.v1.LanguageService.Build:input_type -> xyz.block.ftl.language.v1.BuildRequest
-	7,  // 25: xyz.block.ftl.language.v1.LanguageService.BuildContextUpdated:input_type -> xyz.block.ftl.language.v1.BuildContextUpdatedRequest
-	17, // 26: xyz.block.ftl.language.v1.LanguageService.GenerateStubs:input_type -> xyz.block.ftl.language.v1.GenerateStubsRequest
-	19, // 27: xyz.block.ftl.language.v1.LanguageService.SyncStubReferences:input_type -> xyz.block.ftl.language.v1.SyncStubReferencesRequest
-	25, // 28: xyz.block.ftl.language.v1.LanguageService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	5,  // 29: xyz.block.ftl.language.v1.LanguageService.GetDependencies:output_type -> xyz.block.ftl.language.v1.GetDependenciesResponse
-	16, // 30: xyz.block.ftl.language.v1.LanguageService.Build:output_type -> xyz.block.ftl.language.v1.BuildResponse
-	8,  // 31: xyz.block.ftl.language.v1.LanguageService.BuildContextUpdated:output_type -> xyz.block.ftl.language.v1.BuildContextUpdatedResponse
-	18, // 32: xyz.block.ftl.language.v1.LanguageService.GenerateStubs:output_type -> xyz.block.ftl.language.v1.GenerateStubsResponse
-	20, // 33: xyz.block.ftl.language.v1.LanguageService.SyncStubReferences:output_type -> xyz.block.ftl.language.v1.SyncStubReferencesResponse
-	28, // [28:34] is the sub-list for method output_type
-	22, // [22:28] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	13, // 14: xyz.block.ftl.language.v1.BuildResponse.build_success:type_name -> xyz.block.ftl.language.v1.BuildSuccess
+	14, // 15: xyz.block.ftl.language.v1.BuildResponse.build_failure:type_name -> xyz.block.ftl.language.v1.BuildFailure
+	22, // 16: xyz.block.ftl.language.v1.GenerateStubsRequest.module:type_name -> xyz.block.ftl.schema.v1.Module
+	2,  // 17: xyz.block.ftl.language.v1.GenerateStubsRequest.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	2,  // 18: xyz.block.ftl.language.v1.GenerateStubsRequest.native_module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	2,  // 19: xyz.block.ftl.language.v1.SyncStubReferencesRequest.module_config:type_name -> xyz.block.ftl.language.v1.ModuleConfig
+	21, // 20: xyz.block.ftl.language.v1.SyncStubReferencesRequest.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	23, // 21: xyz.block.ftl.language.v1.LanguageService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	4,  // 22: xyz.block.ftl.language.v1.LanguageService.GetDependencies:input_type -> xyz.block.ftl.language.v1.GetDependenciesRequest
+	12, // 23: xyz.block.ftl.language.v1.LanguageService.Build:input_type -> xyz.block.ftl.language.v1.BuildRequest
+	16, // 24: xyz.block.ftl.language.v1.LanguageService.GenerateStubs:input_type -> xyz.block.ftl.language.v1.GenerateStubsRequest
+	18, // 25: xyz.block.ftl.language.v1.LanguageService.SyncStubReferences:input_type -> xyz.block.ftl.language.v1.SyncStubReferencesRequest
+	24, // 26: xyz.block.ftl.language.v1.LanguageService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	5,  // 27: xyz.block.ftl.language.v1.LanguageService.GetDependencies:output_type -> xyz.block.ftl.language.v1.GetDependenciesResponse
+	15, // 28: xyz.block.ftl.language.v1.LanguageService.Build:output_type -> xyz.block.ftl.language.v1.BuildResponse
+	17, // 29: xyz.block.ftl.language.v1.LanguageService.GenerateStubs:output_type -> xyz.block.ftl.language.v1.GenerateStubsResponse
+	19, // 30: xyz.block.ftl.language.v1.LanguageService.SyncStubReferences:output_type -> xyz.block.ftl.language.v1.SyncStubReferencesResponse
+	26, // [26:31] is the sub-list for method output_type
+	21, // [21:26] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_language_v1_service_proto_init() }
@@ -1647,20 +1551,19 @@ func file_xyz_block_ftl_language_v1_service_proto_init() {
 	}
 	file_xyz_block_ftl_language_v1_service_proto_msgTypes[0].OneofWrappers = []any{}
 	file_xyz_block_ftl_language_v1_service_proto_msgTypes[7].OneofWrappers = []any{}
-	file_xyz_block_ftl_language_v1_service_proto_msgTypes[12].OneofWrappers = []any{}
-	file_xyz_block_ftl_language_v1_service_proto_msgTypes[14].OneofWrappers = []any{
-		(*BuildResponse_AutoRebuildStarted)(nil),
+	file_xyz_block_ftl_language_v1_service_proto_msgTypes[11].OneofWrappers = []any{}
+	file_xyz_block_ftl_language_v1_service_proto_msgTypes[13].OneofWrappers = []any{
 		(*BuildResponse_BuildSuccess)(nil),
 		(*BuildResponse_BuildFailure)(nil),
 	}
-	file_xyz_block_ftl_language_v1_service_proto_msgTypes[15].OneofWrappers = []any{}
+	file_xyz_block_ftl_language_v1_service_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_language_v1_service_proto_rawDesc), len(file_xyz_block_ftl_language_v1_service_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   19,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

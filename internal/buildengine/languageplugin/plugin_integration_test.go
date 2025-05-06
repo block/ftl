@@ -73,7 +73,7 @@ func TestBuilds(t *testing.T) {
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build once
-		bctx.build(false, []string{}, sch, "build-once"),
+		bctx.build(false, []string{}, sc),
 		bctx.waitForBuildToEnd(SUCCESS, "build-once", false, nil),
 
 		// Sending build context updates should fail if the plugin has no way to send back a build result
@@ -364,79 +364,27 @@ func (bctx *testContext) syncStubReferences(moduleNames ...string) in.Action {
 	}
 }
 
-func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema, contextId string) in.Action {
+func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string, sch *schema.Schema, resultHandler func(res *languagepb.BuildResponse)) in.Action {
 	return func(t testing.TB, ic in.TestContext) {
-		in.Infof("Plugin building: %s", contextId)
 		configProto, err := langpb.ModuleConfigToProto(bctx.config.Abs())
 		assert.NoError(t, err)
 
 		schemaProto := sch.ToProto()
-		bctx.buildChan, bctx.buildChanCancel, err = bctx.client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
+		res, err := bctx.client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
 			ProjectConfig: &langpb.ProjectConfig{
 				Dir:  ic.WorkingDir(),
 				Name: "test",
 			},
 			StubsRoot: filepath.Join(ic.WorkingDir(), ".ftl", bctx.config.Language, "modules"),
 			BuildContext: &langpb.BuildContext{
-				Id:           contextId,
 				ModuleConfig: configProto,
 				Schema:       schemaProto,
 				Dependencies: dependencies,
 			},
-			RebuildAutomatically: rebuildAutomatically,
+			DevModeBuild: rebuildAutomatically,
 		}))
 		assert.NoError(t, err)
-	}
-}
-
-func (bctx *testContext) sendUpdatedBuildContext(contextId string, dependencies []string, sch *schema.Schema) in.Action {
-	return func(t testing.TB, ic in.TestContext) {
-		in.Infof("Sending updated context to plugin: %s", contextId)
-		configProto, err := langpb.ModuleConfigToProto(bctx.config.Abs())
-		assert.NoError(t, err)
-
-		schemaProto := sch.ToProto()
-		_, err = bctx.client.buildContextUpdated(ic.Context, connect.NewRequest(&langpb.BuildContextUpdatedRequest{
-			BuildContext: &langpb.BuildContext{
-				Id:           contextId,
-				ModuleConfig: configProto,
-				Schema:       schemaProto,
-				Dependencies: dependencies,
-			},
-		}))
-		assert.NoError(t, err)
-	}
-}
-
-func (bctx *testContext) waitForAutoRebuildToStart(contextId string) in.Action {
-	return func(t testing.TB, ic in.TestContext) {
-		in.Infof("Waiting for auto rebuild to start: %s", contextId)
-		logger := log.FromContext(ic.Context)
-		assert.NotZero(t, bctx.buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
-		for {
-			event, err := (<-bctx.buildChan).Result()
-			assert.NoError(t, err, "did not expect a build stream error")
-			switch event := event.Event.(type) {
-			case *langpb.BuildResponse_AutoRebuildStarted:
-				if event.AutoRebuildStarted.ContextId == contextId {
-					return
-				} else {
-					logger.Warnf("ignoring automatic rebuild started event for unexpected context %q instead of %q", event.AutoRebuildStarted.ContextId, contextId)
-				}
-			case *langpb.BuildResponse_BuildSuccess:
-				if event.BuildSuccess.ContextId == contextId {
-					panic("build succeeded, but expected auto rebuild started event first")
-				} else {
-					logger.Warnf("ignoring build success for unexpected context %q while waiting for auto rebuild started event for %q", event.BuildSuccess.ContextId, contextId)
-				}
-			case *langpb.BuildResponse_BuildFailure:
-				if event.BuildFailure.ContextId == contextId {
-					panic("build failed, but expected auto rebuild started event first")
-				} else {
-					logger.Warnf("ignoring build failure for unexpected context %q while waiting for auto rebuild started event for %q", event.BuildFailure.ContextId, contextId)
-				}
-			}
-		}
+		resultHandler(res.Msg)
 	}
 }
 
@@ -450,29 +398,15 @@ func (bctx *testContext) waitForBuildToEnd(success BuildResultType, contextId st
 		case FAILURE:
 			in.Infof("Waiting for build to fail: %s", contextId)
 		}
-		logger := log.FromContext(ic.Context)
 		assert.NotZero(t, bctx.buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
 		for {
 			e, err := (<-bctx.buildChan).Result()
 			assert.NoError(t, err, "did not expect a build stream error")
 
 			switch event := e.Event.(type) {
-			case *langpb.BuildResponse_AutoRebuildStarted:
-				if event.AutoRebuildStarted.ContextId != contextId {
-					logger.Warnf("Ignoring automatic rebuild started event for unexpected context %q instead of %q", event.AutoRebuildStarted.ContextId, contextId)
-					continue
-				}
-				logger.Debugf("Ignoring auto rebuild started event for the build we are waiting to finish %q", contextId)
 
 			case *langpb.BuildResponse_BuildSuccess:
-				if event.BuildSuccess.ContextId != contextId {
-					logger.Warnf("Ignoring build success for unexpected context %q while waiting for auto rebuild started event for %q", event.BuildSuccess.ContextId, contextId)
-					continue
-				}
-				if automaticRebuild != event.BuildSuccess.IsAutomaticRebuild {
-					logger.Warnf("Ignoring build success for unexpected context %q (IsAutomaticRebuild=%v, expected=%v)", contextId, event.BuildSuccess.IsAutomaticRebuild, automaticRebuild)
-					continue
-				}
+
 				if success == FAILURE {
 					panic(fmt.Sprintf("build succeeded when we expected it to fail: %v", event.BuildSuccess))
 				}
@@ -481,14 +415,6 @@ func (bctx *testContext) waitForBuildToEnd(success BuildResultType, contextId st
 				}
 				return
 			case *langpb.BuildResponse_BuildFailure:
-				if event.BuildFailure.ContextId != contextId {
-					logger.Warnf("Ignoring build failure for unexpected context %q while waiting for auto rebuild started event for %q", event.BuildFailure.ContextId, contextId)
-					continue
-				}
-				if automaticRebuild != event.BuildFailure.IsAutomaticRebuild {
-					logger.Warnf("Ignoring build failure for unexpected context %q (IsAutomaticRebuild=%v, expected=%v)", contextId, event.BuildFailure.IsAutomaticRebuild, automaticRebuild)
-					continue
-				}
 				if success == SUCCESS {
 					panic(fmt.Sprintf("build failed when we expected it to succeed: %v", event.BuildFailure))
 				}
@@ -510,8 +436,6 @@ func (bctx *testContext) checkForNoEvents(duration time.Duration) in.Action {
 				e, err := result.Result()
 				assert.NoError(t, err, "did not expect a build stream error")
 				switch event := e.Event.(type) {
-				case *langpb.BuildResponse_AutoRebuildStarted:
-					panic(fmt.Sprintf("rebuild started event when expecting no events: %v", event))
 				case *langpb.BuildResponse_BuildSuccess:
 					panic(fmt.Sprintf("build success event when expecting no events: %v", event))
 				case *langpb.BuildResponse_BuildFailure:

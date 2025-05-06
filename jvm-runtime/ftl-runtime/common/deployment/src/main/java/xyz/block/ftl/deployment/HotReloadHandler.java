@@ -53,11 +53,13 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
+                this.watches.clear();
             }
             for (var watch : watches) {
                 try {
                     watch.onNext(WatchResponse.newBuilder()
                             .setState(state).build());
+                    watch.onCompleted();
                 } catch (Exception e) {
                     LOG.debugf("Failed to send watch response %s", e.toString());
                     this.watches.remove(watch);
@@ -155,6 +157,7 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         if (lastState != null) {
             responseObserver.onNext(WatchResponse.newBuilder()
                     .setState(lastState).build());
+            responseObserver.onCompleted();
         }
         watches.add(responseObserver);
     }
