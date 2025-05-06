@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
-	"strings"
 )
 
 // ZipRelativeToCaller creates a temporary zip file from a path relative to the caller.
@@ -16,21 +14,15 @@ import (
 // This function will leak a file descriptor and thus can only be used in development.
 func ZipRelativeToCaller(relativePath string) *zip.Reader {
 	_, file, _, _ := runtime.Caller(1)
-	// Strip main module prefix, ie. github.com/block/ftl
-	moduleRoot, ok := debug.ReadBuildInfo()
-	if ok {
-		file = strings.TrimPrefix(file, moduleRoot.Main.Path+"/")
-		gitRoot, ok := GitRoot(".").Get()
-		if ok {
-			file = filepath.Join(gitRoot, file)
-		}
-	}
 	dir := filepath.Join(filepath.Dir(file), relativePath)
 	w, err := os.CreateTemp("", "")
 	if err != nil {
 		panic(err)
 	}
 	defer os.Remove(w.Name()) // This is okay because the zip.Reader will keep it open.
+	if err != nil {
+		panic(err)
+	}
 
 	err = ZipDir(dir, w.Name())
 	if err != nil {
