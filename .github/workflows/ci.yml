@@ -310,12 +310,13 @@ jobs:
           chmod +x build/release/*
           # shellcheck disable=SC2046
           echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just --set USE_RELEASE_BINARIES "1" integration-tests
-      - name: Archive Report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
-        if: failure() # Upload the report only on failure
-        with:
-          name: failure-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: /tmp/ftl-test-content/
+      # Temporarily disabled because it conflicts on every failure except the first.
+      # - name: Archive Report
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
+      #   if: failure() # Upload the report only on failure
+      #   with:
+      #     name: failure-report-${{ github.run_id }}-${{ github.run_attempt }}
+      #     path: /tmp/ftl-test-content/
   integration-success:
     name: Integration Success
     needs: [integration-run]
