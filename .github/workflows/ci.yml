@@ -87,7 +87,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
+          enable-pnpm: "true"
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Console pnpm install
@@ -127,7 +127,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
+          enable-pnpm: "true"
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: VSCode extension pnpm install
@@ -146,7 +146,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-maven: 'true'
+          enable-maven: "true"
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Install Java
@@ -162,8 +162,8 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
-          enable-maven: 'true'
+          enable-pnpm: "true"
+          enable-maven: "true"
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Rebuild All
@@ -208,7 +208,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
+          enable-pnpm: "true"
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Restore playwright browser cache
@@ -236,7 +236,7 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-            enable-maven: 'true'
+          enable-maven: "true"
       - name: Build JVM Artifacts
         shell: bash
         run: |
@@ -248,7 +248,7 @@ jobs:
           path: ~/.m2/repository
   integration-shard:
     name: Shard Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ftl
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
@@ -259,11 +259,12 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
+          enable-pnpm: "true"
       - name: Build Go Binaries
         shell: bash
         run: |
           set -euo pipefail
+          export GOARCH=amd64
           just build ftl ftl-sqlc
           just build-language-plugins
       - name: Upload Release Binaries

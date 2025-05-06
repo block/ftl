@@ -11,7 +11,7 @@ jobs:
   write-os-specific-cache:
     strategy:
       matrix:
-        runner: [ubuntu-latest]
+        runner: [ubuntu-latest, ftl]
     name: Write Cache
     runs-on: ${{ matrix.runner }}
     steps:
