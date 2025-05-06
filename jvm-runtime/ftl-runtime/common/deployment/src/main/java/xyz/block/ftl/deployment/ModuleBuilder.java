@@ -697,6 +697,9 @@ public class ModuleBuilder {
                 var clazz = type.asClassType();
                 if (clazz.name().equals(FTLDotNames.KOTLIN_UNIT)) {
                     return Type.newBuilder().setUnit(Unit.newBuilder().build()).build();
+                } else if (clazz.name().equals(FTLDotNames.KOTLIN_UBYTE) || clazz.name().equals(FTLDotNames.KOTLIN_USHORT)
+                        || clazz.name().equals(FTLDotNames.KOTLIN_UINT) || clazz.name().equals(FTLDotNames.KOTLIN_ULONG)) {
+                    return Type.newBuilder().setInt(Int.newBuilder().build()).build();
                 }
                 var info = index.getClassByName(clazz.name());
 
