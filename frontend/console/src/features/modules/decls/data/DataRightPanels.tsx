@@ -11,7 +11,7 @@ export const dataPanels = (moduleName: string, data: Data, showGraph = true) => 
       expanded: true,
       children: [<RightPanelAttribute key='name' name='Name' value={data.data?.name} />],
     },
-    ...DeclDefaultPanels(moduleName, data.schema, data.edges, data.data?.pos),
+    ...DeclDefaultPanels(moduleName, data.schema, data.edges, data.data?.pos, data.git),
   ]
 
   if (showGraph) {

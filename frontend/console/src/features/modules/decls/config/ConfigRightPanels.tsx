@@ -14,7 +14,7 @@ export const configPanels = (moduleName: string, config: Config, showGraph = tru
         <RightPanelAttribute key='type' name='Type' value={config.config?.type?.value.case ?? ''} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, config.schema, config.edges, config.config?.pos),
+    ...DeclDefaultPanels(moduleName, config.schema, config.edges, config.config?.pos, config.git),
   ]
 
   if (showGraph) {

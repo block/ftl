@@ -14,7 +14,7 @@ export const enumPanels = (moduleName: string, enumDecl: Enum, showGraph = true)
         <RightPanelAttribute key='type' name='Type' value={enumDecl.enum?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, enumDecl.schema, enumDecl.edges, enumDecl.enum?.pos),
+    ...DeclDefaultPanels(moduleName, enumDecl.schema, enumDecl.edges, enumDecl.enum?.pos, enumDecl.git),
   ]
 
   if (showGraph) {

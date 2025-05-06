@@ -16,7 +16,19 @@ import {
 } from 'hugeicons-react'
 import type { Module } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import type { Verb as ConsoleVerb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { Config, Data, Database, Decl, Enum, Verb as SchemaVerb, Secret, Topic, TypeAlias } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type {
+  Config,
+  Data,
+  Database,
+  Decl,
+  Enum,
+  MetadataGit,
+  Position,
+  Verb as SchemaVerb,
+  Secret,
+  Topic,
+  TypeAlias,
+} from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { Visibility } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 
 export type DeclSumType = Config | Data | Database | Enum | Topic | TypeAlias | Secret | SchemaVerb
@@ -250,4 +262,28 @@ export const sortModules = <T extends { name: string }>(modules: T[]) => {
     // Then sort alphabetically by name
     return m1.name.localeCompare(m2.name)
   })
+}
+
+// Helper to parse org/repo from a GitHub remote URL (https or ssh)
+function parseGitHubOrgRepo(remoteUrl: string): { org: string; repo: string } | undefined {
+  // HTTPS: https://github.com/org/repo(.git)?
+  const httpsMatch = remoteUrl.match(/^https:\/\/github.com\/([^/]+)\/([^/.]+)(?:\.git)?$/)
+  if (httpsMatch) {
+    return { org: httpsMatch[1], repo: httpsMatch[2] }
+  }
+  // SSH: git@github.com:org/repo(.git)?
+  const sshMatch = remoteUrl.match(/^git@github.com:([^/]+)\/([^/.]+)(?:\.git)?$/)
+  if (sshMatch) {
+    return { org: sshMatch[1], repo: sshMatch[2] }
+  }
+  return undefined
+}
+
+// Accepts a MetadataGit and a Position, returns a GitHub blob URL for the file and line
+export const getGitHubUrl = (git?: MetadataGit, pos?: Position): string | undefined => {
+  if (!git?.repository || !git?.commit || !pos?.filename) return undefined
+  const parsed = parseGitHubOrgRepo(git.repository)
+  if (!parsed) return undefined
+  const lineFragment = pos.line ? `#L${pos.line}` : ''
+  return `https://github.com/${parsed.org}/${parsed.repo}/blob/${git.commit}/${pos.filename}${lineFragment}`
 }

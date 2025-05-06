@@ -3,9 +3,7 @@ package editor
 import (
 	"context"
 	"fmt"
-	"net/url"
-	osexec "os/exec" //nolint:depguard
-	"path/filepath"
+	"net/url" //nolint:depguard
 	"regexp"
 	"runtime"
 	"strconv"
@@ -29,8 +27,9 @@ const (
 var SupportedEditors = []string{VSCode, IntelliJ, Cursor, Zed, GitHub}
 
 // OpenFileInEditor opens the given file path at the specified position in the selected editor.
-func OpenFileInEditor(ctx context.Context, editor string, pos schema.Position, projectRoot string) error {
-	executable, args, workDir, err := getEditorCmdArgs(ctx, editor, pos, projectRoot)
+// It now requires the overall schema to look up module-specific Git metadata.
+func OpenFileInEditor(ctx context.Context, editor string, pos schema.Position, projectRoot string, module *schema.Module) error {
+	executable, args, workDir, err := getEditorCmdArgs(editor, pos, projectRoot, module)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func OpenFileInEditor(ctx context.Context, editor string, pos schema.Position, p
 	return nil
 }
 
-func getEditorCmdArgs(ctx context.Context, editor string, pos schema.Position, projectRoot string) (executable string, args []string, workDir string, err error) {
+func getEditorCmdArgs(editor string, pos schema.Position, projectRoot string, module *schema.Module) (executable string, args []string, workDir string, err error) {
 	switch editor {
 	case VSCode:
 		executable = "code"
@@ -69,7 +68,7 @@ func getEditorCmdArgs(ctx context.Context, editor string, pos schema.Position, p
 
 	case GitHub:
 		var err error
-		executable, args, workDir, err = buildGitHubLinkCommand(ctx, pos, projectRoot)
+		executable, args, workDir, err = buildGitHubLinkCommand(pos, module)
 		if err != nil {
 			return "", nil, "", errors.WithStack(err)
 		}
@@ -90,51 +89,40 @@ func formatPathWithPosition(pos schema.Position, includeColumn bool) string {
 
 // buildGitHubLinkCommand constructs the command needed to open a file link on GitHub.
 // It determines the git repository root, remote origin URL, commit hash, and relative file path
-// to construct the appropriate GitHub blob URL.
-func buildGitHubLinkCommand(ctx context.Context, pos schema.Position, projectRoot string) (executable string, args []string, workDir string, err error) {
-	absFilename := filepath.Join(projectRoot, pos.Filename)
-
-	repoRootCmd := osexec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
-	repoRootCmd.Dir = filepath.Dir(absFilename)
-	repoRootBytes, err := repoRootCmd.Output()
-	if err != nil {
-		return "", nil, "", errors.Wrapf(err, "failed to get git repo root for %q: ensure it is in a git repository and git is installed", absFilename)
+// to construct the appropriate GitHub blob URL, using module schema for Git information.
+func buildGitHubLinkCommand(pos schema.Position, module *schema.Module) (executable string, args []string, workDir string, err error) {
+	if module == nil {
+		return "", nil, "", errors.Errorf("module information is required to build GitHub link")
 	}
-	repoRoot := strings.TrimSpace(string(repoRootBytes))
 
-	remoteURLCmd := osexec.CommandContext(ctx, "git", "config", "--get", "remote.origin.url")
-	remoteURLCmd.Dir = repoRoot
-	remoteURLBytes, err := remoteURLCmd.Output()
-	if err != nil {
-		// Attempt to find remote URL from the file's directory if not found at root (might be a submodule)
-		remoteURLCmd.Dir = filepath.Dir(absFilename)
-		remoteURLBytes, err = remoteURLCmd.Output()
-		if err != nil {
-			return "", nil, "", errors.Wrap(err, "failed to get git remote origin URL: ensure 'origin' remote is configured")
+	var commitHash string
+	var gitSchemaMeta *schema.MetadataGit
+
+	for _, metaItem := range module.Metadata {
+		if concreteGitMeta, ok := metaItem.(*schema.MetadataGit); ok {
+			gitSchemaMeta = concreteGitMeta
+			break
 		}
 	}
-	remoteURL := strings.TrimSpace(string(remoteURLBytes))
 
-	commitHashCmd := osexec.CommandContext(ctx, "git", "rev-parse", "HEAD")
-	commitHashCmd.Dir = repoRoot
-	commitHashBytes, err := commitHashCmd.Output()
-	if err != nil {
-		return "", nil, "", errors.Wrap(err, "failed to get git commit hash")
+	if gitSchemaMeta == nil || gitSchemaMeta.Repository == "" {
+		return "", nil, "", errors.Errorf("Git metadata (repository URL) not found in module %q schema", module.Name)
 	}
-	commitHash := strings.TrimSpace(string(commitHashBytes))
+	remoteURL := gitSchemaMeta.Repository
+
+	if gitSchemaMeta.Commit == "" {
+		return "", nil, "", errors.Errorf("Git commit hash not found in module %q schema", module.Name)
+	}
+	commitHash = gitSchemaMeta.Commit
 
 	org, repo, err := parseGitHubRemoteURL(remoteURL)
 	if err != nil {
 		return "", nil, "", errors.Wrapf(err, "could not parse GitHub remote URL %q", remoteURL)
 	}
 
-	relativePath, err := filepath.Rel(repoRoot, absFilename)
-	if err != nil {
-		return "", nil, "", errors.Wrapf(err, "failed to get relative path for %q from root %q", absFilename, repoRoot)
-	}
-
+	// Use pos.Filename directly, assuming it is relative to the repo root
 	githubURL := fmt.Sprintf("https://github.com/%s/%s/blob/%s/%s#L%d",
-		org, repo, commitHash, relativePath, pos.Line)
+		org, repo, commitHash, pos.Filename, pos.Line)
 
 	switch runtime.GOOS {
 	case "darwin":

@@ -5,7 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3 } from "@bufbuild/protobuf";
-import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, Module as Module$1, ModuleRuntime, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
+import { Config as Config$1, Data as Data$1, Database as Database$1, Enum as Enum$1, MetadataGit, Module as Module$1, ModuleRuntime, Ref, Secret as Secret$1, Topic as Topic$1, TypeAlias as TypeAlias$1, Verb as Verb$1 } from "../../schema/v1/schema_pb.js";
 
 /**
  * @generated from message xyz.block.ftl.console.v1.Edges
@@ -69,6 +69,11 @@ export class Config extends Message<Config> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Config>) {
     super();
     proto3.util.initPartial(data, this);
@@ -80,6 +85,7 @@ export class Config extends Message<Config> {
     { no: 1, name: "config", kind: "message", T: Config$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Config {
@@ -118,6 +124,11 @@ export class Data extends Message<Data> {
    */
   edges?: Edges;
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Data>) {
     super();
     proto3.util.initPartial(data, this);
@@ -129,6 +140,7 @@ export class Data extends Message<Data> {
     { no: 1, name: "data", kind: "message", T: Data$1 },
     { no: 2, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "edges", kind: "message", T: Edges },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Data {
@@ -167,6 +179,11 @@ export class Database extends Message<Database> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Database>) {
     super();
     proto3.util.initPartial(data, this);
@@ -178,6 +195,7 @@ export class Database extends Message<Database> {
     { no: 1, name: "database", kind: "message", T: Database$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Database {
@@ -216,6 +234,11 @@ export class Enum extends Message<Enum> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Enum>) {
     super();
     proto3.util.initPartial(data, this);
@@ -227,6 +250,7 @@ export class Enum extends Message<Enum> {
     { no: 1, name: "enum", kind: "message", T: Enum$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Enum {
@@ -265,6 +289,11 @@ export class Topic extends Message<Topic> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Topic>) {
     super();
     proto3.util.initPartial(data, this);
@@ -276,6 +305,7 @@ export class Topic extends Message<Topic> {
     { no: 1, name: "topic", kind: "message", T: Topic$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Topic {
@@ -314,6 +344,11 @@ export class TypeAlias extends Message<TypeAlias> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<TypeAlias>) {
     super();
     proto3.util.initPartial(data, this);
@@ -325,6 +360,7 @@ export class TypeAlias extends Message<TypeAlias> {
     { no: 1, name: "typealias", kind: "message", T: TypeAlias$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TypeAlias {
@@ -363,6 +399,11 @@ export class Secret extends Message<Secret> {
    */
   schema = "";
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 4;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Secret>) {
     super();
     proto3.util.initPartial(data, this);
@@ -374,6 +415,7 @@ export class Secret extends Message<Secret> {
     { no: 1, name: "secret", kind: "message", T: Secret$1 },
     { no: 2, name: "edges", kind: "message", T: Edges },
     { no: 3, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Secret {
@@ -417,6 +459,11 @@ export class Verb extends Message<Verb> {
    */
   edges?: Edges;
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 5;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Verb>) {
     super();
     proto3.util.initPartial(data, this);
@@ -429,6 +476,7 @@ export class Verb extends Message<Verb> {
     { no: 2, name: "schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "json_request_schema", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "edges", kind: "message", T: Edges },
+    { no: 5, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Verb {
@@ -512,6 +560,11 @@ export class Module extends Message<Module> {
    */
   module?: Module$1;
 
+  /**
+   * @generated from field: xyz.block.ftl.schema.v1.MetadataGit git = 13;
+   */
+  git?: MetadataGit;
+
   constructor(data?: PartialMessage<Module>) {
     super();
     proto3.util.initPartial(data, this);
@@ -532,6 +585,7 @@ export class Module extends Message<Module> {
     { no: 10, name: "topics", kind: "message", T: Topic, repeated: true },
     { no: 11, name: "typealiases", kind: "message", T: TypeAlias, repeated: true },
     { no: 12, name: "module", kind: "message", T: Module$1 },
+    { no: 13, name: "git", kind: "message", T: MetadataGit },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Module {

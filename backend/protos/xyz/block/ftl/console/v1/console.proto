@@ -20,42 +20,49 @@ message Config {
   ftl.schema.v1.Config config = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Data {
   ftl.schema.v1.Data data = 1;
   string schema = 2;
   Edges edges = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Database {
   ftl.schema.v1.Database database = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Enum {
   ftl.schema.v1.Enum enum = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Topic {
   ftl.schema.v1.Topic topic = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message TypeAlias {
   ftl.schema.v1.TypeAlias typealias = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Secret {
   ftl.schema.v1.Secret secret = 1;
   Edges edges = 2;
   string schema = 3;
+  ftl.schema.v1.MetadataGit git = 4;
 }
 
 message Verb {
@@ -63,6 +70,7 @@ message Verb {
   string schema = 2;
   string json_request_schema = 3;
   Edges edges = 4;
+  ftl.schema.v1.MetadataGit git = 5;
 }
 
 message Module {
@@ -78,6 +86,7 @@ message Module {
   repeated Topic topics = 10;
   repeated TypeAlias typealiases = 11;
   ftl.schema.v1.Module module = 12;
+  ftl.schema.v1.MetadataGit git = 13;
 }
 
 message TopologyGroup {

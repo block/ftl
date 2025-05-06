@@ -14,7 +14,7 @@ export const typeAliasPanels = (moduleName: string, typeAlias: TypeAlias, showGr
         <RightPanelAttribute key='export' name='Type' value={typeAlias.typealias?.type?.value.case} />,
       ],
     },
-    ...DeclDefaultPanels(moduleName, typeAlias.schema, typeAlias.edges, typeAlias.typealias?.pos),
+    ...DeclDefaultPanels(moduleName, typeAlias.schema, typeAlias.edges, typeAlias.typealias?.pos, typeAlias.git),
   ]
 
   if (showGraph) {

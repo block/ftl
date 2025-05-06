@@ -1,6 +1,7 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import { ArrowDown01Icon } from 'hugeicons-react'
 import { Fragment, useEffect, useMemo } from 'react'
+import type { Position } from '../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { useLocalStorage } from '../../../shared/hooks/use-local-storage'
 import { useInfo } from '../../../shared/providers/info-provider'
 import { classNames } from '../../../shared/utils'
@@ -17,17 +18,19 @@ const editorDisplayNames: Record<string, string> = {
 const allEditorKeys = Object.keys(editorDisplayNames)
 
 export interface EditDeclButtonProps {
-  path: string
-  line: number
-  column: number
+  position: Position
+  githubUrl?: string
 }
 
-export const EditDeclButton: React.FC<EditDeclButtonProps> = ({ path, line, column }) => {
+export const EditDeclButton: React.FC<EditDeclButtonProps> = ({ position, githubUrl }) => {
   const { mutate: editDecl, isPending } = useEditDecl()
   const [lastEditor, setLastEditor] = useLocalStorage<string | null>('ftl-console-last-editor', null)
   const info = useInfo()
 
-  const availableEditorKeys = useMemo(() => (info.isLocalDev ? allEditorKeys : ['github']), [info.isLocalDev])
+  const availableEditorKeys = useMemo(() => {
+    const keys = info.isLocalDev ? allEditorKeys : ['github']
+    return githubUrl ? keys : keys.filter((k) => k !== 'github')
+  }, [info.isLocalDev, githubUrl])
 
   useEffect(() => {
     if (!lastEditor || !availableEditorKeys.includes(lastEditor)) {
@@ -38,7 +41,11 @@ export const EditDeclButton: React.FC<EditDeclButtonProps> = ({ path, line, colu
   const effectiveEditor = lastEditor && availableEditorKeys.includes(lastEditor) ? lastEditor : availableEditorKeys[0]
 
   const handleEditorSelect = (editor: string) => {
-    const params: EditDeclParams = { editor, path, line, column }
+    if (editor === 'github' && githubUrl) {
+      window.open(githubUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+    const params: EditDeclParams = { editor, path: position.filename, line: Number(position.line), column: Number(position.column) }
     editDecl(params, {
       onSuccess: () => {
         setLastEditor(editor)
@@ -82,27 +89,6 @@ export const EditDeclButton: React.FC<EditDeclButtonProps> = ({ path, line, colu
       ))}
     </MenuItems>
   )
-
-  if (!info.isLocalDev) {
-    return (
-      <button
-        type='button'
-        onClick={() => handleEditorSelect('github')}
-        disabled={isPending}
-        title={'Edit with GitHub'}
-        className={classNames(
-          'relative inline-flex items-center gap-x-1.5 rounded-md px-3 py-1',
-          'bg-white dark:bg-gray-800 ring-1 ring-gray-300 dark:ring-gray-700 ring-inset',
-          'text-sm font-semibold text-gray-900 dark:text-white',
-          'hover:bg-gray-100 dark:hover:bg-gray-700',
-          'focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-        )}
-      >
-        {editorDisplayNames.github}
-      </button>
-    )
-  }
 
   if (!lastEditor || !allEditorKeys.includes(lastEditor)) {
     return (
