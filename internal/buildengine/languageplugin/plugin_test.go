@@ -17,6 +17,7 @@ import (
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
@@ -132,7 +133,7 @@ func setUp() (context.Context, *LanguagePlugin, *mockPluginClient, BuildContext)
 			Dir:      "test/dir",
 			Language: "test-lang",
 		},
-		Schema:       &schema.Schema{Realms: []*schema.Realm{{Name: "test"}}},
+		Schema:       builder.Schema(builder.Realm("test").MustBuild()).MustBuild(),
 		Dependencies: []string{},
 	}
 	return ctx, plugin, mockImpl, bctx
@@ -269,7 +270,7 @@ func TestRebuilds(t *testing.T) {
 	checkResult(t, <-result, "first build")
 
 	// send rebuild request with updated schema
-	bctx.Schema.Realms[0].Modules = append(bctx.Schema.Realms[0].Modules, &schema.Module{Name: "another"})
+	bctx.Schema.Realms[0].Modules = append(bctx.Schema.Realms[0].Modules, builder.Module("another").MustBuild())
 	sch, err := bctx.Schema.Validate()
 	assert.NoError(t, err, "schema should be valid")
 	result = beginBuild(ctx, plugin, bctx, true)

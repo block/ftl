@@ -25,6 +25,11 @@ type Realm struct {
 
 var _ Node = (*Realm)(nil)
 
+// Validate Realm clones, normalises and semantically validates a realm.
+func (r *Realm) Validate() (*Realm, error) {
+	return errors.WithStack2(ValidateModuleInRealm(r, optional.None[*Module]()))
+}
+
 func (r *Realm) Position() Position { return r.Pos }
 func (r *Realm) String() string {
 	out := &strings.Builder{}

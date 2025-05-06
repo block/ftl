@@ -16,6 +16,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
@@ -44,7 +45,7 @@ func (v *View) GetCanonical() *schema.Schema { return v.eventSource.view.Load().
 func NewUnattached() *EventSource {
 	return &EventSource{
 		events:              pubsub.New[schema.Notification](),
-		view:                atomic.New(&currentState{schema: &schema.Schema{}, activeChangesets: map[key.Changeset]*schema.Changeset{}}),
+		view:                atomic.New(&currentState{schema: builder.Schema().MustBuild(), activeChangesets: map[key.Changeset]*schema.Changeset{}}),
 		live:                atomic.New[bool](false),
 		initialSyncComplete: make(chan struct{}),
 		subscribeLock:       &sync.Mutex{},
@@ -116,7 +117,15 @@ func (e *EventSource) ActiveChangesets() map[key.Changeset]*schema.Changeset {
 }
 
 func (e *EventSource) PublishModuleForTest(module *schema.Module) error {
-	return errors.WithStack(e.Publish(&schema.FullSchemaNotification{Schema: &schema.Schema{Realms: []*schema.Realm{{Modules: []*schema.Module{module}}}}}))
+	realm, err := builder.Realm("", module).Build() // TODO: Realm name should not be empty
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	sch, err := builder.Schema(realm).Build()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return errors.WithStack(e.Publish(&schema.FullSchemaNotification{Schema: sch}))
 }
 
 // Publish an event to the EventSource.
@@ -196,7 +205,7 @@ func (e *EventSource) Publish(event schema.Notification) error {
 				modules = er.Modules
 				existingRealm = er
 			} else {
-				existingRealm = &schema.Realm{Name: realm.Name, External: realm.External}
+				existingRealm = builder.Realm(realm.Name).External(true).MustBuild()
 				clone.schema.Realms = append(clone.schema.Realms, existingRealm)
 				realms[realm.Name] = existingRealm
 			}

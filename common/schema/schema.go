@@ -28,6 +28,11 @@ type Schema struct {
 
 var _ Node = (*Schema)(nil)
 
+// Validate Schema clones, normalises and semantically validates a schema.
+func (s *Schema) Validate() (*Schema, error) {
+	return errors.WithStack2(ValidateModuleInSchema(s, optional.None[*Module]()))
+}
+
 func (s *Schema) Position() Position { return s.Pos }
 func (s *Schema) String() string {
 	out := &strings.Builder{}

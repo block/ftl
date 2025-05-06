@@ -30,6 +30,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
@@ -75,7 +76,7 @@ type streamSchemaRetriever struct {
 
 func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, error) {
 	view := c.source.CanonicalView()
-	return &schema.Schema{Realms: view.Realms}, nil
+	return errors.WithStack2(builder.Schema(view.Realms...).Build())
 }
 
 // NewAdminService creates a new Service.

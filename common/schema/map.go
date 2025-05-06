@@ -15,6 +15,15 @@ type Map struct {
 var _ Type = (*Map)(nil)
 var _ Symbol = (*Map)(nil)
 
+func (m *Map) Validate() error {
+	if m.Key == nil {
+		return errorf(m, "map key type missing")
+	}
+	if m.Value == nil {
+		return errorf(m, "map value type missing")
+	}
+	return nil
+}
 func (m *Map) Equal(other Type) bool {
 	o, ok := other.(*Map)
 	if !ok {
