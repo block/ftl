@@ -1245,7 +1245,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 				},
 			},
 		}
-		return "", nil, errors.WithStack(err)
+		return "", nil, nil
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
