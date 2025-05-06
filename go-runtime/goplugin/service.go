@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
@@ -19,7 +18,6 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/go-runtime/compile"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
@@ -31,12 +29,6 @@ const BuildLockTimeout = time.Minute
 
 //sumtype:decl
 type updateEvent interface{ updateEvent() }
-
-type buildContextUpdatedEvent struct {
-	buildCtx buildContext
-}
-
-func (buildContextUpdatedEvent) updateEvent() {}
 
 type filesUpdatedEvent struct {
 	changes []watch.FileChange
@@ -86,8 +78,7 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 }
 
 type Service struct {
-	updatesTopic          *pubsub.Topic[updateEvent]
-	acceptsContextUpdates atomic.Value[bool]
+	updatesTopic *pubsub.Topic[updateEvent]
 }
 
 var _ langconnect.LanguageServiceHandler = &Service{}
@@ -157,7 +148,7 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 // file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
 // rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
 // calls.
-func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
 	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
 	ctx = log.ContextWithLogger(ctx, logger)
@@ -173,152 +164,28 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
 
 	ongoingState := &compile.OngoingState{}
 
-	if req.Msg.RebuildAutomatically {
-		s.acceptsContextUpdates.Store(true)
-		defer s.acceptsContextUpdates.Store(false)
-
-		if err := watchFiles(ctx, watcher, buildCtx, events); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
 	// Initial build
-	if err := buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.RebuildAutomatically); err != nil {
-		return errors.WithStack(err)
-	}
-	if !req.Msg.RebuildAutomatically {
-		return nil
-	}
+	return buildAndSend(ctx, projectConfig, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.DevModeBuild)
 
-	// Watch for changes and build as needed
-	for e := range channels.IterContext(ctx, events) {
-		var isAutomaticRebuild bool
-		buildCtx, isAutomaticRebuild = buildContextFromPendingEvents(ctx, buildCtx, events, e, ongoingState)
-		if isAutomaticRebuild {
-			err = stream.Send(&langpb.BuildResponse{
-				Event: &langpb.BuildResponse_AutoRebuildStarted{
-					AutoRebuildStarted: &langpb.AutoRebuildStarted{
-						ContextId: buildCtx.ID,
-					},
-				},
-			})
-			if err != nil {
-				return errors.Wrap(err, "could not send auto rebuild started event")
-			}
-		}
-		if err = buildAndSend(ctx, stream, projectConfig, req.Msg.StubsRoot, buildCtx, isAutomaticRebuild, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, true); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-	if ctx.Err() != nil {
-		log.FromContext(ctx).Infof("Build call ending - ctx cancelled")
-	}
-	return nil
-}
-
-// BuildContextUpdated is called whenever the build context is update while a Build call with "rebuild_automatically" is active.
-//
-// Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-// event with the updated build context id with "is_automatic_rebuild" as false.
-func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
-	if !s.acceptsContextUpdates.Load() {
-		return nil, errors.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
-	}
-	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	s.updatesTopic.Publish(buildContextUpdatedEvent{
-		buildCtx: buildCtx,
-	})
-	return connect.NewResponse(&langpb.BuildContextUpdatedResponse{}), nil
-}
-
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan updateEvent) error {
-	logger := log.FromContext(ctx)
-	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
-	if err != nil {
-		return errors.Wrap(err, "could not watch for file changes")
-	}
-	logger.Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
-	watchEvents := make(chan watch.WatchEvent, 32)
-	watchTopic.Subscribe(watchEvents)
-
-	// We need watcher to calculate file hashes before we do initial build so we can detect changes
-	select {
-	case e := <-watchEvents:
-		_, ok := e.(watch.WatchEventModuleAdded)
-		if !ok {
-			return errors.Errorf("expected module added event, got: %T", e)
-		}
-	case <-time.After(3 * time.Second):
-		return errors.Errorf("expected module added event, got no event")
-	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "context done")
-	}
-
-	go func() {
-		for e := range channels.IterContext(ctx, watchEvents) {
-			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				logger.Debugf("Found file changes: %s", change)
-				events <- updateEvent(filesUpdatedEvent{changes: change.Changes})
-			}
-		}
-	}()
-	return nil
-}
-
-// buildContextFromPendingEvents processes all pending events to determine the latest context and whether the build is automatic.
-func buildContextFromPendingEvents(ctx context.Context, buildCtx buildContext, events chan updateEvent, firstEvent updateEvent, ongoingState *compile.OngoingState) (newBuildCtx buildContext, isAutomaticRebuild bool) {
-	allEvents := []updateEvent{firstEvent}
-	// find any other events in the queue
-	for {
-		select {
-		case e := <-events:
-			allEvents = append(allEvents, e)
-		case <-ctx.Done():
-			return buildCtx, false
-		default:
-			// No more events waiting to be processed
-			hasExplicitBuilt := false
-			for _, e := range allEvents {
-				switch e := e.(type) {
-				case buildContextUpdatedEvent:
-					buildCtx = e.buildCtx
-					hasExplicitBuilt = true
-				case filesUpdatedEvent:
-					ongoingState.DetectedFileChanges(buildCtx.Config, e.changes)
-				}
-			}
-			switch e := firstEvent.(type) {
-			case buildContextUpdatedEvent:
-				buildCtx = e.buildCtx
-				hasExplicitBuilt = true
-			case filesUpdatedEvent:
-				ongoingState.DetectedFileChanges(buildCtx.Config, e.changes)
-			}
-			return buildCtx, !hasExplicitBuilt
-		}
-	}
 }
 
 // buildAndSend builds the module and sends the build event to the stream.
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext,
-	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState, devMode bool) error {
+func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext,
+	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState, devMode bool) (*connect.Response[langpb.BuildResponse], error) {
 	buildEvent, err := build(ctx, projectConfig, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState, devMode)
 	if err != nil {
 		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
@@ -327,10 +194,7 @@ func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.Build
 			Msg:   err.Error(),
 		})
 	}
-	if err = stream.Send(buildEvent); err != nil {
-		return errors.Wrap(err, "could not send build event")
-	}
-	return nil
+	return connect.NewResponse(buildEvent), nil
 }
 
 func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext, isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction,
@@ -346,8 +210,6 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 		return &langpb.BuildResponse{
 			Event: &langpb.BuildResponse_BuildFailure{
 				BuildFailure: &langpb.BuildFailure{
-					ContextId:              buildCtx.ID,
-					IsAutomaticRebuild:     isAutomaticRebuild,
 					InvalidateDependencies: true,
 				},
 			},
@@ -375,11 +237,9 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
 			BuildSuccess: &langpb.BuildSuccess{
-				ContextId:          buildCtx.ID,
-				IsAutomaticRebuild: isAutomaticRebuild,
-				Errors:             langpb.ErrorsToProto(buildErrs),
-				Module:             moduleProto,
-				Deploy:             deploy,
+				Errors: langpb.ErrorsToProto(buildErrs),
+				Module: moduleProto,
+				Deploy: deploy,
 			},
 		},
 	}, nil
@@ -390,8 +250,6 @@ func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builde
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
-				ContextId:              buildCtx.ID,
-				IsAutomaticRebuild:     isAutomaticRebuild,
 				Errors:                 langpb.ErrorsToProto(errs),
 				InvalidateDependencies: false,
 			},
