@@ -17,3 +17,4 @@ disable-vscode-integration = true
 
 [commands]
   startup = ["echo 'FTL startup command ⚡️'"]
+

@@ -514,17 +514,24 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 }
 
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
-	if len(req.Msg.RealmChanges) != 1 {
-		return errors.Errorf("exactly one realm change is required")
-	}
-	realmChange := req.Msg.RealmChanges[0]
-
-	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
-		RealmChanges: []*ftlv1.RealmChange{{
+	var changes []*ftlv1.RealmChange
+	var pbchanges []*schemapb.RealmChange
+	for _, realmChange := range req.Msg.RealmChanges {
+		changes = append(changes, &ftlv1.RealmChange{
 			Name:     realmChange.Name,
 			Modules:  realmChange.Modules,
 			ToRemove: realmChange.ToRemove,
-		}},
+			External: realmChange.External,
+		})
+		pbchanges = append(pbchanges, &schemapb.RealmChange{
+			Name:     realmChange.Name,
+			Modules:  realmChange.Modules,
+			ToRemove: realmChange.ToRemove,
+			External: realmChange.External,
+		})
+	}
+	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		RealmChanges: changes,
 	}))
 	if err != nil {
 		return errors.Wrap(err, "failed to create changeset")
@@ -534,12 +541,8 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 		return errors.Wrap(err, "failed to parse changeset key")
 	}
 	changeset := &schemapb.Changeset{
-		Key: cs.Msg.Changeset,
-		RealmChanges: []*schemapb.RealmChange{{
-			Name:     realmChange.Name,
-			Modules:  realmChange.Modules,
-			ToRemove: realmChange.ToRemove,
-		}},
+		Key:          cs.Msg.Changeset,
+		RealmChanges: pbchanges,
 	}
 	if err := stream.Send(&adminpb.ApplyChangesetResponse{
 		Changeset: changeset,

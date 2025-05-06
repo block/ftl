@@ -29,6 +29,7 @@ type ExternalRealmConfig struct {
 	GitRepo   string `toml:"git-repo,omitempty"`
 	GitBranch string `toml:"git-branch,omitempty"`
 	GitCommit string `toml:"git-commit,omitempty"`
+	GitPath   string `toml:"git-path,omitempty"`
 }
 
 type Config struct {
@@ -219,12 +220,21 @@ func Save(config Config) error {
 	return errors.WithStack(os.Rename(w.Name(), config.Path))
 }
 
+func (c Config) FTLWorkingDir() string {
+	return filepath.Join(c.Root(), ".ftl")
+}
+
 // SchemaPath returns the path to the schema file for the given module.
 func (c Config) SchemaPath(module string) string {
-	return filepath.Join(c.Root(), ".ftl", "schemas", module+".pb")
+	return filepath.Join(c.FTLWorkingDir(), "schemas", module+".pb")
 }
 
 // WatchModulesLockPath returns the path to the lock file used to prevent scaffolding new modules while discovering modules.
 func (c Config) WatchModulesLockPath() string {
-	return filepath.Join(c.Root(), ".ftl", "modules.lock")
+	return filepath.Join(c.FTLWorkingDir(), "modules.lock")
+}
+
+// ExternalRealmPath returns the path to the locally cached external realm files.
+func (c Config) ExternalRealmPath() string {
+	return filepath.Join(c.FTLWorkingDir(), "realms")
 }

@@ -68,6 +68,7 @@ type SharedCLI struct {
 	Mysql     mySQLCmd     `cmd:"" help:"Manage MySQL databases."`
 	Postgres  postgresCmd  `cmd:"" help:"Manage PostgreSQL databases."`
 	Edit      editCmd      `cmd:"" help:"Edit a declaration in an IDE."`
+	Realm     realmCmd     `cmd:"" help:"Manage realms." hidden:""`
 }
 
 type BuildAndDeploy struct {

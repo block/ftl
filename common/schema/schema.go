@@ -355,6 +355,26 @@ func (s *Schema) External() *Schema {
 	return filtered
 }
 
+func (s *Schema) UpdateRealms(realms []*Realm) {
+	byName := make(map[string]*Realm)
+	found := make(map[string]bool)
+	for _, r := range realms {
+		byName[r.Name] = r
+		found[r.Name] = true
+	}
+	for i, r := range s.Realms {
+		if n, ok := byName[r.Name]; ok {
+			s.Realms[i] = n
+		}
+		found[r.Name] = true
+	}
+	for _, r := range realms {
+		if !found[r.Name] {
+			s.Realms = append(s.Realms, r)
+		}
+	}
+}
+
 func filterExternalMetadata(metadata []Metadata) []Metadata {
 	var filtered []Metadata
 	for _, m := range metadata {

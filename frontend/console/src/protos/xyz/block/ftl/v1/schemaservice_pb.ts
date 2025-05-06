@@ -320,6 +320,13 @@ export class RealmChange extends Message<RealmChange> {
    */
   toRemove: string[] = [];
 
+  /**
+   * Whether this is an external realm.
+   *
+   * @generated from field: bool external = 4;
+   */
+  external = false;
+
   constructor(data?: PartialMessage<RealmChange>) {
     super();
     proto3.util.initPartial(data, this);
@@ -331,6 +338,7 @@ export class RealmChange extends Message<RealmChange> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "modules", kind: "message", T: Module, repeated: true },
     { no: 3, name: "to_remove", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "external", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RealmChange {

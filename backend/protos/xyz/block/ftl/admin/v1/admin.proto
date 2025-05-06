@@ -147,6 +147,8 @@ message RealmChange {
   repeated ftl.schema.v1.Module modules = 2;
   // The deployments to remove.
   repeated string to_remove = 3;
+  // Whether this is an external realm.
+  bool external = 4;
 }
 
 message ApplyChangesetRequest {
