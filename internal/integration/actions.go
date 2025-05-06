@@ -1,4 +1,4 @@
-//go:build integration || infrastructure || smoketest
+//go:build integration || infrastructure
 
 package integration
 

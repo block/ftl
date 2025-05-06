@@ -307,7 +307,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	for {
 		select {
 		case <-runnerCtx.Done():
-			return errors.Wrap(runnerCtx.Err(), "context cancelled")
+			return errors.WithStack(context.Cause(runnerCtx))
 		case <-timeout:
 			return errors.Errorf("timed out waiting for runner to be ready")
 		case <-time.After(time.Millisecond * 100):

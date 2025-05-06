@@ -274,7 +274,6 @@ test-integration *test:
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
-  echo "$PATH"
   retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests
@@ -283,7 +282,7 @@ test-infrastructure *test:
 
 # Run integration test(s)
 infrastructure-tests *test:
-  retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')
 
 # Run README doc tests
 test-readme *args:
