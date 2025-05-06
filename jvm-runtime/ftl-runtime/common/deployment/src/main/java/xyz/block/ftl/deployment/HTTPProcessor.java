@@ -27,6 +27,7 @@ import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.VerbRegistry;
 import xyz.block.ftl.runtime.builtin.HttpRequest;
 import xyz.block.ftl.runtime.builtin.HttpResponse;
+import xyz.block.ftl.schema.v1.Array;
 import xyz.block.ftl.schema.v1.IngressPathComponent;
 import xyz.block.ftl.schema.v1.IngressPathLiteral;
 import xyz.block.ftl.schema.v1.IngressPathParameter;
@@ -192,7 +193,9 @@ public class HTTPProcessor {
                     } else {
                         queryParamsType = Type.newBuilder()
                                 .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
-                                        .setValue(stringType));
+                                        .setValue(Type.newBuilder()
+                                                .setArray(
+                                                        Array.newBuilder().setElement(stringType))));
                     }
 
                     ModuleBuilder.VerbCustomization verbCustomization = new ModuleBuilder.VerbCustomization();
