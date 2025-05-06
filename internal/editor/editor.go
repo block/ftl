@@ -69,7 +69,7 @@ func getEditorCmdArgs(ctx context.Context, editor string, pos schema.Position, p
 
 	case GitHub:
 		var err error
-		executable, args, workDir, err = buildGitHubLinkCommand(ctx, pos)
+		executable, args, workDir, err = buildGitHubLinkCommand(ctx, pos, projectRoot)
 		if err != nil {
 			return "", nil, "", errors.WithStack(err)
 		}
@@ -91,12 +91,14 @@ func formatPathWithPosition(pos schema.Position, includeColumn bool) string {
 // buildGitHubLinkCommand constructs the command needed to open a file link on GitHub.
 // It determines the git repository root, remote origin URL, commit hash, and relative file path
 // to construct the appropriate GitHub blob URL.
-func buildGitHubLinkCommand(ctx context.Context, pos schema.Position) (executable string, args []string, workDir string, err error) {
+func buildGitHubLinkCommand(ctx context.Context, pos schema.Position, projectRoot string) (executable string, args []string, workDir string, err error) {
+	absFilename := filepath.Join(projectRoot, pos.Filename)
+
 	repoRootCmd := osexec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
-	repoRootCmd.Dir = filepath.Dir(pos.Filename)
+	repoRootCmd.Dir = filepath.Dir(absFilename)
 	repoRootBytes, err := repoRootCmd.Output()
 	if err != nil {
-		return "", nil, "", errors.Wrap(err, "failed to get git repo root: ensure you are in a git repository and git is installed")
+		return "", nil, "", errors.Wrapf(err, "failed to get git repo root for %q: ensure it is in a git repository and git is installed", absFilename)
 	}
 	repoRoot := strings.TrimSpace(string(repoRootBytes))
 
@@ -104,7 +106,12 @@ func buildGitHubLinkCommand(ctx context.Context, pos schema.Position) (executabl
 	remoteURLCmd.Dir = repoRoot
 	remoteURLBytes, err := remoteURLCmd.Output()
 	if err != nil {
-		return "", nil, "", errors.Wrap(err, "failed to get git remote origin URL: ensure 'origin' remote is configured")
+		// Attempt to find remote URL from the file's directory if not found at root (might be a submodule)
+		remoteURLCmd.Dir = filepath.Dir(absFilename)
+		remoteURLBytes, err = remoteURLCmd.Output()
+		if err != nil {
+			return "", nil, "", errors.Wrap(err, "failed to get git remote origin URL: ensure 'origin' remote is configured")
+		}
 	}
 	remoteURL := strings.TrimSpace(string(remoteURLBytes))
 
@@ -121,9 +128,9 @@ func buildGitHubLinkCommand(ctx context.Context, pos schema.Position) (executabl
 		return "", nil, "", errors.Wrapf(err, "could not parse GitHub remote URL %q", remoteURL)
 	}
 
-	relativePath, err := filepath.Rel(repoRoot, pos.Filename)
+	relativePath, err := filepath.Rel(repoRoot, absFilename)
 	if err != nil {
-		return "", nil, "", errors.Wrapf(err, "failed to get relative path for %q from root %q", pos.Filename, repoRoot)
+		return "", nil, "", errors.Wrapf(err, "failed to get relative path for %q from root %q", absFilename, repoRoot)
 	}
 
 	githubURL := fmt.Sprintf("https://github.com/%s/%s/blob/%s/%s#L%d",
