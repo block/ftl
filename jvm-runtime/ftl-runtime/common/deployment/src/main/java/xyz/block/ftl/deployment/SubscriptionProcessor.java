@@ -25,13 +25,11 @@ public class SubscriptionProcessor {
 
     @BuildStep
     public void registerSubscriptions(CombinedIndexBuildItem index,
-            ProjectRootBuildItem projectRootBuildItem,
             ModuleNameBuildItem moduleNameBuildItem,
             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItemBuildProducer,
             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItems) throws Exception {
         AdditionalBeanBuildItem.Builder beans = AdditionalBeanBuildItem.builder().setUnremovable();
         var moduleName = moduleNameBuildItem.getModuleName();
-        var projectRoot = projectRootBuildItem.getProjectRoot();
         for (var subscription : index.getIndex().getAnnotations(FTLDotNames.SUBSCRIPTION)) {
             var info = fromJandex(index.getComputingIndex(), subscription, moduleName);
             if (subscription.target().kind() != AnnotationTarget.Kind.METHOD) {
@@ -40,15 +38,15 @@ public class SubscriptionProcessor {
             var method = subscription.target().asMethod();
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
-            schemaContributorBuildItems.produce(generateSubscription(projectRoot, method, className, info));
+            schemaContributorBuildItems.produce(generateSubscription(method, className, info));
         }
         additionalBeanBuildItemBuildProducer.produce(beans.build());
     }
 
-    private SchemaContributorBuildItem generateSubscription(String projectRoot, MethodInfo method, String className,
+    private SchemaContributorBuildItem generateSubscription(MethodInfo method, String className,
             SubscriptionAnnotation info) {
         return new SchemaContributorBuildItem(moduleBuilder -> {
-            moduleBuilder.registerVerbMethod(projectRoot, method, className, Visibility.VISIBILITY_SCOPE_NONE, false,
+            moduleBuilder.registerVerbMethod(method, className, Visibility.VISIBILITY_SCOPE_NONE, false,
                     ModuleBuilder.BodyType.REQUIRED,
                     new ModuleBuilder.VerbCustomization().setMetadataCallback(builder -> {
 

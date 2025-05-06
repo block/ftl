@@ -189,7 +189,7 @@ public class EnumProcessor {
                         Thread.currentThread().getContextClassLoader());
                 variantClasses.add(variantClazz);
             }
-            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(projectRoot, variantType, visibility,
+            xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, visibility,
                     Nullability.NOT_NULL);
             TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
 

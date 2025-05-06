@@ -132,7 +132,7 @@ public class TopicsProcessor {
                             .setVisibility(visibility)
                             .setPos(PositionUtils.forClass(projectRoot, topic.interfaceName()))
                             .setName(topic.topicName())
-                            .setEvent(moduleBuilder.buildType(projectRoot, topic.eventType(), visibility, Nullability.NOT_NULL))
+                            .setEvent(moduleBuilder.buildType(topic.eventType(), visibility, Nullability.NOT_NULL))
                             .addMetadata(Metadata.newBuilder()
                                     .setPartitions(MetadataPartitions.newBuilder()
                                             .setPartitions(topic.partitions()).build())

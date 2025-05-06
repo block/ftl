@@ -545,12 +545,11 @@ public class VerbProcessor {
     public void verbsAndCron(CombinedIndexBuildItem index,
             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
-            List<TypeAliasBuildItem> typeAliasBuildItems, // included to force typealias processing before this
-            ProjectRootBuildItem projectRootBuildItem) {
+            List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
+    ) {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
         log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
         var beans = AdditionalBeanBuildItem.builder().setUnremovable();
-        String projectRoot = projectRootBuildItem.getProjectRoot();
 
         for (var verb : verbAnnotations) {
             if (verb.target().kind() == AnnotationTarget.Kind.METHOD) {
@@ -563,12 +562,12 @@ public class VerbProcessor {
                 String className = method.declaringClass().name().toString();
                 beans.addBeanClass(className);
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerVerbMethod(projectRoot, method, className, VisibilityUtil.getVisibility(method), false,
+                        .registerVerbMethod(method, className, VisibilityUtil.getVisibility(method), false,
                                 ModuleBuilder.BodyType.ALLOWED)));
             } else {
                 var type = verb.target().asClass();
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerVerbType(projectRoot, type, VisibilityUtil.getVisibility(verb.target()), false,
+                        .registerVerbType(type, VisibilityUtil.getVisibility(verb.target()), false,
                                 ModuleBuilder.BodyType.ALLOWED)));
             }
         }
@@ -585,7 +584,7 @@ public class VerbProcessor {
             String className = method.declaringClass().name().toString();
             beans.addBeanClass(className);
             schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                    .registerVerbMethod(projectRoot, method, className, VisibilityUtil.getVisibility(method), true,
+                    .registerVerbMethod(method, className, VisibilityUtil.getVisibility(method), true,
                             ModuleBuilder.BodyType.ALLOWED)));
         }
 
@@ -601,7 +600,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(
-                            moduleBuilder -> moduleBuilder.registerVerbMethod(projectRoot, method, className,
+                            moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
                                     Visibility.VISIBILITY_SCOPE_NONE,
                                     false, ModuleBuilder.BodyType.DISALLOWED,
                                     new ModuleBuilder.VerbCustomization()
@@ -625,7 +624,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(
-                            moduleBuilder -> moduleBuilder.registerVerbMethod(projectRoot, method, className,
+                            moduleBuilder -> moduleBuilder.registerVerbMethod(method, className,
                                     Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.DISALLOWED,
                                     new ModuleBuilder.VerbCustomization()
                                             .setMetadataCallback(builder -> builder.addMetadata(Metadata.newBuilder()
@@ -669,7 +668,7 @@ public class VerbProcessor {
 
             schemaContributorBuildItemBuildProducer.produce(
                     new SchemaContributorBuildItem(
-                            moduleBuilder -> moduleBuilder.registerSQLQueryMethod(projectRoot, callMethod, className,
+                            moduleBuilder -> moduleBuilder.registerSQLQueryMethod(callMethod, className,
                                     actualReturnType,
                                     dbName, command, rawSQL, fields, colToFieldName)));
         }

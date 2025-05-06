@@ -27,7 +27,6 @@ import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.VerbRegistry;
 import xyz.block.ftl.runtime.builtin.HttpRequest;
 import xyz.block.ftl.runtime.builtin.HttpResponse;
-import xyz.block.ftl.schema.v1.Array;
 import xyz.block.ftl.schema.v1.IngressPathComponent;
 import xyz.block.ftl.schema.v1.IngressPathLiteral;
 import xyz.block.ftl.schema.v1.IngressPathParameter;
@@ -117,20 +116,23 @@ public class HTTPProcessor {
             @Override
             public void accept(ModuleBuilder moduleBuilder) {
                 Type stringType = Type.newBuilder().setString(xyz.block.ftl.schema.v1.String.newBuilder().build()).build();
-                Type pathParamType = Type.newBuilder()
-                        .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
-                                .setValue(stringType))
-                        .build();
+
                 for (var endpoint : restEndpoints.getEntries()) {
                     var verbName = ModuleBuilder.methodToName(endpoint.getMethodInfo());
 
                     org.jboss.jandex.Type bodyParamType = VoidType.VOID;
                     MethodParameter[] parameters = endpoint.getResourceMethod().getParameters();
 
+                    List<MethodParameter> pathParams = new ArrayList<>();
+                    List<MethodParameter> queryParams = new ArrayList<>();
                     for (int i = 0, parametersLength = parameters.length; i < parametersLength; i++) {
                         var httpParam = parameters[i];
                         if (httpParam.parameterType.equals(ParameterType.BODY)) {
                             bodyParamType = endpoint.getMethodInfo().parameterType(i);
+                        } else if (httpParam.parameterType.equals(ParameterType.PATH)) {
+                            pathParams.add(httpParam);
+                        } else if (httpParam.parameterType.equals(ParameterType.QUERY)) {
+                            queryParams.add(httpParam);
                         }
                     }
 
@@ -147,6 +149,7 @@ public class HTTPProcessor {
                     String path = extractPath(endpoint);
                     URITemplate template = new URITemplate(path, false);
                     List<IngressPathComponent> pathComponents = new ArrayList<>();
+                    boolean hasParams = false;
                     for (var i : template.components) {
                         if (i.type == URITemplate.Type.CUSTOM_REGEX) {
                             throw new RuntimeException(
@@ -163,11 +166,35 @@ public class HTTPProcessor {
                                         .build());
                             }
                         } else {
+                            hasParams = true;
                             pathComponents.add(IngressPathComponent.newBuilder()
                                     .setIngressPathParameter(IngressPathParameter.newBuilder().setName(i.name))
                                     .build());
                         }
                     }
+
+                    Type pathParamType;
+                    if (pathParams.isEmpty() && !hasParams) {
+                        pathParamType = Type.newBuilder()
+                                .setUnit(Unit.newBuilder())
+                                .build();
+                    } else {
+                        pathParamType = Type.newBuilder()
+                                .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
+                                        .setValue(stringType))
+                                .build();
+                    }
+
+                    Type.Builder queryParamsType;
+                    if (queryParams.isEmpty()) {
+                        queryParamsType = Type.newBuilder()
+                                .setUnit(Unit.newBuilder());
+                    } else {
+                        queryParamsType = Type.newBuilder()
+                                .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
+                                        .setValue(stringType));
+                    }
+
                     ModuleBuilder.VerbCustomization verbCustomization = new ModuleBuilder.VerbCustomization();
                     verbCustomization.setCustomHandling(true)
                             .setMetadataCallback((builder) -> {
@@ -193,12 +220,7 @@ public class HTTPProcessor {
                                                 .setName(HttpRequest.class.getSimpleName())
                                                 .addTypeParameters(requestTypeParam)
                                                 .addTypeParameters(pathParamType)
-                                                .addTypeParameters(Type.newBuilder()
-                                                        .setMap(xyz.block.ftl.schema.v1.Map.newBuilder().setKey(stringType)
-                                                                .setValue(Type.newBuilder()
-                                                                        .setArray(
-                                                                                Array.newBuilder().setElement(stringType)))
-                                                                .build())))
+                                                .addTypeParameters(queryParamsType))
                                         .build();
                             })
                             .setResponseType((responseTypeParam) -> {
@@ -210,7 +232,7 @@ public class HTTPProcessor {
                                         .build();
                             });
 
-                    moduleBuilder.registerVerbMethod(projectRoot, endpoint.getMethodInfo(),
+                    moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(),
                             endpoint.getActualClassInfo().name().toString(),
                             Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
