@@ -112,12 +112,13 @@ public class ModuleBuilder {
     private final CommentsBuildItem comments;
     private final List<ValidationFailure> validationFailures = new ArrayList<>();
     private final boolean defaultToOptional;
+    private final String projectRoot;
 
     public ModuleBuilder(IndexView index, String moduleName, Map<DotName, TopicsBuildItem.DiscoveredTopic> knownTopics,
             Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients,
             Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> sqlQueryClients,
             FTLRecorder recorder,
-            CommentsBuildItem comments, boolean defaultToOptional) {
+            CommentsBuildItem comments, boolean defaultToOptional, String projectRoot) {
         this.index = index;
         this.moduleName = moduleName;
         this.protoModuleBuilder = Module.newBuilder()
@@ -129,6 +130,7 @@ public class ModuleBuilder {
         this.recorder = recorder;
         this.comments = comments;
         this.defaultToOptional = defaultToOptional;
+        this.projectRoot = projectRoot;
     }
 
     public static @NotNull String methodToName(MethodInfo method) {
@@ -205,12 +207,12 @@ public class ModuleBuilder {
 
     }
 
-    public void registerVerbMethod(String projectRoot, MethodInfo method, String className,
+    public void registerVerbMethod(MethodInfo method, String className,
             Visibility visibility, boolean transaction, BodyType bodyType) {
-        registerVerbMethod(projectRoot, method, className, visibility, transaction, bodyType, new VerbCustomization());
+        registerVerbMethod(method, className, visibility, transaction, bodyType, new VerbCustomization());
     }
 
-    public void registerVerbMethod(String projectRoot, MethodInfo method, String className,
+    public void registerVerbMethod(MethodInfo method, String className,
             Visibility visibility, boolean transaction, BodyType bodyType, VerbCustomization customization) {
         Position methodPos = forMethod(projectRoot, method);
         try {
@@ -220,7 +222,7 @@ public class ModuleBuilder {
             Nullability bodyParamNullability = Nullability.MISSING;
 
             xyz.block.ftl.schema.v1.Verb.Builder verbBuilder = xyz.block.ftl.schema.v1.Verb.newBuilder();
-            String verbName = validateName(projectRoot, method, ModuleBuilder.methodToName(method));
+            String verbName = validateName(method, ModuleBuilder.methodToName(method));
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
             MetadataEgress.Builder configEgress = MetadataEgress.newBuilder();
@@ -240,7 +242,7 @@ public class ModuleBuilder {
                     if (!knownSecrets.contains(name)) {
                         xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
                                 .newBuilder().setPos(methodPos)
-                                .setType(buildType(projectRoot, param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
                         addDecls(Decl.newBuilder().setSecret(secretBuilder).build());
@@ -255,7 +257,7 @@ public class ModuleBuilder {
                     if (!knownConfig.contains(name)) {
                         xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                 .newBuilder().setPos(methodPos)
-                                .setType(buildType(projectRoot, param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                 .setName(name)
                                 .addAllComments(comments.getComments(name));
                         addDecls(Decl.newBuilder().setConfig(configBuilder).build());
@@ -272,7 +274,7 @@ public class ModuleBuilder {
                         if (!knownConfig.contains(config)) {
                             xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                     .newBuilder()
-                                    .setType(buildType(projectRoot, param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(config);
                             addDecls(Decl.newBuilder().setConfig(configBuilder).build());
                             knownConfig.add(config);
@@ -356,9 +358,9 @@ public class ModuleBuilder {
                     .setPos(methodPos)
                     .setRequest(
                             customization.requestType
-                                    .apply(buildType(projectRoot, bodyParamType, visibility, bodyParamNullability)))
+                                    .apply(buildType(bodyParamType, visibility, bodyParamNullability)))
                     .setResponse(
-                            customization.responseType.apply(buildType(projectRoot, method.returnType(), visibility, method)))
+                            customization.responseType.apply(buildType(method.returnType(), visibility, method)))
                     .addAllComments(comments.getComments(verbName));
             if (customization.metadataCallback != null) {
                 customization.metadataCallback.accept(verbBuilder);
@@ -374,12 +376,12 @@ public class ModuleBuilder {
         }
     }
 
-    public void registerVerbType(String projectRoot, ClassInfo clazz,
+    public void registerVerbType(ClassInfo clazz,
             Visibility visibility, boolean transaction, BodyType bodyType) {
-        registerVerbType(projectRoot, clazz, visibility, transaction, bodyType, new VerbCustomization());
+        registerVerbType(clazz, visibility, transaction, bodyType, new VerbCustomization());
     }
 
-    public void registerVerbType(String projectRoot, ClassInfo clazz,
+    public void registerVerbType(ClassInfo clazz,
             Visibility visibility, boolean transaction, BodyType bodyType, VerbCustomization customization) {
 
         List<Class<?>> bodyParameterTypes = new ArrayList<>();
@@ -425,7 +427,7 @@ public class ModuleBuilder {
             Position methodPos = forMethod(projectRoot, result.method());
 
             xyz.block.ftl.schema.v1.Verb.Builder verbBuilder = xyz.block.ftl.schema.v1.Verb.newBuilder();
-            String verbName = validateName(projectRoot, result.method(), ModuleBuilder.classToName(clazz));
+            String verbName = validateName(result.method(), ModuleBuilder.classToName(clazz));
             MetadataCalls.Builder callsMetadata = MetadataCalls.newBuilder();
             MetadataConfig.Builder configMetadata = MetadataConfig.newBuilder();
             MetadataSecrets.Builder secretMetadata = MetadataSecrets.newBuilder();
@@ -445,7 +447,7 @@ public class ModuleBuilder {
                         if (!knownSecrets.contains(name)) {
                             xyz.block.ftl.schema.v1.Secret.Builder secretBuilder = xyz.block.ftl.schema.v1.Secret
                                     .newBuilder().setPos(methodPos)
-                                    .setType(buildType(projectRoot, param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(name)
                                     .addAllComments(comments.getComments(name));
                             addDecls(Decl.newBuilder().setSecret(secretBuilder).build());
@@ -458,7 +460,7 @@ public class ModuleBuilder {
                         if (!knownConfig.contains(name)) {
                             xyz.block.ftl.schema.v1.Config.Builder configBuilder = xyz.block.ftl.schema.v1.Config
                                     .newBuilder().setPos(methodPos)
-                                    .setType(buildType(projectRoot, param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
+                                    .setType(buildType(param.type(), Visibility.VISIBILITY_SCOPE_NONE, param))
                                     .setName(name)
                                     .addAllComments(comments.getComments(name));
                             addDecls(Decl.newBuilder().setConfig(configBuilder).build());
@@ -518,10 +520,10 @@ public class ModuleBuilder {
                     .setPos(methodPos)
                     .setRequest(
                             customization.requestType
-                                    .apply(buildType(projectRoot, result.bodyParamType(), visibility,
+                                    .apply(buildType(result.bodyParamType(), visibility,
                                             result.bodyParamNullability())))
                     .setResponse(customization.responseType
-                            .apply(buildType(projectRoot, result.method().returnType(), visibility, result.method())))
+                            .apply(buildType(result.method().returnType(), visibility, result.method())))
                     .addAllComments(comments.getComments(verbName));
             if (customization.metadataCallback != null) {
                 customization.metadataCallback.accept(verbBuilder);
@@ -605,7 +607,7 @@ public class ModuleBuilder {
         return refs;
     }
 
-    public void registerSQLQueryMethod(String projectRoot, MethodInfo method, String className, String returnType,
+    public void registerSQLQueryMethod(MethodInfo method, String className, String returnType,
             String dbName,
             String command, String rawSQL, String[] fields, String[] colToFieldName) {
         try {
@@ -653,11 +655,11 @@ public class ModuleBuilder {
         return res;
     }
 
-    public Type buildType(String projectRoot, org.jboss.jandex.Type type, Visibility visibility, AnnotationTarget target) {
-        return buildType(projectRoot, type, visibility, nullability(target));
+    public Type buildType(org.jboss.jandex.Type type, Visibility visibility, AnnotationTarget target) {
+        return buildType(type, visibility, nullability(target));
     }
 
-    public Type buildType(String projectRoot, org.jboss.jandex.Type type, Visibility visibility, Nullability nullability) {
+    public Type buildType(org.jboss.jandex.Type type, Visibility visibility, Nullability nullability) {
         switch (type.kind()) {
             case PRIMITIVE -> {
                 var prim = type.asPrimitiveType();
@@ -689,7 +691,7 @@ public class ModuleBuilder {
                 }
                 return handleNullabilityAnnotations(Type.newBuilder()
                         .setArray(Array.newBuilder()
-                                .setElement(buildType(projectRoot, arrayType.componentType(), visibility, Nullability.NOT_NULL))
+                                .setElement(buildType(arrayType.componentType(), visibility, Nullability.NOT_NULL))
                                 .build())
                         .build(), nullability);
             }
@@ -711,7 +713,7 @@ public class ModuleBuilder {
 
                 PrimitiveType unboxed = PrimitiveType.unbox(clazz);
                 if (unboxed != null) {
-                    Type primitive = buildType(projectRoot, unboxed, visibility, Nullability.NOT_NULL);
+                    Type primitive = buildType(unboxed, visibility, Nullability.NOT_NULL);
                     if (nullability == Nullability.NOT_NULL) {
                         return primitive;
                     }
@@ -792,7 +794,7 @@ public class ModuleBuilder {
                             .setName(name)
                             .setVisibility(actual)
                             .addAllComments(comments.getComments(name));
-                    buildDataElement(projectRoot, data, clazz.name(), actual);
+                    buildDataElement(data, clazz.name(), actual);
                     addDecls(Decl.newBuilder().setData(data).build());
                     return handleNullabilityAnnotations(ref, nullability);
                 }
@@ -802,47 +804,47 @@ public class ModuleBuilder {
                 if (paramType.name().equals(DotName.createSimple(List.class))) {
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setArray(Array.newBuilder()
-                                    .setElement(buildType(projectRoot, paramType.arguments().get(0), visibility,
+                                    .setElement(buildType(paramType.arguments().get(0), visibility,
                                             Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotName.createSimple(Map.class))) {
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setMap(xyz.block.ftl.schema.v1.Map.newBuilder()
-                                    .setKey(buildType(projectRoot, paramType.arguments().get(0), visibility,
+                                    .setKey(buildType(paramType.arguments().get(0), visibility,
                                             Nullability.NOT_NULL))
-                                    .setValue(buildType(projectRoot, paramType.arguments().get(1), visibility,
+                                    .setValue(buildType(paramType.arguments().get(1), visibility,
                                             Nullability.NOT_NULL)))
                             .build(), nullability);
                 } else if (paramType.name().equals(DotNames.OPTIONAL)) {
                     // TODO: optional kinda sucks
                     return Type.newBuilder().setOptional(xyz.block.ftl.schema.v1.Optional.newBuilder()
-                            .setType(buildType(projectRoot, paramType.arguments().get(0), visibility, Nullability.NOT_NULL)))
+                            .setType(buildType(paramType.arguments().get(0), visibility, Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpRequest.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpRequest.class.getSimpleName())
                                     .addTypeParameters(
-                                            buildType(projectRoot, paramType.arguments().get(0), visibility,
+                                            buildType(paramType.arguments().get(0), visibility,
                                                     Nullability.NOT_NULL)))
                             .build();
                 } else if (paramType.name().equals(DotName.createSimple(HttpResponse.class))) {
                     return Type.newBuilder()
                             .setRef(Ref.newBuilder().setModule(BUILTIN).setName(HttpResponse.class.getSimpleName())
                                     .addTypeParameters(
-                                            buildType(projectRoot, paramType.arguments().get(0), visibility,
+                                            buildType(paramType.arguments().get(0), visibility,
                                                     Nullability.NOT_NULL))
                                     .addTypeParameters(Type.newBuilder().setUnit(Unit.newBuilder().build())))
                             .build();
                 } else {
                     ClassInfo classByName = index.getClassByName(paramType.name());
-                    validateName(projectRoot, classByName.name().toString(), classByName.name().local());
+                    validateName(classByName.name().toString(), classByName.name().local());
                     var cb = ClassType.builder(classByName.name());
-                    var main = buildType(projectRoot, cb.build(), visibility, Nullability.NOT_NULL);
+                    var main = buildType(cb.build(), visibility, Nullability.NOT_NULL);
                     var builder = main.toBuilder();
                     var refBuilder = builder.getRef().toBuilder();
 
                     for (var arg : paramType.arguments()) {
-                        refBuilder.addTypeParameters(buildType(projectRoot, arg, visibility, Nullability.NOT_NULL));
+                        refBuilder.addTypeParameters(buildType(arg, visibility, Nullability.NOT_NULL));
                     }
 
                     builder.setRef(refBuilder);
@@ -854,7 +856,7 @@ public class ModuleBuilder {
         throw new RuntimeException("NOT YET IMPLEMENTED");
     }
 
-    private void buildDataElement(String projectRoot, Data.Builder data, DotName className, Visibility visibility) {
+    private void buildDataElement(Data.Builder data, DotName className, Visibility visibility) {
         if (className == null || className.equals(DotName.OBJECT_NAME)) {
             return;
         }
@@ -866,7 +868,7 @@ public class ModuleBuilder {
         for (var field : clazz.fieldsInDeclarationOrder()) {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
-                        .setType(buildType(projectRoot, field.type(), visibility, field));
+                        .setType(buildType(field.type(), visibility, field));
                 if (field.hasAnnotation(JsonAlias.class)) {
                     var aliases = field.annotation(JsonAlias.class);
                     if (aliases.value() != null) {
@@ -881,7 +883,7 @@ public class ModuleBuilder {
                 data.addFields(builder.build());
             }
         }
-        buildDataElement(projectRoot, data, clazz.superName(), visibility);
+        buildDataElement(data, clazz.superName(), visibility);
     }
 
     public ModuleBuilder addDecls(Decl decl) {
@@ -940,12 +942,12 @@ public class ModuleBuilder {
         }
     }
 
-    public void registerTypeAlias(String projectRoot, String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS,
+    public void registerTypeAlias(String name, org.jboss.jandex.Type finalT, org.jboss.jandex.Type finalS,
             Visibility visibility,
             Map<String, String> languageMappings) {
-        validateName(projectRoot, finalT.name().toString(), name);
+        validateName(finalT.name().toString(), name);
         TypeAlias.Builder typeAlias = TypeAlias.newBuilder()
-                .setType(buildType(projectRoot, finalS, visibility, Nullability.NOT_NULL))
+                .setType(buildType(finalS, visibility, Nullability.NOT_NULL))
                 .setName(name)
                 .addAllComments(comments.getComments(name))
                 .addMetadata(Metadata.newBuilder()
@@ -1115,11 +1117,11 @@ public class ModuleBuilder {
         return name;
     }
 
-    String validateName(String projectRoot, String className, String name) {
+    String validateName(String className, String name) {
         return validateName(toError(PositionUtils.forClass(projectRoot, className)), name);
     }
 
-    String validateName(String projectRoot, MethodInfo methodInfo, String name) {
+    String validateName(MethodInfo methodInfo, String name) {
         return validateName(toError(PositionUtils.forMethod(projectRoot, methodInfo)), name);
     }
 

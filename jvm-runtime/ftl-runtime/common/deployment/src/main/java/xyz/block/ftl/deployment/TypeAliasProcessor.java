@@ -22,7 +22,6 @@ public class TypeAliasProcessor {
 
     @BuildStep
     public void processTypeAlias(CombinedIndexBuildItem index,
-            ProjectRootBuildItem projectRootBuildItem,
             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
             BuildProducer<TypeAliasBuildItem> typeAliasBuildItemBuildProducer) {
@@ -91,7 +90,7 @@ public class TypeAliasProcessor {
                     }
                 }
                 schemaContributorBuildItemBuildProducer.produce(new SchemaContributorBuildItem(moduleBuilder -> moduleBuilder
-                        .registerTypeAlias(projectRootBuildItem.getProjectRoot(), name, finalT, finalS, visibility,
+                        .registerTypeAlias(name, finalT, finalS, visibility,
                                 languageMappings)));
             } else {
                 // If the 'module' field of the annotation is non-empty, we have a mapper for a type alias defined in
