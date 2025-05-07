@@ -75,7 +75,7 @@ service HotReloadService {
 
   // Watch for a reload not initiated by an explicit Reload call.
   // This is generally used to get the initial state of the runner.
-  rpc Watch(WatchRequest) returns ( WatchResponse);
+  rpc Watch(WatchRequest) returns (WatchResponse);
 
   // Invoked by the runner to provide runner information to the plugin.
   rpc RunnerInfo(RunnerInfoRequest) returns (RunnerInfoResponse);

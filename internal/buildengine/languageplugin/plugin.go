@@ -274,7 +274,7 @@ func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 				logger.Errorf(err, "Failed to start watch transaction")
 			}
 			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
-			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
+			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, true)
 			tx.ModifiedFiles(br.modifiedFiles...)
 			if err != nil {
 				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})

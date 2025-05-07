@@ -72,7 +72,6 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
 	return buildContext{
-		ID:           proto.Id,
 		Config:       config,
 		Schema:       sch,
 		Dependencies: proto.Dependencies,
@@ -80,19 +79,20 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 }
 
 type Service struct {
-	updatesTopic          *pubsub.Topic[buildContextUpdatedEvent]
-	runningDevModeContext atomic.Value[context.Context]
-	hotReloadClient       atomic.Value[hotreloadpbconnect.HotReloadServiceClient]
-	devModeEndpoint       string
-	hotReloadEndpoint     string
-	debugPort32           int32
+	updatesTopic      *pubsub.Topic[buildContextUpdatedEvent]
+	devModeRunning    atomic.Int32
+	hotReloadClient   hotreloadpbconnect.HotReloadServiceClient
+	devModeEndpoint   string
+	hotReloadEndpoint string
+	debugPort32       int32
 }
 
 var _ langconnect.LanguageServiceHandler = &Service{}
 
 func New() *Service {
 	return &Service{
-		updatesTopic: pubsub.New[buildContextUpdatedEvent](),
+		updatesTopic:   pubsub.New[buildContextUpdatedEvent](),
+		devModeRunning: atomic.NewInt32(0),
 	}
 }
 
@@ -144,16 +144,11 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil, errors.Wrap(err, "failed to write generic schema files")
 	}
 	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+	running := s.devModeRunning.Load()
+	if running == 1 {
+		return s.reloadDevMode(ctx, buildCtx, changed)
+	}
 	if req.Msg.DevModeBuild {
-		ctx := s.runningDevModeContext.Load()
-		if ctx != nil {
-			select {
-			case <-ctx.Done():
-				s.runningDevModeContext.Store(nil)
-			default:
-				return s.reloadDevMode(ctx, buildCtx, changed)
-			}
-		}
 		ensureCorrectFTLVersion(ctx, buildCtx)
 		return s.runQuarkusDev(ctx, projectConfig, buildCtx)
 	}
@@ -171,7 +166,6 @@ type buildResult struct {
 func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
-	s.runningDevModeContext.Store(ctx)
 
 	output := &errorDetector{
 		logger: logger,
@@ -211,23 +205,6 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 
 	responses := make(chan *connect.Response[langpb.BuildResponse], 2)
 	errorChan := make(chan error, 1)
-	// If the process dies we still need to send the error as a build result, if one has not been sent yet
-	go func() {
-		<-ctx.Done()
-		// If the parent context is done we just return
-		// the context is done before we notified the build engine
-		// we need to send a build failure event
-
-		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
-		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
-		responses <- connect.NewResponse(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-			BuildFailure: &langpb.BuildFailure{
-				Errors: ers,
-			}}})
-		if err != nil {
-			logger.Errorf(err, "could not send build event")
-		}
-	}()
 
 	go func() {
 		// Wait for the plugin to start.
@@ -238,12 +215,13 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			return
 		}
 		logger.Debugf("Dev mode process started")
-		s.hotReloadClient.Store(client)
+		s.hotReloadClient = client
 		res, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
 		if err != nil {
 			errorChan <- errors.Wrap(err, "could not get initial hot reload state")
 			return
 		}
+		logger.Debugf("watch client")
 		resp, err := s.handleState(parentCtx, res.Msg.State, buildCtx)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "could not handle state")
@@ -252,6 +230,17 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		responses <- resp
 	}()
 	select {
+	case <-ctx.Done():
+		// If the parent context is done we just return
+		// the context is done before we notified the build engine
+		// we need to send a build failure event
+
+		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
+		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
+		return connect.NewResponse(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				Errors: ers,
+			}}}), nil
 	case err := <-errorChan:
 		return nil, err
 	case resp := <-responses:
@@ -276,7 +265,7 @@ func (s *Service) reloadDevMode(ctx context.Context, buildCtx buildContext, sche
 	}
 
 	newKey := key.NewDeploymentKey(buildCtx.Config.Realm, buildCtx.Config.Module)
-	result, err := s.hotReloadClient.Load().Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: schemaChanged}))
+	result, err := s.hotReloadClient.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: schemaChanged}))
 	if err != nil {
 		return nil, err
 	}
@@ -339,8 +328,8 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 
 func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout io.Writer, cancel context.CancelCauseFunc) {
 	go func() {
-		s.runningDevModeContext.Store(ctx)
-		defer s.runningDevModeContext.Store(nil)
+		s.devModeRunning.Store(1)
+		defer s.devModeRunning.Store(0)
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)

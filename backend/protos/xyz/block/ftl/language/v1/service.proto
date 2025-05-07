@@ -162,7 +162,6 @@ message BuildSuccess {
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
 message BuildFailure {
-
   // Errors contains any errors that occurred during the build
   ErrorList errors = 1;
 
