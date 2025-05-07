@@ -34,7 +34,10 @@ export const ModulesPanel = () => {
             </div>
             <div className='flex gap-x-4 items-center w-1/2 justify-end'>
               <div className='flex flex-wrap gap-2'>
-                <AttributeBadge name='language' value={module.runtime?.base?.language || ''} />
+                {module.runtime?.base?.language && <AttributeBadge name='language' value={module.runtime?.base?.language} />}
+                {module.runtime?.base?.os && <AttributeBadge name='os' value={module.runtime?.base?.os} />}
+                {module.runtime?.base?.arch && <AttributeBadge name='arch' value={module.runtime?.base?.arch} />}
+                {module.runtime?.base?.createTime && <AttributeBadge name='created' value={module.runtime?.base?.createTime.toDate().toLocaleString()} />}
               </div>
             </div>
           </div>
