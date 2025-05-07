@@ -255,21 +255,24 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 }
 
 func (p *LanguagePlugin) runWatch(ctx context.Context) {
-	logger := log.FromContext(ctx)
 	defer func() {
 		p.watch = nil
 	}()
 	updates := make(chan watch.WatchEvent)
 	p.watch.Subscribe(updates)
 	for i := range channels.IterContext(ctx, updates) {
-		switch event := i.(type) {
+		switch i.(type) {
 		case watch.WatchEventModuleChanged:
 			info := p.bctx.Load()
-			result, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
+			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
+			if err != nil {
+				p.updates.Publish(&AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+			} else {
+				p.updates.Publish(&AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
+			}
 
 		}
 	}
-
 }
 
 func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (buildResult BuildResult, err error) {

@@ -38,7 +38,6 @@ func (filesUpdatedEvent) updateEvent() {}
 
 // buildContext contains contextual information needed to build.
 type buildContext struct {
-	ID           string
 	Config       moduleconfig.AbsModuleConfig
 	Schema       *schema.Schema
 	Dependencies []string
@@ -52,7 +51,6 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 	}
 	config := langpb.ModuleConfigFromProto(proto.ModuleConfig)
 	bc := buildContext{
-		ID:           proto.Id,
 		Config:       config,
 		Schema:       sch,
 		Dependencies: proto.Dependencies,

@@ -17,7 +17,7 @@ type TimeResponse struct {
 	Time time.Time
 }
 
-// Time returns the current time.
+// Time returns the current times
 //
 //ftl:verb export
 func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse, error) {
@@ -26,7 +26,7 @@ func Time(ctx context.Context, req TimeRequest, ic InternalClient) (TimeResponse
 		return TimeResponse{}, errors.WithStack(err)
 	}
 	return TimeResponse{Time: internalTime.Time}, nil
-}
+}z
 
 //ftl:verb export
 func Internal(ctx context.Context, req TimeRequest) (TimeResponse, error) {
