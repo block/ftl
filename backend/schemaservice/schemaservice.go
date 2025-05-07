@@ -287,8 +287,12 @@ func (s *Service) CommitChangeset(ctx context.Context, req *connect.Request[ftlv
 	if err != nil {
 		return nil, errors.Wrap(err, "could get changeset state after commi")
 	}
+	cs, ok := v.GetChangeset(changesetKey).Get()
+	if !ok {
+		return nil, errors.Errorf("changeset %s not found", changesetKey)
+	}
 	return connect.NewResponse(&ftlv1.CommitChangesetResponse{
-		Changeset: v.changesets[changesetKey].ToProto(),
+		Changeset: cs.ToProto(),
 	}), nil
 }
 
@@ -400,8 +404,8 @@ func (s *Service) publishEvent(ctx context.Context, event schema.Event) error {
 			Error: optional.Some(e.Error),
 		})
 	case *schema.ChangesetFailedEvent:
-		changeset, err := state.GetChangeset(e.Key)
-		if err == nil {
+		changeset, ok := state.GetChangeset(e.Key).Get()
+		if ok {
 			s.timelineClient.Publish(ctx, timelineclient.ChangesetStateChanged{
 				Key:   e.Key,
 				State: schema.ChangesetStateFailed,

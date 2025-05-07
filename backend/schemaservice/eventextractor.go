@@ -51,8 +51,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 		if ok {
 
 			// Check for runtime changes in the changeset
-			csEvents := current.changesetEvents[changeset.Key]
-			prEvents := previous.changesetEvents[changeset.Key]
+			csEvents := current.ChangesetEvents(changeset.Key)
+			prEvents := previous.ChangesetEvents(changeset.Key)
 			for _, dep := range changeset.OwnedModules(changeset.InternalRealm()) {
 				handledDeployments[dep.Runtime.Deployment.DeploymentKey] = true
 				delete(disappearedDeployments, dep.Runtime.Deployment.DeploymentKey)
@@ -178,8 +178,8 @@ func EventExtractor(diff tuple.Pair[SchemaState, SchemaState]) iter.Seq[*ftlv1.P
 			return sendFullSchema(&current)
 		} else {
 			// Check for runtime events
-			csEvents := current.deploymentEvents[deployment.Name] // These are keyed by module name, but we know this is the same deployment
-			prEvents := previous.deploymentEvents[deployment.Name]
+			csEvents := current.DeploymentEvents(deployment.Name) // These are keyed by module name, but we know this is the same deployment
+			prEvents := previous.DeploymentEvents(deployment.Name)
 			// Use the event list length to check for changes, and send updated events
 			if len(csEvents) > len(prEvents) {
 				for _, event := range csEvents[len(prEvents):] {

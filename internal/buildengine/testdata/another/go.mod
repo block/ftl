@@ -2,7 +2,7 @@ module ftl/another
 
 go 1.24.0
 
-require github.com/block/ftl v0.129.2
+require github.com/block/ftl v0.485.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
