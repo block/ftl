@@ -156,6 +156,8 @@ message BuildSuccess {
   optional int64 dev_hot_reload_version = 8;
   // Files modified during the build, relative to the build dir
   repeated string modified_files = 9;
+  // If there have been no structural changes it is possible that no further action is required
+  bool redeploy_not_required = 10;
 }
 
 // BuildFailure should be sent when a build fails.

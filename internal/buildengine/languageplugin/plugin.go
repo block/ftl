@@ -45,7 +45,8 @@ type BuildResult struct {
 	HotReloadVersion  optional.Option[int64]
 	modifiedFiles     []string
 
-	DebugPort int
+	DebugPort           int
+	redeployNotRequired bool
 }
 
 // PluginEvent is used to notify of updates from the plugin.
@@ -285,7 +286,9 @@ func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 			} else {
 				err = tx.ModifiedFiles(br.modifiedFiles...)
 				if err != nil {
-					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+					if !br.redeployNotRequired {
+						p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+					}
 				} else {
 					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
 				}
@@ -318,15 +321,16 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 			port = int(*buildSuccess.DebugPort)
 		}
 		return BuildResult{
-			Errors:            errs,
-			Schema:            moduleSch,
-			Deploy:            buildSuccess.Deploy,
-			StartTime:         startTime,
-			DevEndpoint:       optional.Ptr(buildSuccess.DevEndpoint),
-			HotReloadEndpoint: optional.Ptr(buildSuccess.DevHotReloadEndpoint),
-			HotReloadVersion:  optional.Ptr(buildSuccess.DevHotReloadVersion),
-			DebugPort:         port,
-			modifiedFiles:     buildSuccess.ModifiedFiles,
+			Errors:              errs,
+			Schema:              moduleSch,
+			Deploy:              buildSuccess.Deploy,
+			StartTime:           startTime,
+			DevEndpoint:         optional.Ptr(buildSuccess.DevEndpoint),
+			HotReloadEndpoint:   optional.Ptr(buildSuccess.DevHotReloadEndpoint),
+			HotReloadVersion:    optional.Ptr(buildSuccess.DevHotReloadVersion),
+			DebugPort:           port,
+			modifiedFiles:       buildSuccess.ModifiedFiles,
+			redeployNotRequired: buildSuccess.RedeployNotRequired,
 		}, nil
 	case *langpb.BuildResponse_BuildFailure:
 		buildFailure := et.BuildFailure

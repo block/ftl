@@ -872,8 +872,10 @@ type BuildSuccess struct {
 	DevHotReloadVersion  *int64  `protobuf:"varint,8,opt,name=dev_hot_reload_version,json=devHotReloadVersion,proto3,oneof" json:"dev_hot_reload_version,omitempty"`
 	// Files modified during the build, relative to the build dir
 	ModifiedFiles []string `protobuf:"bytes,9,rep,name=modified_files,json=modifiedFiles,proto3" json:"modified_files,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// If there have been no structural changes it is possible that no further action is required
+	RedeployNotRequired bool `protobuf:"varint,10,opt,name=redeploy_not_required,json=redeployNotRequired,proto3" json:"redeploy_not_required,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *BuildSuccess) Reset() {
@@ -967,6 +969,13 @@ func (x *BuildSuccess) GetModifiedFiles() []string {
 		return x.ModifiedFiles
 	}
 	return nil
+}
+
+func (x *BuildSuccess) GetRedeployNotRequired() bool {
+	if x != nil {
+		return x.RedeployNotRequired
+	}
+	return false
 }
 
 // BuildFailure should be sent when a build fails.
@@ -1408,7 +1417,7 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"stubs_root\x18\x02 \x01(\tR\tstubsRoot\x12$\n" +
 	"\x0edev_mode_build\x18\x03 \x01(\bR\fdevModeBuild\x12L\n" +
-	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\x80\x04\n" +
+	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\xb4\x04\n" +
 	"\fBuildSuccess\x127\n" +
 	"\x06module\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12\x16\n" +
 	"\x06deploy\x18\x02 \x03(\tR\x06deploy\x12!\n" +
@@ -1419,7 +1428,9 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"debug_port\x18\x06 \x01(\x05H\x01R\tdebugPort\x88\x01\x01\x12:\n" +
 	"\x17dev_hot_reload_endpoint\x18\a \x01(\tH\x02R\x14devHotReloadEndpoint\x88\x01\x01\x128\n" +
 	"\x16dev_hot_reload_version\x18\b \x01(\x03H\x03R\x13devHotReloadVersion\x88\x01\x01\x12%\n" +
-	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFilesB\x0f\n" +
+	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFiles\x122\n" +
+	"\x15redeploy_not_required\x18\n" +
+	" \x01(\bR\x13redeployNotRequiredB\x0f\n" +
 	"\r_dev_endpointB\r\n" +
 	"\v_debug_portB\x1a\n" +
 	"\x18_dev_hot_reload_endpointB\x19\n" +

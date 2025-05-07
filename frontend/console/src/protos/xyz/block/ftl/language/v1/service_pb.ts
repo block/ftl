@@ -753,6 +753,13 @@ export class BuildSuccess extends Message<BuildSuccess> {
    */
   modifiedFiles: string[] = [];
 
+  /**
+   * If there have been no structural changes it is possible that no further action is required
+   *
+   * @generated from field: bool redeploy_not_required = 10;
+   */
+  redeployNotRequired = false;
+
   constructor(data?: PartialMessage<BuildSuccess>) {
     super();
     proto3.util.initPartial(data, this);
@@ -770,6 +777,7 @@ export class BuildSuccess extends Message<BuildSuccess> {
     { no: 7, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 8, name: "dev_hot_reload_version", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
     { no: 9, name: "modified_files", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 10, name: "redeploy_not_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildSuccess {
