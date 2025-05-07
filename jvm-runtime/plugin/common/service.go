@@ -37,7 +37,6 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/key"
@@ -45,7 +44,6 @@ import (
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
-	"github.com/block/ftl/internal/watch"
 )
 
 const BuildLockTimeout = time.Minute
@@ -83,8 +81,11 @@ func buildContextFromProto(proto *langpb.BuildContext) (buildContext, error) {
 
 type Service struct {
 	updatesTopic          *pubsub.Topic[buildContextUpdatedEvent]
-	acceptsContextUpdates atomic.Value[bool]
-	buildContext          atomic.Value[buildContext]
+	runningDevModeContext atomic.Value[context.Context]
+	hotReloadClient       atomic.Value[hotreloadpbconnect.HotReloadServiceClient]
+	devModeEndpoint       string
+	hotReloadEndpoint     string
+	debugPort32           int32
 }
 
 var _ langconnect.LanguageServiceHandler = &Service{}
@@ -129,168 +130,36 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 // file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
 // rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
 // calls.
-func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest], stream *connect.ServerStream[langpb.BuildResponse]) error {
+func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
 	_ = os.Setenv("QUARKUS_ANALYTICS_DISABLED", "true") //nolint:errcheck
 	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
 	ctx = log.ContextWithLogger(ctx, logger)
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
-	s.buildContext.Store(buildCtx)
 	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
-		return errors.Wrap(err, "failed to write generic schema files")
+		return nil, errors.Wrap(err, "failed to write generic schema files")
 	}
-	if s.acceptsContextUpdates.Load() {
-		// Already running in dev mode, we don't need to rebuild
-		s.updatesTopic.Publish(buildContextUpdatedEvent{buildCtx: buildCtx, schemaChanged: changed})
-		return nil
-	}
-
 	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
-
-	if req.Msg.RebuildAutomatically {
-		return s.runDevMode(ctx, projectConfig, buildCtx, stream)
+	if req.Msg.DevModeBuild {
+		ctx := s.runningDevModeContext.Load()
+		if ctx != nil {
+			select {
+			case <-ctx.Done():
+				s.runningDevModeContext.Store(nil)
+			default:
+				return s.reloadDevMode(ctx, buildCtx, changed)
+			}
+		}
+		ensureCorrectFTLVersion(ctx, buildCtx)
+		return s.runQuarkusDev(ctx, projectConfig, buildCtx)
 	}
 
 	// Initial build
-	if err := buildAndSend(ctx, stream, projectConfig, buildCtx, false); err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-func (s *Service) runDevMode(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext, stream *connect.ServerStream[langpb.BuildResponse]) error {
-	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (devw"))
-
-	s.acceptsContextUpdates.Store(true)
-	defer s.acceptsContextUpdates.Store(false)
-
-	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	ensureCorrectFTLVersion(ctx, buildCtx)
-	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
-	fileEvents := make(chan watch.WatchEventModuleChanged, 32)
-	ensureCorrectFTLVersion(ctx, buildCtx)
-	if err := watchFiles(ctx, watcher, buildCtx, fileEvents); err != nil {
-		return errors.WithStack(err)
-	}
-
-	firstResponseSent := &atomic.Value[bool]{}
-	firstResponseSent.Store(false)
-	logger := log.FromContext(ctx)
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "context cancelled")
-		default:
-
-		}
-		if firstResponseSent.Load() {
-			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
-			if err != nil {
-				logger.Errorf(err, "Could not send build event")
-			}
-		}
-
-		err := s.runQuarkusDev(ctx, projectConfig, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
-		if err != nil {
-			logger.Errorf(err, "Dev mode process exited")
-		}
-		id := s.buildContext.Load().ID
-		if !s.waitForFileChanges(ctx, fileEvents) {
-			return nil
-		}
-		if id != s.buildContext.Load().ID {
-			// The build context was updated, we need to mark this as an explicit build
-			firstResponseSent.Store(false)
-		}
-	}
-}
-
-func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
-	relativePaths := make([]string, len(watchPaths))
-	for i, path := range watchPaths {
-		relative, err := filepath.Rel(moduleDir, path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could create relative path for watch pattern")
-		}
-		relativePaths[i] = relative
-	}
-	return relativePaths, nil
-}
-
-// Waits for file changes or context cancellation.
-// If file changes are found, the chan is drained and true is returned.
-func (s *Service) waitForFileChanges(ctx context.Context, fileEvents chan watch.WatchEventModuleChanged) bool {
-	updates := s.updatesTopic.Subscribe(nil)
-	defer s.updatesTopic.Unsubscribe(updates)
-
-	select {
-	case <-ctx.Done():
-		return false
-	case <-fileEvents:
-		// Files changed. Now consume the rest of the events so that it is empty for the next build attempt
-		for {
-			select {
-			case <-fileEvents:
-			default:
-				return true
-			}
-		}
-	case <-updates:
-		return true
-	}
-}
-
-// watchFiles begin watching files in the module directory
-// This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
-func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
-	logger := log.FromContext(ctx)
-	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
-	if err != nil {
-		return errors.Wrap(err, "could not watch for file changes")
-	}
-	log.FromContext(ctx).Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
-	watchEvents := make(chan watch.WatchEvent, 32)
-	watchTopic.Subscribe(watchEvents)
-
-	// We need watcher to calculate file hashes before we do initial build so we can detect changes
-	select {
-	case e := <-watchEvents:
-		_, ok := e.(watch.WatchEventModuleAdded)
-		if !ok {
-			return errors.Errorf("expected module added event, got: %T", e)
-		}
-	case <-time.After(3 * time.Second):
-		return errors.Errorf("expected module added event, got no event")
-	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "context done")
-	}
-	stubsDir := filepath.Join(buildCtx.Config.Dir, "src", "main", "ftl-module-schema")
-	go func() {
-		for e := range channels.IterContext(ctx, watchEvents) {
-			if change, ok := e.(watch.WatchEventModuleChanged); ok {
-				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
-				// Also ignore changes to
-				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
-					return !strings.HasPrefix(c.Path, stubsDir) && !strings.HasSuffix(c.Path, "queries.sql")
-				})
-				if len(change.Changes) == 0 {
-					continue
-				}
-				logger.Infof("File change detected: %v", e)
-				events <- change
-			}
-		}
-	}()
-	return nil
+	return buildAndSend(ctx, projectConfig, buildCtx)
 }
 
 type buildResult struct {
@@ -299,147 +168,120 @@ type buildResult struct {
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(parentCtx)
-	ctx, cancel := context.WithCancelCause(parentCtx)
-	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (Quarkus dev modew"))
+	ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
+	s.runningDevModeContext.Store(ctx)
 
 	output := &errorDetector{
 		logger: logger,
 	}
-	go func() {
-		<-ctx.Done()
-		// If the parent context is done we just return
-		select {
-		case <-parentCtx.Done():
-			return
-		default:
-
-		}
-		// the context is done before we notified the build engine
-		// we need to send a build failure event
-
-		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
-		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
-		auto := firstResponseSent.Load()
-		firstResponseSent.Store(true)
-		err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-			BuildFailure: &langpb.BuildFailure{
-				IsAutomaticRebuild: auto,
-				ContextId:          s.buildContext.Load().ID,
-				Errors:             ers,
-			}}})
-		if err != nil {
-			logger.Errorf(err, "could not send build event")
-		}
-	}()
 
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
 	defer s.updatesTopic.Unsubscribe(events)
-	release, err := flock.Acquire(ctx, s.buildContext.Load().Config.BuildLock, BuildLockTimeout)
+	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
-		return errors.Wrap(err, "could not acquire build lock")
+		return nil, errors.Wrap(err, "could not acquire build lock")
 	}
 	defer release() //nolint:errcheck
 	address, err := plugin.AllocatePort()
 	if err != nil {
-		return errors.Wrap(err, "could not allocate port")
+		return nil, errors.Wrap(err, "could not allocate port")
 	}
-	buildCtx := s.buildContext.Load()
 	ctx = log.ContextWithLogger(ctx, logger)
-	devModeEndpoint := fmt.Sprintf("http://localhost:%d", address.Port)
-	bind := devModeEndpoint
+	s.devModeEndpoint = fmt.Sprintf("http://localhost:%d", address.Port)
 	devModeBuild := buildCtx.Config.DevModeBuild
 	debugPort, err := plugin.AllocatePort()
-	debugPort32 := int32(debugPort.Port)
+	s.debugPort32 = int32(debugPort.Port)
 
 	if err == nil {
 		devModeBuild = fmt.Sprintf("%s -Ddebug=%d", devModeBuild, debugPort.Port)
 	}
 	hotReloadPort, err := plugin.AllocatePort()
 	if err != nil {
-		return errors.Wrap(err, "could not allocate port")
+		return nil, errors.Wrap(err, "could not allocate port")
 	}
 	devModeBuild = fmt.Sprintf("%s -Dftl.language.port=%d", devModeBuild, hotReloadPort.Port)
 
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, bind, output, cancel)
+	s.launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, output, cancel)
 
-	// Wait for the plugin to start.
-	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, output)
-	if err != nil || client == nil {
-		return errors.WithStack(err)
-	}
-	logger.Debugf("Dev mode process started")
-	reloadEvents := make(chan *buildResult, 32)
-
-	go rpc.RetryStreamingServerStream(ctx, "hot-reload", backoff.Backoff{Max: time.Millisecond * 100}, &hotreloadpb.WatchRequest{}, client.Watch, func(ctx context.Context, stream *hotreloadpb.WatchResponse) error { //nolint
-		reloadEvents <- &buildResult{state: stream.GetState()}
-		return nil
-	}, func(err error) bool {
-		return true
-	})
+	responses := make(chan *connect.Response[langpb.BuildResponse], 2)
+	errorChan := make(chan error, 1)
+	// If the process dies we still need to send the error as a build result, if one has not been sent yet
 	go func() {
-		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
+		<-ctx.Done()
+		// If the parent context is done we just return
+		// the context is done before we notified the build engine
+		// we need to send a build failure event
+
+		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
+		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
+		responses <- connect.NewResponse(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				Errors: ers,
+			}}})
+		if err != nil {
+			logger.Errorf(err, "could not send build event")
+		}
 	}()
 
-	errs := make(chan error)
-	for {
-		newKey := key.NewDeploymentKey(realm, module)
-		select {
-		case err := <-errs:
-			return errors.Wrap(err, "hot reload failed")
-		case bc := <-events:
-			logger.Debugf("Build context updated")
-			go func() {
-				buildCtx = bc.buildCtx
-				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}))
-				if err != nil {
-					errs <- err
-					return
-				}
-				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
-			}()
-		case <-fileEvents:
-			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
-			if err != nil {
-				logger.Errorf(err, "could not extract dependencies")
-			} else if !slices.Equal(islices.Sort(newDeps), islices.Sort(s.buildContext.Load().Dependencies)) {
-				err := stream.Send(&langpb.BuildResponse{
-					Event: &langpb.BuildResponse_BuildFailure{
-						BuildFailure: &langpb.BuildFailure{
-							ContextId:              buildCtx.ID,
-							IsAutomaticRebuild:     true,
-							InvalidateDependencies: true,
-						},
-					},
-				})
-				if err != nil {
-					return errors.Wrap(err, "could not send build event")
-				}
-				continue
-			}
-
-			go func() {
-				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
-
-				if err != nil {
-					errs <- err
-					return
-				}
-				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
-
-			}()
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "context cancelled")
+	go func() {
+		// Wait for the plugin to start.
+		s.hotReloadEndpoint = fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
+		client, err := s.connectReloadClient(ctx, s.hotReloadEndpoint, output)
+		if err != nil || client == nil {
+			errorChan <- errors.WithStack(err)
+			return
 		}
+		logger.Debugf("Dev mode process started")
+		s.hotReloadClient.Store(client)
+		res, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
+		if err != nil {
+			errorChan <- errors.Wrap(err, "could not get initial hot reload state")
+			return
+		}
+		resp, err := s.handleState(parentCtx, res.Msg.State, buildCtx)
+		if err != nil {
+			errorChan <- errors.Wrap(err, "could not handle state")
+			return
+		}
+		responses <- resp
+	}()
+	select {
+	case err := <-errorChan:
+		return nil, err
+	case resp := <-responses:
+		return resp, nil
 	}
+
+}
+
+func (s *Service) reloadDevMode(ctx context.Context, buildCtx buildContext, schemaChanged bool) (*connect.Response[langpb.BuildResponse], error) {
+	logger := log.FromContext(ctx)
+	newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
+	if err != nil {
+		logger.Errorf(err, "could not extract dependencies")
+	} else if !slices.Equal(islices.Sort(newDeps), islices.Sort(buildCtx.Dependencies)) {
+		return connect.NewResponse(&langpb.BuildResponse{
+			Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					InvalidateDependencies: true,
+				},
+			},
+		}), nil
+	}
+
+	newKey := key.NewDeploymentKey(buildCtx.Config.Realm, buildCtx.Config.Module)
+	result, err := s.hotReloadClient.Load().Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: schemaChanged}))
+	if err != nil {
+		return nil, err
+	}
+	handleReloadResponse(result, newKey)
+	return s.handleState(ctx, result.Msg.State, buildCtx)
 }
 
 func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], newKey key.Deployment) {
@@ -454,103 +296,58 @@ func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], 
 	}
 }
 
-func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
+func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaState, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
-	lastFailed := false
-	for event := range channels.IterContext(ctx, reloadEvents) {
-		changed := event.state.GetNewRunnerRequired()
-		errorList := event.state.GetErrors()
-		logger.Debugf("Checking for schema changes: changed: %v failed: %v", changed, event.failed)
+	changed := state.GetNewRunnerRequired()
+	errorList := state.GetErrors()
+	logger.Debugf("Checking for schema changes: changed: %v", changed)
 
-		if changed || event.buildContextUpdated || event.failed || lastFailed {
-			lastFailed = false
-			auto := firstResponseSent.Load() && !event.buildContextUpdated
-			if auto {
-				logger.Debugf("sending auto build event")
-				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: s.buildContext.Load().ID}}})
-				if err != nil {
-					logger.Errorf(err, "could not send build event")
-					continue
-				}
-			}
-			buildCtx := s.buildContext.Load()
-			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) || event.failed {
-				lastFailed = true
-				// skip reading schema
-				logger.Warnf("Build failed, skipping schema, sending build failure")
-				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-					BuildFailure: &langpb.BuildFailure{
-						IsAutomaticRebuild: auto,
-						ContextId:          buildCtx.ID,
-						Errors:             errorList,
-					}}})
-				if err != nil {
-					logger.Errorf(err, "Could not send build event")
-				}
-				firstResponseSent.Store(true)
-				continue
-			}
-			moduleProto := event.state.GetModule()
-			moduleSch, err := schema.ModuleFromProto(moduleProto)
-			if err != nil {
-				err := stream.Send(buildFailure(buildCtx, auto, builderrors.Error{
-					Type:  builderrors.FTL,
-					Level: builderrors.ERROR,
-					Msg:   fmt.Sprintf("Could not parse schema from proto: %v", err),
-				}))
-				if err != nil {
-					logger.Errorf(err, "Could not send build event")
-				}
-				firstResponseSent.Store(true)
-				continue
-			}
-			if _, validationErr := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(moduleSch)); validationErr != nil {
-				err := stream.Send(buildFailure(buildCtx, auto, builderrors.Error{
-					Type:  builderrors.FTL,
-					Level: builderrors.ERROR,
-					Msg:   validationErr.Error(),
-				}))
-				if err != nil {
-					logger.Errorf(err, "Could not send build event")
-				}
-				firstResponseSent.Store(true)
-				continue
-			}
-			if firstResponseSent.Load() {
-				logger.Debugf("Live reload schema changed, sending build success event")
-			}
-
-			firstResponseSent.Store(true)
-			err = stream.Send(&langpb.BuildResponse{
-				Event: &langpb.BuildResponse_BuildSuccess{
-					BuildSuccess: &langpb.BuildSuccess{
-						ContextId:            buildCtx.ID,
-						IsAutomaticRebuild:   auto,
-						Module:               moduleSch.ToProto(),
-						DevEndpoint:          ptr(devModeEndpoint),
-						DevHotReloadEndpoint: ptr(hotReloadEndpoint),
-						DebugPort:            &debugPort32,
-						Deploy:               []string{SchemaFile},
-						DevHotReloadVersion:  &event.state.Version,
-					},
-				},
-			})
-			if err != nil {
-				logger.Errorf(err, "could not send build event")
-			}
-		}
+	if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) {
+		// skip reading schema
+		logger.Warnf("Build failed, skipping schema, sending build failure")
+		return connect.NewResponse(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				Errors: errorList,
+			}}}), nil
 	}
+	moduleProto := state.GetModule()
+	moduleSch, err := schema.ModuleFromProto(moduleProto)
+	if err != nil {
+		return nil, err
+	}
+	if _, validationErr := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(moduleSch)); validationErr != nil {
+		return connect.NewResponse(buildFailure(buildCtx, builderrors.Error{
+			Type:  builderrors.FTL,
+			Level: builderrors.ERROR,
+			Msg:   validationErr.Error(),
+		})), nil
+	}
+
+	return connect.NewResponse(&langpb.BuildResponse{
+		Event: &langpb.BuildResponse_BuildSuccess{
+			BuildSuccess: &langpb.BuildSuccess{
+				Module:               moduleSch.ToProto(),
+				DevEndpoint:          ptr(s.devModeEndpoint),
+				DevHotReloadEndpoint: ptr(s.hotReloadEndpoint),
+				DebugPort:            &s.debugPort32,
+				Deploy:               []string{SchemaFile},
+				DevHotReloadVersion:  &state.Version,
+			},
+		},
+	}), nil
 }
 
-func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, bind string, stdout io.Writer, cancel context.CancelCauseFunc) {
+func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout io.Writer, cancel context.CancelCauseFunc) {
 	go func() {
+		s.runningDevModeContext.Store(ctx)
+		defer s.runningDevModeContext.Store(nil)
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
 		if os.Getenv("MAVEN_OPTS") == "" {
 			command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
 		}
-		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", bind), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
+		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
 		command.Stdout = stdout
 		command.Stderr = os.Stderr
 		err := command.Run()
@@ -581,7 +378,7 @@ func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint str
 	return client, nil
 }
 
-func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext, autoRebuild bool) (*langpb.BuildResponse, error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext) (*langpb.BuildResponse, error) {
 	logger := log.FromContext(ctx)
 	release, err := flock.Acquire(ctx, bctx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
@@ -598,8 +395,6 @@ func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildCo
 		// dependencies have changed
 		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
-				ContextId:              bctx.ID,
-				IsAutomaticRebuild:     autoRebuild,
 				InvalidateDependencies: true,
 			},
 		}}, nil
@@ -622,9 +417,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildCo
 			buildErrs = []builderrors.Error{{Msg: "Compile process unexpectedly exited without reporting any errors", Level: builderrors.ERROR, Type: builderrors.COMPILER}}
 		}
 		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{BuildFailure: &langpb.BuildFailure{
-			IsAutomaticRebuild: autoRebuild,
-			ContextId:          bctx.ID,
-			Errors:             langpb.ErrorsToProto(buildErrs),
+			Errors: langpb.ErrorsToProto(buildErrs),
 		}}}, nil
 	}
 
@@ -638,9 +431,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildCo
 		// skip reading schema
 		return &langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
-				IsAutomaticRebuild: autoRebuild,
-				ContextId:          bctx.ID,
-				Errors:             buildErrs,
+				Errors: buildErrs,
 			}}}, nil
 	}
 
@@ -651,11 +442,9 @@ func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildCo
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
 			BuildSuccess: &langpb.BuildSuccess{
-				IsAutomaticRebuild: autoRebuild,
-				ContextId:          bctx.ID,
-				Errors:             buildErrs,
-				Module:             moduleProto,
-				Deploy:             []string{"launch", "quarkus-app"},
+				Errors: buildErrs,
+				Module: moduleProto,
+				Deploy: []string{"launch", "quarkus-app"},
 			},
 		},
 	}, nil
@@ -699,58 +488,27 @@ func readSchema(bctx buildContext) (*schemapb.Module, error) {
 	return moduleProto, nil
 }
 
-// BuildContextUpdated is called whenever the build context is update while a Build call with "rebuild_automatically" is active.
-//
-// Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-// event with the updated build context id with "is_automatic_rebuild" as false.
-func (s *Service) BuildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
-	if !s.acceptsContextUpdates.Load() {
-		return nil, errors.Errorf("plugin does not accept context updates because these is no build stream allowing rebuilds")
-	}
-	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	s.buildContext.Store(buildCtx)
-	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to write generic schema files")
-	}
-
-	s.updatesTopic.Publish(buildContextUpdatedEvent{
-		buildCtx:      buildCtx,
-		schemaChanged: changed,
-	})
-
-	return connect.NewResponse(&langpb.BuildContextUpdatedResponse{}), nil
-}
-
 // buildAndSend builds the module and sends the build event to the stream.
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, stream *connect.ServerStream[langpb.BuildResponse], projectConfig projectconfig.Config, buildCtx buildContext, isAutomaticRebuild bool) error {
-	buildEvent, err := build(ctx, projectConfig, buildCtx, isAutomaticRebuild)
+func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
+	buildEvent, err := build(ctx, projectConfig, buildCtx)
 	if err != nil {
-		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
+		buildEvent = buildFailure(buildCtx, builderrors.Error{
 			Type:  builderrors.FTL,
 			Level: builderrors.ERROR,
 			Msg:   err.Error(),
 		})
 	}
-	if err = stream.Send(buildEvent); err != nil {
-		return errors.Wrap(err, "could not send build event")
-	}
-	return nil
+	return connect.NewResponse(buildEvent), nil
 }
 
 // buildFailure creates a BuildFailure event based on build errors.
-func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builderrors.Error) *langpb.BuildResponse {
+func buildFailure(buildCtx buildContext, errs ...builderrors.Error) *langpb.BuildResponse {
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
-				ContextId:              buildCtx.ID,
-				IsAutomaticRebuild:     isAutomaticRebuild,
 				Errors:                 langpb.ErrorsToProto(errs),
 				InvalidateDependencies: false,
 			},

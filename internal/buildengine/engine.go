@@ -1479,3 +1479,47 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 		}
 	}
 }
+
+// watchFiles begin watching files in the module directory
+// This is only used to restart quarkus:dev if it ends (such as when the initial build fails).
+func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildContext, events chan watch.WatchEventModuleChanged) error {
+	logger := log.FromContext(ctx)
+	watchTopic, err := watcher.Watch(ctx, time.Second, []string{buildCtx.Config.Dir})
+	if err != nil {
+		return errors.Wrap(err, "could not watch for file changes")
+	}
+	log.FromContext(ctx).Debugf("Watching for file changes: %s", buildCtx.Config.Dir)
+	watchEvents := make(chan watch.WatchEvent, 32)
+	watchTopic.Subscribe(watchEvents)
+
+	// We need watcher to calculate file hashes before we do initial build so we can detect changes
+	select {
+	case e := <-watchEvents:
+		_, ok := e.(watch.WatchEventModuleAdded)
+		if !ok {
+			return errors.Errorf("expected module added event, got: %T", e)
+		}
+	case <-time.After(3 * time.Second):
+		return errors.Errorf("expected module added event, got no event")
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "context done")
+	}
+	stubsDir := filepath.Join(buildCtx.Config.Dir, "src", "main", "ftl-module-schema")
+	go func() {
+		for e := range channels.IterContext(ctx, watchEvents) {
+			if change, ok := e.(watch.WatchEventModuleChanged); ok {
+				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
+				// Also ignore changes to
+				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
+					return !strings.HasPrefix(c.Path, stubsDir) && !strings.HasSuffix(c.Path, "queries.sql")
+				})
+				if len(change.Changes) == 0 {
+					continue
+				}
+				logger.Infof("File change detected: %v", e)
+				events <- change
+			}
+		}
+	}()
+	return nil
+}

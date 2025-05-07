@@ -123,9 +123,9 @@ func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlug
 
 type buildCommand struct {
 	BuildContext
-	projectConfig        projectconfig.Config
-	stubsRoot            string
-	rebuildAutomatically bool
+	projectConfig projectconfig.Config
+	stubsRoot     string
+	devModeBuild  bool
 
 	startTime time.Time
 	result    chan result.Result[BuildResult]
@@ -228,12 +228,12 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // and publishing these automatic builds updates to Updates().
 func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
 	cmd := buildCommand{
-		BuildContext:         bctx,
-		projectConfig:        projectConfig,
-		stubsRoot:            stubsRoot,
-		rebuildAutomatically: rebuildAutomatically,
-		startTime:            time.Now(),
-		result:               make(chan result.Result[BuildResult]),
+		BuildContext:  bctx,
+		projectConfig: projectConfig,
+		stubsRoot:     stubsRoot,
+		devModeBuild:  rebuildAutomatically,
+		startTime:     time.Now(),
+		result:        make(chan result.Result[BuildResult]),
 	}
 	p.commands <- cmd
 	select {
@@ -337,9 +337,9 @@ func (p *LanguagePlugin) run(ctx context.Context) {
 			}
 
 			newStreamChan, newCancelFunc, err := p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
-				ProjectConfig:        projectConfig,
-				StubsRoot:            stubsRoot,
-				RebuildAutomatically: c.rebuildAutomatically,
+				ProjectConfig: projectConfig,
+				StubsRoot:     stubsRoot,
+				DevModeBuild:  c.devModeBuild,
 				BuildContext: &langpb.BuildContext{
 					Id:           contextID(bctx.Config, contextCounter),
 					ModuleConfig: configProto,
@@ -454,7 +454,7 @@ func (p *LanguagePlugin) handleBuildResult(module string, r either.Either[*langp
 		cmd.result <- result.From(buildResult, err)
 
 		cmdEnded = true
-		if !cmd.rebuildAutomatically {
+		if !cmd.devModeBuild {
 			streamEnded = true
 		}
 		return
