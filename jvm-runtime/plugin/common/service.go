@@ -157,12 +157,6 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	return buildAndSend(ctx, projectConfig, buildCtx)
 }
 
-type buildResult struct {
-	state               *hotreloadpb.SchemaState
-	buildContextUpdated bool
-	failed              bool
-}
-
 func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
 
