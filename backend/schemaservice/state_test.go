@@ -6,6 +6,7 @@ import (
 	"github.com/alecthomas/assert/v2"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )
@@ -15,14 +16,9 @@ func TestMarshalling(t *testing.T) {
 		k := key.NewDeploymentKey("test", "test")
 		state := SchemaState{
 			state: &schema.SchemaState{
-				Modules: []*schema.Module{{
-					Name: "test",
-					Runtime: &schema.ModuleRuntime{
-						Deployment: &schema.ModuleRuntimeDeployment{
-							DeploymentKey: k,
-						},
-					},
-				}},
+				Modules: []*schema.Module{
+					builder.Module("test").DeploymentKey(k).MustBuild(),
+				},
 			},
 		}
 		assertRoundTrip(t, state)
@@ -37,12 +33,8 @@ func TestMarshalling(t *testing.T) {
 			Changeset: &schema.Changeset{
 				Key: changesetKey,
 				RealmChanges: []*schema.RealmChange{{
-					Modules: []*schema.Module{{
-						Name: "test2",
-						Runtime: &schema.ModuleRuntime{
-							Deployment: &schema.ModuleRuntimeDeployment{DeploymentKey: deploymentKey},
-						},
-					},
+					Modules: []*schema.Module{
+						builder.Module("test2").DeploymentKey(deploymentKey).MustBuild(),
 					},
 				}},
 			},
@@ -96,6 +88,57 @@ func TestDeploymentEvents(t *testing.T) {
 		})
 		state.clearDeploymentEvents("foo")
 		assert.Equal(t, 0, len(state.DeploymentEvents("foo")))
+	})
+}
+
+func TestModuleDeploymentWorkflow(t *testing.T) {
+	ctx := log.ContextWithNewDefaultLogger(t.Context())
+	state := NewSchemaState("test")
+	dk := key.NewDeploymentKey("test", "foo")
+	module := builder.Module("foo").DeploymentKey(dk).MustBuild()
+
+	t.Run("commit a changeset once endpoint and deployment runtime are set", func(t *testing.T) {
+		csk := key.NewChangesetKey()
+		assert.NoError(t, state.ApplyEvents(ctx,
+			&schema.ChangesetCreatedEvent{Changeset: &schema.Changeset{
+				Key:          csk,
+				RealmChanges: []*schema.RealmChange{{Name: "test", Modules: []*schema.Module{module}}},
+			}},
+			&schema.DeploymentRuntimeEvent{
+				Payload: &schema.RuntimeElement{
+					Deployment: dk,
+					Element:    &schema.ModuleRuntimeRunner{Endpoint: "http://localhost:8080"},
+				},
+				Changeset: &csk,
+			},
+			&schema.DeploymentRuntimeEvent{
+				Payload: &schema.RuntimeElement{
+					Deployment: dk,
+					Element: &schema.ModuleRuntimeDeployment{
+						DeploymentKey: dk,
+						State:         schema.DeploymentStateReady,
+					},
+				},
+				Changeset: &csk,
+			},
+			&schema.ChangesetPreparedEvent{Key: csk},
+			&schema.ChangesetCommittedEvent{Key: csk},
+		))
+
+		assert.Equal(t, 1, len(state.state.Modules))
+		assert.Equal(t, module, state.state.Modules[0])
+	})
+	t.Run("removing the module removes the deployment", func(t *testing.T) {
+		csk := key.NewChangesetKey()
+		assert.NoError(t, state.ApplyEvents(ctx,
+			&schema.ChangesetCreatedEvent{Changeset: &schema.Changeset{
+				Key:          csk,
+				RealmChanges: []*schema.RealmChange{{Name: "test", ToRemove: []string{dk.String()}}},
+			}},
+			&schema.ChangesetPreparedEvent{Key: csk},
+			&schema.ChangesetCommittedEvent{Key: csk},
+		))
+		assert.Equal(t, 0, len(state.state.Modules))
 	})
 }
 

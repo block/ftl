@@ -46,6 +46,17 @@ func (r *SchemaState) ApplyEvent(ctx context.Context, event schema.Event) error 
 	}
 }
 
+// ApplyEvents applies a list of events to the schema state.
+// events might be partially applied if an error is returned.
+func (r *SchemaState) ApplyEvents(ctx context.Context, events ...schema.Event) error {
+	for _, event := range events {
+		if err := r.ApplyEvent(ctx, event); err != nil {
+			return errors.Wrapf(err, "error applying event %T", event)
+		}
+	}
+	return nil
+}
+
 // VerifyEvent verifies an event is valid for the given state, without applying it
 func (r *SchemaState) VerifyEvent(ctx context.Context, event schema.Event) error {
 	if err := event.Validate(); err != nil {

@@ -5,6 +5,7 @@ import (
 	"github.com/alecthomas/types/must"
 
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/key"
 )
 
 type SchemaBuilder struct{ s *schema.Schema }
@@ -89,6 +90,17 @@ func (m *ModuleBuilder) Comment(comments ...string) *ModuleBuilder {
 func (m ModuleBuilder) Runtime(runtime *schema.ModuleRuntime) *ModuleBuilder {
 	m.m.Runtime = runtime
 	return &m
+}
+
+func (m *ModuleBuilder) DeploymentKey(deploymentKey key.Deployment) *ModuleBuilder {
+	if m.m.Runtime == nil {
+		m.m.Runtime = &schema.ModuleRuntime{}
+	}
+	if m.m.Runtime.Deployment == nil {
+		m.m.Runtime.Deployment = &schema.ModuleRuntimeDeployment{}
+	}
+	m.m.Runtime.Deployment.DeploymentKey = deploymentKey
+	return m
 }
 
 func (m *ModuleBuilder) Decl(decl ...schema.Decl) *ModuleBuilder {
