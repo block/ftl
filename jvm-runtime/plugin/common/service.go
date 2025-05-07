@@ -163,9 +163,8 @@ type buildResult struct {
 	failed              bool
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
-	logger := log.FromContext(parentCtx)
-	ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
+func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
+	logger := log.FromContext(ctx)
 
 	output := &errorDetector{
 		logger: logger,
@@ -187,7 +186,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 	s.devModeEndpoint = fmt.Sprintf("http://localhost:%d", address.Port)
 	devModeBuild := buildCtx.Config.DevModeBuild
 	debugPort, err := plugin.AllocatePort()
-	s.debugPort32 = int32(debugPort.Port)
+	s.debugPort32 = int32(debugPort.Port) //nolint
 
 	if err == nil {
 		devModeBuild = fmt.Sprintf("%s -Ddebug=%d", devModeBuild, debugPort.Port)
@@ -201,7 +200,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	s.launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, output, cancel)
+	s.launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, output)
 
 	responses := make(chan *connect.Response[langpb.BuildResponse], 2)
 	errorChan := make(chan error, 1)
@@ -222,7 +221,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			return
 		}
 		logger.Debugf("watch client")
-		resp, err := s.handleState(parentCtx, res.Msg.State, buildCtx)
+		resp, err := s.handleState(ctx, res.Msg.State, buildCtx)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "could not handle state")
 			return
@@ -267,7 +266,7 @@ func (s *Service) reloadDevMode(ctx context.Context, buildCtx buildContext, sche
 	newKey := key.NewDeploymentKey(buildCtx.Config.Realm, buildCtx.Config.Module)
 	result, err := s.hotReloadClient.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: schemaChanged}))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to invoke reload")
 	}
 	handleReloadResponse(result, newKey)
 	return s.handleState(ctx, result.Msg.State, buildCtx)
@@ -302,10 +301,10 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 	moduleProto := state.GetModule()
 	moduleSch, err := schema.ModuleFromProto(moduleProto)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to parse module proto")
 	}
 	if _, validationErr := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(moduleSch)); validationErr != nil {
-		return connect.NewResponse(buildFailure(buildCtx, builderrors.Error{
+		return connect.NewResponse(buildFailure(builderrors.Error{
 			Type:  builderrors.FTL,
 			Level: builderrors.ERROR,
 			Msg:   validationErr.Error(),
@@ -326,11 +325,15 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 	}), nil
 }
 
-func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout io.Writer, cancel context.CancelCauseFunc) {
+func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout io.Writer) {
 	go func() {
-		s.devModeRunning.Store(1)
-		defer s.devModeRunning.Store(0)
 		logger := log.FromContext(ctx)
+		ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
+		s.devModeRunning.Store(1)
+		defer func() {
+			s.devModeRunning.Store(0)
+			cancel(nil)
+		}()
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
 		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
 		if os.Getenv("MAVEN_OPTS") == "" {
@@ -484,7 +487,7 @@ func readSchema(bctx buildContext) (*schemapb.Module, error) {
 func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	buildEvent, err := build(ctx, projectConfig, buildCtx)
 	if err != nil {
-		buildEvent = buildFailure(buildCtx, builderrors.Error{
+		buildEvent = buildFailure(builderrors.Error{
 			Type:  builderrors.FTL,
 			Level: builderrors.ERROR,
 			Msg:   err.Error(),
@@ -494,7 +497,7 @@ func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, build
 }
 
 // buildFailure creates a BuildFailure event based on build errors.
-func buildFailure(buildCtx buildContext, errs ...builderrors.Error) *langpb.BuildResponse {
+func buildFailure(errs ...builderrors.Error) *langpb.BuildResponse {
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{

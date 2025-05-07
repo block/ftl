@@ -110,10 +110,12 @@ func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, er
 }
 
 func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlugin {
+	val := atomic.NewInt32(0)
 	plugin := &LanguagePlugin{
-		client:  client,
-		updates: pubsub.New[PluginEvent](),
-		bctx:    atomic.New[*buildInfo](nil),
+		client:       client,
+		updates:      pubsub.New[PluginEvent](),
+		bctx:         atomic.New[*buildInfo](nil),
+		buildRunning: &val,
 	}
 	go plugin.watchForCmdError(ctx)
 
@@ -124,9 +126,10 @@ type LanguagePlugin struct {
 	client pluginClient
 
 	// cancels the run() context
-	updates *pubsub.Topic[PluginEvent]
-	watch   *pubsub.Topic[watch.WatchEvent]
-	bctx    *atomic.Value[*buildInfo]
+	updates      *pubsub.Topic[PluginEvent]
+	watch        *pubsub.Topic[watch.WatchEvent]
+	bctx         *atomic.Value[*buildInfo]
+	buildRunning *atomic.Int32
 }
 
 // Kill stops the plugin and cleans up any resources.
@@ -215,6 +218,10 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // In dev mode, plugin is responsible for automatically rebuilding as relevant files within the module change,
 // and publishing these automatic builds updates to Updates().
 func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
+	if !p.buildRunning.CompareAndSwap(0, 1) {
+		return BuildResult{}, errors.Errorf("build already running")
+	}
+	defer p.buildRunning.Store(0)
 	startTime := time.Now()
 	p.bctx.Store(&buildInfo{projectConfig: projectConfig, stubsRoot: stubsRoot, bctx: bctx})
 
@@ -242,7 +249,7 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 		return BuildResult{}, errors.Wrap(err, "failed to invoke build command")
 	}
 	if rebuildAutomatically && p.watch == nil {
-		watcher := watch.NewWatcher(optional.Zero(bctx.Config.BuildLock), bctx.Config.Watch...)
+		watcher := watch.NewWatcher(optional.None[string](), bctx.Config.Watch...)
 		updates, err := watcher.Watch(ctx, time.Second, []string{bctx.Config.Dir})
 		if err != nil {
 			log.FromContext(ctx).Errorf(err, "Failed to watch module directory")
@@ -250,7 +257,6 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 		}
 		p.watch = updates
 		go p.runWatch(ctx, watcher)
-
 	}
 
 	return buildResultFromProto(result.Msg, startTime)
@@ -265,8 +271,7 @@ func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 	updates := make(chan watch.WatchEvent)
 	p.watch.Subscribe(updates)
 	for i := range channels.IterContext(ctx, updates) {
-		switch i.(type) {
-		case watch.WatchEventModuleChanged:
+		if _, ok := i.(watch.WatchEventModuleChanged); ok {
 			info := p.bctx.Load()
 			tx := watcher.GetTransaction(info.bctx.Config.Dir)
 			err := tx.Begin()
@@ -275,11 +280,15 @@ func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 			}
 			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
 			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, true)
-			tx.ModifiedFiles(br.modifiedFiles...)
 			if err != nil {
 				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
 			} else {
-				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
+				err = tx.ModifiedFiles(br.modifiedFiles...)
+				if err != nil {
+					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+				} else {
+					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
+				}
 			}
 			err = tx.End()
 			if err != nil {

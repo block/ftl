@@ -47,7 +47,6 @@ type moduleMeta struct {
 	plugin         *languageplugin.LanguagePlugin
 	events         chan languageplugin.PluginEvent
 	configDefaults moduleconfig.CustomDefaults
-	watch          *watch.Watcher
 }
 
 // copyMetaWithUpdatedDependencies finds the dependencies for a module and returns a
@@ -1365,7 +1364,6 @@ func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.Unvalida
 		plugin:         plugin,
 		events:         events,
 		configDefaults: customDefaults,
-		watch:          watch.NewWatcher(optional.Zero(validConfig.BuildLock), validConfig.Watch...),
 	}, nil
 }
 
