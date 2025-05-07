@@ -4179,49 +4179,6 @@ export class RealmChange extends Message<RealmChange> {
 }
 
 /**
- * @generated from message xyz.block.ftl.schema.v1.RealmState
- */
-export class RealmState extends Message<RealmState> {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name = "";
-
-  /**
-   * @generated from field: bool external = 2;
-   */
-  external = false;
-
-  constructor(data?: PartialMessage<RealmState>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.schema.v1.RealmState";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "external", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RealmState {
-    return new RealmState().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RealmState {
-    return new RealmState().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RealmState {
-    return new RealmState().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: RealmState | PlainMessage<RealmState> | undefined, b: RealmState | PlainMessage<RealmState> | undefined): boolean {
-    return proto3.util.equals(RealmState, a, b);
-  }
-}
-
-/**
  * Ref is an untyped reference to a symbol.
  *
  * @generated from message xyz.block.ftl.schema.v1.Ref
@@ -4462,9 +4419,9 @@ export class Schema extends Message<Schema> {
  */
 export class SchemaState extends Message<SchemaState> {
   /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.Module modules = 1;
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 1;
    */
-  modules: Module[] = [];
+  schema?: Schema;
 
   /**
    * @generated from field: repeated xyz.block.ftl.schema.v1.Changeset changesets = 2;
@@ -4481,11 +4438,6 @@ export class SchemaState extends Message<SchemaState> {
    */
   deploymentEvents: DeploymentRuntimeEvent[] = [];
 
-  /**
-   * @generated from field: repeated xyz.block.ftl.schema.v1.RealmState realms = 5;
-   */
-  realms: RealmState[] = [];
-
   constructor(data?: PartialMessage<SchemaState>) {
     super();
     proto3.util.initPartial(data, this);
@@ -4494,11 +4446,10 @@ export class SchemaState extends Message<SchemaState> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.schema.v1.SchemaState";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "modules", kind: "message", T: Module, repeated: true },
+    { no: 1, name: "schema", kind: "message", T: Schema },
     { no: 2, name: "changesets", kind: "message", T: Changeset, repeated: true },
     { no: 3, name: "changeset_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
     { no: 4, name: "deployment_events", kind: "message", T: DeploymentRuntimeEvent, repeated: true },
-    { no: 5, name: "realms", kind: "message", T: RealmState, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SchemaState {

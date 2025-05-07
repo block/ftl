@@ -625,7 +625,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
-	mod, ok := c.schemaSource.CanonicalView().Module(module).Get()
+	mod, ok := c.schemaSource.CanonicalView().Module(c.projectConfig.Name, module).Get()
 
 	if !ok {
 		return errors.Errorf("deployment for module %s not found", module)

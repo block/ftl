@@ -244,7 +244,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 		return m.Name
 	})
 
-	err := s.deProvision(ctx, cs, changeset.InternalRealm().RemovingModules)
+	err := s.deProvision(ctx, cs, changeset.RealmChanges)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -258,7 +258,7 @@ func (s *Service) HandleChangesetDrained(ctx context.Context, cs key.Changeset) 
 
 func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *schema.Changeset) error {
 	logger := log.FromContext(ctx).Changeset(changeset.Key)
-	err := s.deProvision(ctx, changeset.Key, changeset.InternalRealm().RemovingModules)
+	err := s.deProvision(ctx, changeset.Key, changeset.RealmChanges)
 	if err != nil {
 		logger.Errorf(err, "Error de-provisioning changeset")
 	}
@@ -270,37 +270,39 @@ func (s *Service) HandleChangesetRollingBack(ctx context.Context, changeset *sch
 	return nil
 }
 
-func (s *Service) deProvision(ctx context.Context, cs key.Changeset, modules []*schema.Module) error {
+func (s *Service) deProvision(ctx context.Context, cs key.Changeset, realmChanges []*schema.RealmChange) error {
 
 	logger := log.FromContext(ctx)
 	group := errgroup.Group{}
-	for _, module := range modules {
-		moduleName := module.Name
+	for _, rc := range realmChanges {
+		for _, module := range rc.RemovingModules {
+			moduleName := module.Name
 
-		group.Go(func() error {
-			var current *schema.Module
-			existing := s.eventSource.CanonicalView().Module(moduleName)
-			if f, ok := existing.Get(); ok {
-				current = f
-			}
-			deployment := s.registry.CreateDeployment(ctx, cs, module, current, func(element *schema.RuntimeElement) error {
-				cs := cs.String()
-				_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
-					Changeset: &cs,
-					Update:    element.ToProto(),
-				}))
-				if err != nil {
-					return errors.Wrap(err, "error updating runtime")
+			group.Go(func() error {
+				var current *schema.Module
+				existing := s.eventSource.CanonicalView().Module(rc.Name, moduleName)
+				if f, ok := existing.Get(); ok {
+					current = f
 				}
+				deployment := s.registry.CreateDeployment(ctx, cs, module, current, func(element *schema.RuntimeElement) error {
+					cs := cs.String()
+					_, err := s.schemaClient.UpdateDeploymentRuntime(ctx, connect.NewRequest(&ftlv1.UpdateDeploymentRuntimeRequest{
+						Changeset: &cs,
+						Update:    element.ToProto(),
+					}))
+					if err != nil {
+						return errors.Wrap(err, "error updating runtime")
+					}
+					return nil
+				})
+				if err := deployment.Run(ctx); err != nil {
+					return errors.Wrap(err, "error running deployment")
+				}
+				logger.Debugf("Finished de-provisioning for module %s", moduleName)
 				return nil
 			})
-			if err := deployment.Run(ctx); err != nil {
-				return errors.Wrap(err, "error running deployment")
-			}
-			logger.Debugf("Finished de-provisioning for module %s", moduleName)
-			return nil
-		})
 
+		}
 	}
 	err := group.Wait()
 	if err != nil {

@@ -16,6 +16,7 @@ import (
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	ftlreflect "github.com/block/ftl/common/reflect"
+	ftlslices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 )
@@ -168,9 +169,12 @@ func (s *Schema) ResolveToType(ref *Ref, out Decl) error {
 	return errors.Wrapf(ErrNotFound, "could not resolve reference %s", ref)
 }
 
-func (s *Schema) Module(name string) optional.Option[*Module] {
-	for _, realm := range s.Realms {
-		module := realm.Module(name)
+func (s *Schema) Module(realm, name string) optional.Option[*Module] {
+	for _, r := range s.Realms {
+		if r.Name != realm {
+			continue
+		}
+		module := r.Module(name)
 		if _, ok := module.Get(); ok {
 			return module
 		}
@@ -377,6 +381,26 @@ func (s *Schema) UpdateRealms(realms []*Realm) {
 	}
 }
 
+func (s *Schema) RemoveModule(realm, module string) {
+	for _, r := range s.Realms {
+		if r.Name != realm {
+			continue
+		}
+		r.Modules = ftlslices.Filter(r.Modules, func(m *Module) bool {
+			return m.Name != module
+		})
+	}
+}
+
+func (s *Schema) Realm(name string) optional.Option[*Realm] {
+	for _, r := range s.Realms {
+		if r.Name == name {
+			return optional.Some(r)
+		}
+	}
+	return optional.None[*Realm]()
+}
+
 func filterExternalMetadata(metadata []Metadata) []Metadata {
 	var filtered []Metadata
 	for _, m := range metadata {
@@ -394,22 +418,16 @@ func filterExternalMetadata(metadata []Metadata) []Metadata {
 //
 //protobuf:export
 type SchemaState struct {
-	Modules          []*Module                 `protobuf:"1"`
+	Schema           *Schema                   `protobuf:"1"`
 	Changesets       []*Changeset              `protobuf:"2"`
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
-	Realms           []*RealmState             `protobuf:"5"`
 }
 
 func (s *SchemaState) Validate() error {
-	internals := iterops.Count(slices.Values(s.Realms), func(r *RealmState) bool { return !r.External })
+	internals := iterops.Count(slices.Values(s.Schema.Realms), func(r *Realm) bool { return !r.External })
 	if internals > 1 {
 		return errors.Errorf("only one internal realm is allowed, got %d", internals)
 	}
 	return nil
-}
-
-type RealmState struct {
-	Name     string `protobuf:"1"`
-	External bool   `protobuf:"2"`
 }

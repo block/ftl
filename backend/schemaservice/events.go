@@ -108,28 +108,41 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 	if err := verifyDeploymentRuntimeEvent(t, e); err != nil {
 		return errors.WithStack(err)
 	}
+	dk := e.DeploymentKey()
+	module := dk.Payload.Module
+	realm := dk.Payload.Realm
+
 	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
-		module := e.DeploymentKey().Payload.Module
 		changeset, ok := t.GetChangeset(cs).Get()
 		if !ok {
 			return errors.Errorf("changeset %s not found", cs.String())
 		}
-		for _, m := range changeset.InternalRealm().Modules {
-			if m.Name == module {
-				err := e.Payload.ApplyToModule(m)
-				if err != nil {
-					return errors.Wrapf(err, "error applying runtime event to module %s", module)
+		for _, rc := range changeset.RealmChanges {
+			if rc.Name != realm {
+				continue
+			}
+			for _, m := range rc.Modules {
+				if m.Name == module {
+					err := e.Payload.ApplyToModule(m)
+					if err != nil {
+						return errors.Wrapf(err, "error applying runtime event to module %s", module)
+					}
+					t.state.ChangesetEvents = append(t.state.ChangesetEvents, e)
+					return nil
 				}
-				t.state.ChangesetEvents = append(t.state.ChangesetEvents, e)
-				return nil
 			}
 		}
 	}
-	for _, m := range t.state.Modules {
-		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
-			err := e.Payload.ApplyToModule(m)
-			if err != nil {
-				return errors.Wrapf(err, "error applying runtime event to module %s", m)
+	for _, m := range t.state.Schema.Realms {
+		if m.Name != realm {
+			continue
+		}
+		for _, m := range m.Modules {
+			if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
+				err := e.Payload.ApplyToModule(m)
+				if err != nil {
+					return errors.Wrapf(err, "error applying runtime event to module %s", m)
+				}
 			}
 			t.state.DeploymentEvents = append(t.state.DeploymentEvents, e)
 			return nil
@@ -142,9 +155,6 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	if _, ok := t.GetChangeset(e.Changeset.Key).Get(); ok {
 		return errors.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
-	activeCount := 0
-	existingModules := map[string]key.Changeset{}
-	updatingModules := map[string]*schema.Module{}
 
 	// validate there is at most one internal realm, and it matches the name of the realm in the state
 	hasInternalRealm := false
@@ -156,7 +166,7 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			return errors.Errorf("changeset can have at most one internal realm")
 		}
 		hasInternalRealm = true
-		for _, sr := range t.state.Realms {
+		for _, sr := range t.state.Schema.Realms {
 			if sr.External {
 				continue
 			}
@@ -164,71 +174,82 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 				return errors.Errorf("internal realm must be called %s, got %s", sr.Name, rc.Name)
 			}
 		}
-	}
 
-	for _, cs := range t.GetChangesets() {
-		if cs.ModulesAreCanonical() {
-			for _, mod := range cs.InternalRealm().Modules {
-				existingModules[mod.Name] = cs.Key
-				updatingModules[mod.Name] = mod
+		existingModules := map[string]key.Changeset{}
+		updatingModules := map[string]*schema.Module{}
+
+		for _, cs := range t.GetChangesets() {
+			if cs.ModulesAreCanonical() {
+				for _, chrc := range cs.RealmChanges {
+					if chrc.Name != rc.Name {
+						continue
+					}
+					for _, mod := range chrc.Modules {
+						existingModules[mod.Name] = cs.Key
+						updatingModules[mod.Name] = mod
+					}
+				}
 			}
-			activeCount++
 		}
-	}
-	for _, mod := range e.Changeset.InternalRealm().Modules {
-		if cs, ok := existingModules[mod.Name]; ok {
-			return errors.Errorf("module %s is already being updated in changeset %s", mod.Name, cs.String())
-		}
-		if mod.Runtime == nil {
-			return errors.Errorf("module %s has no runtime", mod.Name)
-		}
-		if mod.Runtime.Deployment == nil {
-			return errors.Errorf("module %s has no deployment", mod.Name)
-		}
-		if mod.Runtime.Deployment.DeploymentKey.IsZero() {
-			return errors.Errorf("module %s has no deployment key", mod.Name)
-		}
-		if mod.Runtime.Deployment.State == schema.DeploymentStateUnspecified {
-			mod.Runtime.Deployment.State = schema.DeploymentStateProvisioning
-		}
-		if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
-			return errors.Errorf("deployment %s is not in correct state expected %v got %v", mod.Name, schema.DeploymentStateProvisioning, mod.Runtime.Deployment.State)
-		}
-	}
-	rem := map[string]bool{}
-	for _, mod := range e.Changeset.InternalRealm().ToRemove {
-		rem[mod] = true
-	}
-	updatedDep := reflect.DeepCopy(t.ModulesByName())
-	for _, mod := range updatingModules {
-		updatedDep[mod.Name] = mod
-	}
-	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(updatedDep)}}} //nolint
-	merged := latestSchema(sch, e.Changeset)
-	for _, realm := range merged.InternalRealms() {
-		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
-			if m.Builtin {
-				return true
+		for _, mod := range rc.Modules {
+			if cs, ok := existingModules[mod.Name]; ok {
+				return errors.Errorf("module %s is already being updated in changeset %s", mod.Name, cs.String())
 			}
-			remove := rem[m.Runtime.Deployment.DeploymentKey.String()]
-			if remove {
-				delete(rem, m.Runtime.Deployment.DeploymentKey.String())
+			if mod.Runtime == nil {
+				return errors.Errorf("module %s has no runtime", mod.Name)
 			}
-			return !remove
-		})
-	}
-	if len(rem) > 0 {
-		return errors.Errorf("changeset has modules to remove that are not in the schema: %v", maps.Keys(rem))
-	}
-	problems := []error{}
-	for _, mod := range merged.InternalModules() {
-		_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
-		if err != nil {
-			problems = append(problems, errors.Wrapf(err, "module %s is not valid", mod.Name))
+			if mod.Runtime.Deployment == nil {
+				return errors.Errorf("module %s has no deployment", mod.Name)
+			}
+			if mod.Runtime.Deployment.DeploymentKey.IsZero() {
+				return errors.Errorf("module %s has no deployment key", mod.Name)
+			}
+			if mod.Runtime.Deployment.State == schema.DeploymentStateUnspecified {
+				mod.Runtime.Deployment.State = schema.DeploymentStateProvisioning
+			}
+			if mod.Runtime.Deployment.State != schema.DeploymentStateProvisioning {
+				return errors.Errorf("deployment %s is not in correct state expected %v got %v", mod.Name, schema.DeploymentStateProvisioning, mod.Runtime.Deployment.State)
+			}
 		}
-	}
-	if len(problems) > 0 {
-		return errors.Wrap(errors.Join(problems...), "changeset failed validation")
+		rem := map[string]bool{}
+		for _, mod := range rc.ToRemove {
+			rem[mod] = true
+		}
+
+		updatedDep := map[string]*schema.Module{}
+		if realm, ok := t.state.Schema.Realm(rc.Name).Get(); ok {
+			updatedDep = reflect.DeepCopy(realm.ModulesByName())
+		}
+		for _, mod := range updatingModules {
+			updatedDep[mod.Name] = mod
+		}
+		sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(updatedDep)}}} //nolint
+		merged := latestSchema(sch, e.Changeset)
+		for _, realm := range merged.InternalRealms() {
+			realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
+				if m.Builtin {
+					return true
+				}
+				remove := rem[m.Runtime.Deployment.DeploymentKey.String()]
+				if remove {
+					delete(rem, m.Runtime.Deployment.DeploymentKey.String())
+				}
+				return !remove
+			})
+		}
+		if len(rem) > 0 {
+			return errors.Errorf("changeset has modules to remove that are not in the schema: %v", maps.Keys(rem))
+		}
+		problems := []error{}
+		for _, mod := range merged.InternalModules() {
+			_, err := schema.ValidateModuleInSchema(merged, optional.Some(mod))
+			if err != nil {
+				problems = append(problems, errors.Wrapf(err, "module %s is not valid", mod.Name))
+			}
+		}
+		if len(problems) > 0 {
+			return errors.Wrap(errors.Join(problems...), "changeset failed validation")
+		}
 	}
 
 	return nil
@@ -238,12 +259,17 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	if err := verifyChangesetCreatedEvent(t, e); err != nil {
 		return errors.WithStack(err)
 	}
-	for _, dep := range e.Changeset.InternalRealm().Modules {
-		if dep.Runtime.Scaling == nil {
-			if existing, ok := t.GetModule(dep.Name).Get(); ok {
-				dep.Runtime.ModScaling().MinReplicas = existing.Runtime.Scaling.MinReplicas
-			} else {
-				dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
+	for _, rc := range e.Changeset.RealmChanges {
+		if rc.External {
+			continue
+		}
+		for _, dep := range rc.Modules {
+			if dep.Runtime.Scaling == nil {
+				if existing, ok := t.state.Schema.Module(rc.Name, dep.Name).Get(); ok {
+					dep.Runtime.ModScaling().MinReplicas = existing.Runtime.Scaling.MinReplicas
+				} else {
+					dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
+				}
 			}
 		}
 	}
@@ -309,35 +335,39 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
-	for _, realm := range changeset.RealmChanges {
-		t.upsertRealm(&schema.RealmState{
-			Name:     realm.Name,
-			External: realm.External,
-		})
-	}
-	for _, dep := range changeset.InternalRealm().Modules {
-		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
-		if old, ok := t.GetModule(dep.Name).Get(); ok {
-			old.Runtime.Deployment.State = schema.DeploymentStateDraining
-			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
-		}
-		t.upsertModule(dep)
-		t.clearDeploymentEvents(dep.Name)
-		dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
-	}
-	for _, dep := range changeset.InternalRealm().ToRemove {
-		logger.Debugf("Removing deployment %s", dep)
-		dk, err := key.ParseDeploymentKey(dep)
-		if err != nil {
-			logger.Errorf(err, "Error parsing deployment key %s", dep)
-		} else {
-			old, ok := t.GetModule(dk.Payload.Module).Get()
-			if !ok {
-				return errors.Errorf("deployment %s not found", dk.Payload.Module)
+	for _, rc := range changeset.RealmChanges {
+		realm, ok := t.state.Schema.Realm(rc.Name).Get()
+		if !ok {
+			realm = &schema.Realm{
+				Name:     rc.Name,
+				External: rc.External,
 			}
-			old.Runtime.Deployment.State = schema.DeploymentStateDraining
-			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
-			t.deleteModule(dk.Payload.Module)
+			t.state.Schema.Realms = append(t.state.Schema.Realms, realm)
+		}
+		for _, dep := range rc.Modules {
+			logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
+			if old, ok := t.state.Schema.Module(rc.Name, dep.Name).Get(); ok {
+				old.Runtime.Deployment.State = schema.DeploymentStateDraining
+				rc.RemovingModules = append(rc.RemovingModules, old)
+			}
+			realm.UpsertModule(dep)
+			t.clearDeploymentEvents(dep.Name)
+			dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
+		}
+		for _, dep := range rc.ToRemove {
+			logger.Debugf("Removing deployment %s", dep)
+			dk, err := key.ParseDeploymentKey(dep)
+			if err != nil {
+				logger.Errorf(err, "Error parsing deployment key %s", dep)
+			} else {
+				old, ok := t.state.Schema.Module(dk.Payload.Realm, dk.Payload.Module).Get()
+				if !ok {
+					return errors.Errorf("deployment %s not found", dk.Payload.Module)
+				}
+				old.Runtime.Deployment.State = schema.DeploymentStateDraining
+				rc.RemovingModules = append(rc.RemovingModules, old)
+				t.state.Schema.RemoveModule(dk.Payload.Realm, dk.Payload.Module)
+			}
 		}
 	}
 	return nil

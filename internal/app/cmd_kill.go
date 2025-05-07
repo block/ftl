@@ -22,7 +22,7 @@ func (k *killCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceCli
 	if err != nil {
 		// Assume a module name
 		source.WaitForInitialSync(ctx)
-		mod, ok := source.CanonicalView().Module(k.Deployment).Get()
+		mod, ok := source.CanonicalView().Module(projConfig.Name, k.Deployment).Get()
 		if !ok {
 			return errors.Errorf("deployment %s not found", k.Deployment)
 		}
