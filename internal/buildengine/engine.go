@@ -33,6 +33,7 @@ import (
 	imaps "github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/realm"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
@@ -92,6 +93,7 @@ type Engine struct {
 	adminClient       AdminClient
 	deployCoordinator *DeployCoordinator
 	moduleMetas       *xsync.MapOf[string, moduleMeta]
+	externalRealms    *xsync.MapOf[string, *schema.Realm]
 	projectConfig     projectconfig.Config
 	moduleDirs        []string
 	watcher           *watch.Watcher // only watches for module toml changes
@@ -192,8 +194,18 @@ func New(
 		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
+		externalRealms:   xsync.NewMapOf[string, *schema.Realm](),
 	}
-	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, projectConfig)
+
+	for name, cfg := range projectConfig.ExternalRealms {
+		realm, err := realm.GetExternalRealm(ctx, e.projectConfig.ExternalRealmPath(), name, cfg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read external realm %s", name)
+		}
+		e.externalRealms.Store(realm.Name, realm)
+	}
+
+	e.deployCoordinator = NewDeployCoordinator(ctx, adminClient, schemaSource, e, rawEngineUpdates, logChanges, projectConfig, e.externalRealms)
 	for _, option := range options {
 		option(e)
 	}

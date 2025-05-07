@@ -189,12 +189,23 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 	s.creationLock.Lock()
 	defer s.creationLock.Unlock()
 
-	if len(req.Msg.RealmChanges) != 1 {
-		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("exactly one realm change is required")))
+	var internalRealm *ftlv1.RealmChange
+	var externalRealms []*ftlv1.RealmChange
+	for _, realmChange := range req.Msg.RealmChanges {
+		if !realmChange.External {
+			if internalRealm != nil {
+				return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("only one internal realm is allowed in a changeset")))
+			}
+			internalRealm = realmChange
+		} else {
+			externalRealms = append(externalRealms, realmChange)
+		}
+	}
+	if internalRealm == nil {
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("internal realm is required")))
 	}
 
-	realmChange := req.Msg.RealmChanges[0]
-	modules, err := slices.MapErr(realmChange.Modules, func(m *schemapb.Module) (*schema.Module, error) {
+	modules, err := slices.MapErr(internalRealm.Modules, func(m *schemapb.Module) (*schema.Module, error) {
 		out, err := schema.ModuleFromProto(m)
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid module %s", m.Name)
@@ -206,23 +217,39 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 			}
 		} else {
 			// Allocate a deployment key for the module.
-			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(realmChange.Name, m.Name)
+			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(internalRealm.Name, m.Name)
 		}
 		return out, nil
 	})
 	if err != nil {
 		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, err))
 	}
-	changeset := &schema.Changeset{
-		Key:   key.NewChangesetKey(),
-		State: schema.ChangesetStatePreparing,
-		RealmChanges: []*schema.RealmChange{{
-			Name:     realmChange.Name,
-			External: false,
+	changes := []*schema.RealmChange{{
+		Name:     internalRealm.Name,
+		External: false,
+		Modules:  modules,
+		ToRemove: internalRealm.ToRemove,
+	}}
+	for _, externalRealm := range externalRealms {
+		var modules []*schema.Module
+		for _, pb := range externalRealm.Modules {
+			module, err := schema.ModuleFromProto(pb)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse module")
+			}
+			modules = append(modules, module)
+		}
+		changes = append(changes, &schema.RealmChange{
+			Name:     externalRealm.Name,
+			External: true,
 			Modules:  modules,
-			ToRemove: realmChange.ToRemove,
-		}},
-		CreatedAt: time.Now(),
+		})
+	}
+	changeset := &schema.Changeset{
+		Key:          key.NewChangesetKey(),
+		State:        schema.ChangesetStatePreparing,
+		RealmChanges: changes,
+		CreatedAt:    time.Now(),
 	}
 
 	err = s.publishEvent(ctx, &schema.ChangesetCreatedEvent{Changeset: changeset})

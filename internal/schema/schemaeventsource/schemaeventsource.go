@@ -201,20 +201,22 @@ func (e *EventSource) Publish(event schema.Notification) error {
 				realms[realm.Name] = existingRealm
 			}
 
-			for _, module := range realm.Modules {
-				module.Runtime.Deployment.State = schema.DeploymentStateCanonical
-				if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
-					modules[i] = module
-				} else {
-					modules = append(modules, module)
+			if !realm.External {
+				for _, module := range realm.Modules {
+					module.Runtime.Deployment.State = schema.DeploymentStateCanonical
+					if i := slices.IndexFunc(modules, func(m *schema.Module) bool { return m.Name == module.Name }); i != -1 {
+						modules[i] = module
+					} else {
+						modules = append(modules, module)
+					}
 				}
+				for _, removed := range realm.RemovingModules {
+					modules = islices.Filter(modules, func(m *schema.Module) bool {
+						return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
+					})
+				}
+				existingRealm.Modules = modules
 			}
-			for _, removed := range realm.RemovingModules {
-				modules = islices.Filter(modules, func(m *schema.Module) bool {
-					return m.ModRuntime().ModDeployment().DeploymentKey != removed.ModRuntime().ModDeployment().DeploymentKey
-				})
-			}
-			existingRealm.Modules = modules
 		}
 		e.view.Store(clone)
 	case *schema.ChangesetDrainedNotification:

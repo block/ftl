@@ -33,6 +33,13 @@ func TestProjectConfig(t *testing.T) {
 		Commands: Commands{
 			Startup: []string{"echo 'Executing global pre-build command'"},
 		},
+		ExternalRealms: map[string]ExternalRealmConfig{
+			"foo": {
+				GitRepo:   "git@github.com:block/ftl.git",
+				GitBranch: "main",
+				GitCommit: "04d1eb9286891a292f50aa8553896e78a4811b4a",
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

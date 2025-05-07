@@ -14,6 +14,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
+	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -113,7 +114,8 @@ type DeployCoordinator struct {
 
 	logChanges bool // log changes from timeline
 
-	projectConfig projectconfig.Config
+	projectConfig  projectconfig.Config
+	externalRealms []*schema.Realm
 }
 
 func NewDeployCoordinator(
@@ -124,6 +126,7 @@ func NewDeployCoordinator(
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
 	projectConfig projectconfig.Config,
+	externalRealms *xsync.MapOf[string, *schema.Realm],
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
 		adminClient:       adminClient,
@@ -135,6 +138,12 @@ func NewDeployCoordinator(
 		logChanges:        logChanges,
 		projectConfig:     projectConfig,
 	}
+
+	externalRealms.Range(func(key string, value *schema.Realm) bool {
+		c.externalRealms = append(c.externalRealms, value)
+		return true
+	})
+
 	// Start the deployment queue processor
 	go c.processEvents(ctx)
 
@@ -184,30 +193,30 @@ func (c *DeployCoordinator) deploy(ctx context.Context, modules []*pendingModule
 func (c *DeployCoordinator) processEvents(ctx context.Context) {
 	logger := log.FromContext(ctx)
 	events := c.schemaSource.Subscribe(ctx)
+	var sch *schema.Schema
 	if !c.schemaSource.Live() {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
-		c.SchemaUpdates <- SchemaUpdatedEvent{
-			schema: &schema.Schema{
-				Realms: []*schema.Realm{{
-					Name:    c.projectConfig.Name,
-					Modules: []*schema.Module{schema.Builtins()},
-				}},
-			},
+		sch = &schema.Schema{
+			Realms: []*schema.Realm{{
+				Name:    c.projectConfig.Name,
+				Modules: []*schema.Module{schema.Builtins()},
+			}},
 		}
 	} else {
 		c.schemaSource.WaitForInitialSync(ctx)
 
 		// If there are no realms yet, initialise the internal.
-		sch := c.schemaSource.CanonicalView()
+		sch = c.schemaSource.CanonicalView()
 		if len(sch.Realms) == 0 {
 			sch.Realms = []*schema.Realm{{
 				Name:    c.projectConfig.Name,
 				Modules: []*schema.Module{schema.Builtins()},
 			}}
 		}
-
-		c.SchemaUpdates <- SchemaUpdatedEvent{schema: sch}
 	}
+
+	sch.UpdateRealms(c.externalRealms)
+	c.SchemaUpdates <- SchemaUpdatedEvent{schema: sch}
 
 	toDeploy := []*pendingDeploy{}
 	deploying := []*pendingDeploy{}
@@ -398,7 +407,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, c.projectConfig.Name, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan)
+		err := deploy(ctx, c.projectConfig.Name, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.externalRealms)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -546,7 +555,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	toRemove := map[string]bool{}
 	realm := &schema.Realm{Name: c.projectConfig.Name}
 	sch := &schema.Schema{
-		Realms: []*schema.Realm{realm},
+		Realms: append([]*schema.Realm{realm}, c.externalRealms...),
 	}
 	for _, d := range append(toDeploy, deploying...) {
 		if !d.publishInSchema {
@@ -661,7 +670,7 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 }
 
 // Deploy a module to the FTL controller with the given number of replicas. Optionally wait for the deployment to become ready.
-func deploy(ctx context.Context, realm string, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset]) (err error) {
+func deploy(ctx context.Context, realm string, modules []*schema.Module, adminClient AdminClient, receivedKey chan result.Result[key.Changeset], externalRealms []*schema.Realm) (err error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Deploying %v", strings.Join(slices.Map(modules, func(m *schema.Module) string { return m.Name }), ", "))
 	changesetKey := optional.Option[key.Changeset]{}
@@ -674,13 +683,22 @@ func deploy(ctx context.Context, realm string, modules []*schema.Module, adminCl
 	ctx, closeStream := context.WithCancelCause(ctx)
 	defer closeStream(errors.Wrap(context.Canceled, "function is complete"))
 
+	realmChanges := []*adminpb.RealmChange{{
+		Name: realm,
+		Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
+			return m.ToProto()
+		}),
+	}}
+	for _, r := range externalRealms {
+		realmChanges = append(realmChanges, &adminpb.RealmChange{
+			Name:     r.Name,
+			External: true,
+			Modules:  slices.Map(r.Modules, func(m *schema.Module) *schemapb.Module { return m.ToProto() }),
+		})
+	}
+
 	stream, err := adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
-		RealmChanges: []*adminpb.RealmChange{{
-			Name: realm,
-			Modules: slices.Map(modules, func(m *schema.Module) *schemapb.Module {
-				return m.ToProto()
-			}),
-		}},
+		RealmChanges: realmChanges,
 	}))
 	if err != nil {
 		return errors.Wrap(err, "failed to deploy changeset")

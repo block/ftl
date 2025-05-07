@@ -372,7 +372,9 @@ type RealmChange struct {
 	// The modules to add or update.
 	Modules []*v1.Module `protobuf:"bytes,2,rep,name=modules,proto3" json:"modules,omitempty"`
 	// The deployments to remove.
-	ToRemove      []string `protobuf:"bytes,3,rep,name=to_remove,json=toRemove,proto3" json:"to_remove,omitempty"`
+	ToRemove []string `protobuf:"bytes,3,rep,name=to_remove,json=toRemove,proto3" json:"to_remove,omitempty"`
+	// Whether this is an external realm.
+	External      bool `protobuf:"varint,4,opt,name=external,proto3" json:"external,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -426,6 +428,13 @@ func (x *RealmChange) GetToRemove() []string {
 		return x.ToRemove
 	}
 	return nil
+}
+
+func (x *RealmChange) GetExternal() bool {
+	if x != nil {
+		return x.External
+	}
+	return false
 }
 
 type CreateChangesetRequest struct {
@@ -1198,11 +1207,12 @@ const file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = "" +
 	"\x1fUpdateDeploymentRuntimeResponse\"\x17\n" +
 	"\x15GetDeploymentsRequest\"R\n" +
 	"\x16GetDeploymentsResponse\x128\n" +
-	"\x06schema\x18\x01 \x03(\v2 .xyz.block.ftl.v1.DeployedSchemaR\x06schema\"y\n" +
+	"\x06schema\x18\x01 \x03(\v2 .xyz.block.ftl.v1.DeployedSchemaR\x06schema\"\x95\x01\n" +
 	"\vRealmChange\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x129\n" +
 	"\amodules\x18\x02 \x03(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\amodules\x12\x1b\n" +
-	"\tto_remove\x18\x03 \x03(\tR\btoRemove\"\\\n" +
+	"\tto_remove\x18\x03 \x03(\tR\btoRemove\x12\x1a\n" +
+	"\bexternal\x18\x04 \x01(\bR\bexternal\"\\\n" +
 	"\x16CreateChangesetRequest\x12B\n" +
 	"\rrealm_changes\x18\x01 \x03(\v2\x1d.xyz.block.ftl.v1.RealmChangeR\frealmChanges\"7\n" +
 	"\x17CreateChangesetResponse\x12\x1c\n" +
