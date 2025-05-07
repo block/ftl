@@ -43,6 +43,7 @@ type BuildResult struct {
 	// File that the runner can use to pass info into the hot reload endpoint
 	HotReloadEndpoint optional.Option[string]
 	HotReloadVersion  optional.Option[int64]
+	modifiedFiles     []string
 
 	DebugPort int
 }
@@ -123,7 +124,6 @@ type LanguagePlugin struct {
 	client pluginClient
 
 	// cancels the run() context
-	cancel  context.CancelCauseFunc
 	updates *pubsub.Topic[PluginEvent]
 	watch   *pubsub.Topic[watch.WatchEvent]
 	bctx    *atomic.Value[*buildInfo]
@@ -131,7 +131,9 @@ type LanguagePlugin struct {
 
 // Kill stops the plugin and cleans up any resources.
 func (p *LanguagePlugin) Kill() error {
-	p.cancel(errors.Wrap(context.Canceled, "killing language plugin"))
+	if p == nil {
+		return nil
+	}
 	if err := p.client.kill(); err != nil {
 		return errors.Wrap(err, "failed to kill language plugin")
 	}
@@ -247,7 +249,7 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 			return buildResultFromProto(result.Msg, startTime)
 		}
 		p.watch = updates
-		go p.runWatch(ctx)
+		go p.runWatch(ctx, watcher)
 
 	}
 
@@ -255,25 +257,34 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 
 }
 
-func (p *LanguagePlugin) runWatch(ctx context.Context) {
+func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
+	logger := log.FromContext(ctx)
 	defer func() {
 		p.watch = nil
 	}()
 	updates := make(chan watch.WatchEvent)
 	p.watch.Subscribe(updates)
 	for i := range channels.IterContext(ctx, updates) {
-		switch event := i.(type) {
+		switch i.(type) {
 		case watch.WatchEventModuleChanged:
-			log.FromContext(ctx).Infof("Files %v", event.Changes)
 			info := p.bctx.Load()
+			tx := watcher.GetTransaction(info.bctx.Config.Dir)
+			err := tx.Begin()
+			if err != nil {
+				logger.Errorf(err, "Failed to start watch transaction")
+			}
 			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
 			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
+			tx.ModifiedFiles(br.modifiedFiles...)
 			if err != nil {
 				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
 			} else {
 				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
 			}
-			<-time.After(time.Second)
+			err = tx.End()
+			if err != nil {
+				logger.Errorf(err, "Failed to end watch transaction")
+			}
 		}
 	}
 }
@@ -306,6 +317,7 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 			HotReloadEndpoint: optional.Ptr(buildSuccess.DevHotReloadEndpoint),
 			HotReloadVersion:  optional.Ptr(buildSuccess.DevHotReloadVersion),
 			DebugPort:         port,
+			modifiedFiles:     buildSuccess.ModifiedFiles,
 		}, nil
 	case *langpb.BuildResponse_BuildFailure:
 		buildFailure := et.BuildFailure
@@ -327,6 +339,7 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 			StartTime:              startTime,
 			Errors:                 errs,
 			InvalidateDependencies: buildFailure.InvalidateDependencies,
+			modifiedFiles:          buildFailure.ModifiedFiles,
 		}, nil
 	default:
 		panic(fmt.Sprintf("unexpected result type %T", result))

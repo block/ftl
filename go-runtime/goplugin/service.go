@@ -2,7 +2,6 @@ package goplugin
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -165,16 +164,10 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 		return nil, errors.WithStack(err)
 	}
 
-	watchPatterns, err := relativeWatchPatterns(buildCtx.Config.Dir, buildCtx.Config.Watch)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
-
 	ongoingState := &compile.OngoingState{}
 
 	// Initial build
-	return buildAndSend(ctx, projectConfig, req.Msg.StubsRoot, buildCtx, false, watcher.GetTransaction(buildCtx.Config.Dir), ongoingState, req.Msg.DevModeBuild)
+	return buildAndSend(ctx, projectConfig, req.Msg.StubsRoot, buildCtx, ongoingState, req.Msg.DevModeBuild)
 
 }
 
@@ -183,10 +176,11 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
 func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext,
-	isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction, ongoingState *compile.OngoingState, devMode bool) (*connect.Response[langpb.BuildResponse], error) {
-	buildEvent, err := build(ctx, projectConfig, stubsRoot, buildCtx, isAutomaticRebuild, transaction, ongoingState, devMode)
+	ongoingState *compile.OngoingState, devMode bool) (*connect.Response[langpb.BuildResponse], error) {
+	captureTx := &captureTransaction{}
+	buildEvent, err := build(ctx, projectConfig, stubsRoot, buildCtx, ongoingState, devMode, captureTx)
 	if err != nil {
-		buildEvent = buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
+		buildEvent = buildFailure(captureTx, builderrors.Error{
 			Type:  builderrors.FTL,
 			Level: builderrors.ERROR,
 			Msg:   err.Error(),
@@ -195,19 +189,19 @@ func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, stubs
 	return connect.NewResponse(buildEvent), nil
 }
 
-func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext, isAutomaticRebuild bool, transaction watch.ModifyFilesTransaction,
-	ongoingState *compile.OngoingState, devMode bool) (*langpb.BuildResponse, error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext, ongoingState *compile.OngoingState, devMode bool, captureTx *captureTransaction) (*langpb.BuildResponse, error) {
 	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire build lock")
 	}
 	defer release() //nolint:errcheck
 
-	m, invalidateDeps, buildErrs := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, transaction, ongoingState, devMode)
+	m, invalidateDeps, buildErrs := compile.Build(ctx, projectConfig, stubsRoot, buildCtx.Config, buildCtx.Schema, buildCtx.Dependencies, buildCtx.BuildEnv, captureTx, ongoingState, devMode)
 	if invalidateDeps {
 		return &langpb.BuildResponse{
 			Event: &langpb.BuildResponse_BuildFailure{
 				BuildFailure: &langpb.BuildFailure{
+					ModifiedFiles:          captureTx.files,
 					InvalidateDependencies: true,
 				},
 			},
@@ -216,14 +210,14 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	if _, hasErrs := slices.Find(buildErrs, func(e builderrors.Error) bool { //nolint:errcheck
 		return e.Level == builderrors.ERROR
 	}); hasErrs {
-		return buildFailure(buildCtx, isAutomaticRebuild, buildErrs...), nil
+		return buildFailure(captureTx, buildErrs...), nil
 	}
 	module, ok := m.Get()
 	if !ok {
-		return buildFailure(buildCtx, isAutomaticRebuild, buildErrs...), nil
+		return buildFailure(captureTx, buildErrs...), nil
 	}
 	if _, err := schema.ValidateModuleInSchema(buildCtx.Schema, optional.Some(module)); err != nil {
-		return buildFailure(buildCtx, isAutomaticRebuild, builderrors.Error{
+		return buildFailure(captureTx, builderrors.Error{
 			Type:  builderrors.FTL,
 			Level: builderrors.ERROR,
 			Msg:   err.Error(),
@@ -235,19 +229,21 @@ func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildSuccess{
 			BuildSuccess: &langpb.BuildSuccess{
-				Errors: langpb.ErrorsToProto(buildErrs),
-				Module: moduleProto,
-				Deploy: deploy,
+				ModifiedFiles: captureTx.files,
+				Errors:        langpb.ErrorsToProto(buildErrs),
+				Module:        moduleProto,
+				Deploy:        deploy,
 			},
 		},
 	}, nil
 }
 
 // buildFailure creates a BuildFailure event based on build errors.
-func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builderrors.Error) *langpb.BuildResponse {
+func buildFailure(tx *captureTransaction, errs ...builderrors.Error) *langpb.BuildResponse {
 	return &langpb.BuildResponse{
 		Event: &langpb.BuildResponse_BuildFailure{
 			BuildFailure: &langpb.BuildFailure{
+				ModifiedFiles:          tx.files,
 				Errors:                 langpb.ErrorsToProto(errs),
 				InvalidateDependencies: false,
 			},
@@ -255,14 +251,19 @@ func buildFailure(buildCtx buildContext, isAutomaticRebuild bool, errs ...builde
 	}
 }
 
-func relativeWatchPatterns(moduleDir string, watchPaths []string) ([]string, error) {
-	relativePaths := make([]string, len(watchPaths))
-	for i, path := range watchPaths {
-		relative, err := filepath.Rel(moduleDir, path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could create relative path for watch pattern")
-		}
-		relativePaths[i] = relative
-	}
-	return relativePaths, nil
+type captureTransaction struct {
+	files []string
+}
+
+func (c *captureTransaction) Begin() error {
+	return nil
+}
+
+func (c *captureTransaction) ModifiedFiles(paths ...string) error {
+	c.files = append(c.files, paths...)
+	return nil
+}
+
+func (c *captureTransaction) End() error {
+	return nil
 }

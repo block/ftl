@@ -746,6 +746,13 @@ export class BuildSuccess extends Message<BuildSuccess> {
    */
   devHotReloadVersion?: bigint;
 
+  /**
+   * Files modified during the build, relative to the build dir
+   *
+   * @generated from field: repeated string modified_files = 9;
+   */
+  modifiedFiles: string[] = [];
+
   constructor(data?: PartialMessage<BuildSuccess>) {
     super();
     proto3.util.initPartial(data, this);
@@ -762,6 +769,7 @@ export class BuildSuccess extends Message<BuildSuccess> {
     { no: 6, name: "debug_port", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
     { no: 7, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 8, name: "dev_hot_reload_version", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
+    { no: 9, name: "modified_files", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildSuccess {
@@ -805,6 +813,13 @@ export class BuildFailure extends Message<BuildFailure> {
    */
   invalidateDependencies = false;
 
+  /**
+   * Files modified during the build, relative to the build dir
+   *
+   * @generated from field: repeated string modified_files = 9;
+   */
+  modifiedFiles: string[] = [];
+
   constructor(data?: PartialMessage<BuildFailure>) {
     super();
     proto3.util.initPartial(data, this);
@@ -815,6 +830,7 @@ export class BuildFailure extends Message<BuildFailure> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "errors", kind: "message", T: ErrorList },
     { no: 2, name: "invalidate_dependencies", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 9, name: "modified_files", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildFailure {

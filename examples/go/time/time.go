@@ -34,6 +34,6 @@ func Internal(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 }
 
 //ftl:verb export
-func InternalFooss(ctx context.Context, req TimeRequest) (TimeResponse, error) {
+func InternalFossss(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 	return TimeResponse{Time: time.Now()}, nil
 }

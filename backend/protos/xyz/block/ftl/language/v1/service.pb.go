@@ -870,8 +870,10 @@ type BuildSuccess struct {
 	// Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
 	DevHotReloadEndpoint *string `protobuf:"bytes,7,opt,name=dev_hot_reload_endpoint,json=devHotReloadEndpoint,proto3,oneof" json:"dev_hot_reload_endpoint,omitempty"`
 	DevHotReloadVersion  *int64  `protobuf:"varint,8,opt,name=dev_hot_reload_version,json=devHotReloadVersion,proto3,oneof" json:"dev_hot_reload_version,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Files modified during the build, relative to the build dir
+	ModifiedFiles []string `protobuf:"bytes,9,rep,name=modified_files,json=modifiedFiles,proto3" json:"modified_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BuildSuccess) Reset() {
@@ -960,6 +962,13 @@ func (x *BuildSuccess) GetDevHotReloadVersion() int64 {
 	return 0
 }
 
+func (x *BuildSuccess) GetModifiedFiles() []string {
+	if x != nil {
+		return x.ModifiedFiles
+	}
+	return nil
+}
+
 // BuildFailure should be sent when a build fails.
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
@@ -971,8 +980,10 @@ type BuildFailure struct {
 	// If a Build stream is being kept open for automatic rebuilds, FTL will call GetDependencies, followed by
 	// BuildContextUpdated.
 	InvalidateDependencies bool `protobuf:"varint,2,opt,name=invalidate_dependencies,json=invalidateDependencies,proto3" json:"invalidate_dependencies,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Files modified during the build, relative to the build dir
+	ModifiedFiles []string `protobuf:"bytes,9,rep,name=modified_files,json=modifiedFiles,proto3" json:"modified_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BuildFailure) Reset() {
@@ -1017,6 +1028,13 @@ func (x *BuildFailure) GetInvalidateDependencies() bool {
 		return x.InvalidateDependencies
 	}
 	return false
+}
+
+func (x *BuildFailure) GetModifiedFiles() []string {
+	if x != nil {
+		return x.ModifiedFiles
+	}
+	return nil
 }
 
 // Every type of message that can be streamed from the language plugin for a build.
@@ -1390,7 +1408,7 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"stubs_root\x18\x02 \x01(\tR\tstubsRoot\x12$\n" +
 	"\x0edev_mode_build\x18\x03 \x01(\bR\fdevModeBuild\x12L\n" +
-	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\xd9\x03\n" +
+	"\rbuild_context\x18\x04 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\x80\x04\n" +
 	"\fBuildSuccess\x127\n" +
 	"\x06module\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12\x16\n" +
 	"\x06deploy\x18\x02 \x03(\tR\x06deploy\x12!\n" +
@@ -1400,14 +1418,16 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\n" +
 	"debug_port\x18\x06 \x01(\x05H\x01R\tdebugPort\x88\x01\x01\x12:\n" +
 	"\x17dev_hot_reload_endpoint\x18\a \x01(\tH\x02R\x14devHotReloadEndpoint\x88\x01\x01\x128\n" +
-	"\x16dev_hot_reload_version\x18\b \x01(\x03H\x03R\x13devHotReloadVersion\x88\x01\x01B\x0f\n" +
+	"\x16dev_hot_reload_version\x18\b \x01(\x03H\x03R\x13devHotReloadVersion\x88\x01\x01\x12%\n" +
+	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFilesB\x0f\n" +
 	"\r_dev_endpointB\r\n" +
 	"\v_debug_portB\x1a\n" +
 	"\x18_dev_hot_reload_endpointB\x19\n" +
-	"\x17_dev_hot_reload_version\"\x85\x01\n" +
+	"\x17_dev_hot_reload_version\"\xac\x01\n" +
 	"\fBuildFailure\x12<\n" +
 	"\x06errors\x18\x01 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x127\n" +
-	"\x17invalidate_dependencies\x18\x02 \x01(\bR\x16invalidateDependencies\"\xb8\x01\n" +
+	"\x17invalidate_dependencies\x18\x02 \x01(\bR\x16invalidateDependencies\x12%\n" +
+	"\x0emodified_files\x18\t \x03(\tR\rmodifiedFiles\"\xb8\x01\n" +
 	"\rBuildResponse\x12N\n" +
 	"\rbuild_success\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.BuildSuccessH\x00R\fbuildSuccess\x12N\n" +
 	"\rbuild_failure\x18\x02 \x01(\v2'.xyz.block.ftl.language.v1.BuildFailureH\x00R\fbuildFailureB\a\n" +
