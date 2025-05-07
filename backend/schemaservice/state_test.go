@@ -16,8 +16,13 @@ func TestMarshalling(t *testing.T) {
 		k := key.NewDeploymentKey("test", "test")
 		state := SchemaState{
 			state: &schema.SchemaState{
-				Modules: []*schema.Module{
-					builder.Module("test").DeploymentKey(k).MustBuild(),
+				Schema: &schema.Schema{
+					Realms: []*schema.Realm{{
+						Name: "test",
+						Modules: []*schema.Module{
+							builder.Module("test").DeploymentKey(k).MustBuild(),
+						},
+					}},
 				},
 			},
 		}
@@ -25,6 +30,9 @@ func TestMarshalling(t *testing.T) {
 	})
 	t.Run("test roundtrip of schema state after common events", func(t *testing.T) {
 		state := NewSchemaState("")
+		state.state.Schema.Realms = append(state.state.Schema.Realms, &schema.Realm{
+			Name: "test",
+		})
 
 		deploymentKey := key.NewDeploymentKey("test", "test2")
 		changesetKey := key.NewChangesetKey()
@@ -33,6 +41,7 @@ func TestMarshalling(t *testing.T) {
 			Changeset: &schema.Changeset{
 				Key: changesetKey,
 				RealmChanges: []*schema.RealmChange{{
+					Name: "test",
 					Modules: []*schema.Module{
 						builder.Module("test2").DeploymentKey(deploymentKey).MustBuild(),
 					},
@@ -125,8 +134,9 @@ func TestModuleDeploymentWorkflow(t *testing.T) {
 			&schema.ChangesetCommittedEvent{Key: csk},
 		))
 
-		assert.Equal(t, 1, len(state.state.Modules))
-		assert.Equal(t, module, state.state.Modules[0])
+		assert.Equal(t, 1, len(state.state.Schema.Realms))
+		assert.Equal(t, 1, len(state.state.Schema.Realms[0].Modules))
+		assert.Equal(t, module, state.state.Schema.Realms[0].Modules[0])
 	})
 	t.Run("removing the module removes the deployment", func(t *testing.T) {
 		csk := key.NewChangesetKey()
@@ -138,7 +148,7 @@ func TestModuleDeploymentWorkflow(t *testing.T) {
 			&schema.ChangesetPreparedEvent{Key: csk},
 			&schema.ChangesetCommittedEvent{Key: csk},
 		))
-		assert.Equal(t, 0, len(state.state.Modules))
+		assert.Equal(t, 0, len(state.state.Schema.Realms[0].Modules))
 	})
 }
 

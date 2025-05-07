@@ -39,7 +39,7 @@ func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
 			sch, err := getDiskSchema(t, ic.Context)
 			assert.NoError(t, err)
 
-			module, ok := sch.Module("dischema").Get()
+			module, ok := sch.Module("dr", "dischema").Get()
 			assert.Equal(t, ok, true)
 			assert.Equal(t, "dischema", module.Name)
 		},

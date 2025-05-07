@@ -29,20 +29,21 @@ type SchemaState struct {
 }
 
 func NewSchemaState(canonicalRealm string) SchemaState {
-	realms := []*schema.RealmState{}
+	sch := &schema.Schema{
+		Realms: []*schema.Realm{},
+	}
 	if canonicalRealm != "" {
-		realms = append(realms, &schema.RealmState{
+		sch.Realms = append(sch.Realms, &schema.Realm{
 			Name:     canonicalRealm,
 			External: false,
 		})
 	}
 	return SchemaState{
 		state: &schema.SchemaState{
-			Realms:           realms,
+			Schema:           sch,
 			Changesets:       []*schema.Changeset{},
 			DeploymentEvents: []*schema.DeploymentRuntimeEvent{},
 			ChangesetEvents:  []*schema.DeploymentRuntimeEvent{},
-			Modules:          []*schema.Module{},
 		},
 	}
 }
@@ -87,12 +88,14 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 	// - deployment in ended changeset + main list but no longer canonical
 	// - deployment in failed changeset
 
-	for _, module := range r.state.Modules {
-		if module.GetRuntime() == nil || module.GetRuntime().Deployment == nil {
-			continue
-		}
-		if module.GetRuntime().Deployment.DeploymentKey == deploymentKey {
-			return module, optional.None[key.Changeset](), nil
+	for _, realm := range r.state.Schema.Realms {
+		for _, module := range realm.Modules {
+			if module.GetRuntime() == nil || module.GetRuntime().Deployment == nil {
+				continue
+			}
+			if module.GetRuntime().Deployment.DeploymentKey == deploymentKey {
+				return module, optional.None[key.Changeset](), nil
+			}
 		}
 	}
 
@@ -109,12 +112,14 @@ func (r *SchemaState) FindDeployment(deploymentKey key.Deployment) (deployment *
 
 func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	ret := map[key.Deployment]*schema.Module{}
-	if r.state.Modules != nil {
-		for _, d := range r.state.Modules {
-			if d.GetRuntime() == nil || d.GetRuntime().Deployment == nil {
-				continue
+	if r.state.Schema != nil {
+		for _, realm := range r.state.Schema.Realms {
+			for _, d := range realm.Modules {
+				if d.GetRuntime() == nil || d.GetRuntime().Deployment == nil {
+					continue
+				}
+				ret[d.GetRuntime().Deployment.DeploymentKey] = d
 			}
-			ret[d.GetRuntime().Deployment.DeploymentKey] = d
 		}
 	}
 	if r.state.Changesets != nil {
@@ -129,29 +134,28 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	return ret
 }
 
-func (r *SchemaState) ModulesByName() map[string]*schema.Module {
-	return maps.FromSlice(r.state.Modules, moduleByName)
+func (r *SchemaState) RealmsByName() map[string]*schema.Realm {
+	return maps.FromSlice(r.state.Schema.Realms, realmByName)
 }
 
 // GetCanonicalDeployments returns all active deployments (excluding those in changesets).
 func (r *SchemaState) GetCanonicalDeployments() map[key.Deployment]*schema.Module {
 	deployments := map[key.Deployment]*schema.Module{}
-	if r.state.Modules == nil {
-		return deployments
-	}
-	for _, dep := range r.state.Modules {
-		if dep.GetRuntime() == nil || dep.GetRuntime().Deployment == nil {
-			continue
+	for _, realm := range r.state.Schema.Realms {
+		for _, dep := range realm.Modules {
+			if dep.GetRuntime() == nil || dep.GetRuntime().Deployment == nil {
+				continue
+			}
+			deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
 		}
-		deployments[dep.GetRuntime().Deployment.DeploymentKey] = dep
 	}
 	return deployments
 }
 
 // GetCanonicalRealms returns all active realms (excluding those in changesets).
-func (r *SchemaState) GetCanonicalRealms() map[string]*schema.RealmState {
-	realms := map[string]*schema.RealmState{}
-	for _, realm := range r.state.Realms {
+func (r *SchemaState) GetCanonicalRealms() map[string]*schema.Realm {
+	realms := map[string]*schema.Realm{}
+	for _, realm := range r.state.Schema.Realms {
 		realms[realm.Name] = realm
 	}
 	return realms
@@ -203,15 +207,6 @@ func (r *SchemaState) DeploymentEvents(module string) []*schema.DeploymentRuntim
 	return events
 }
 
-func (r *SchemaState) GetModule(module string) optional.Option[*schema.Module] {
-	for _, m := range r.state.Modules {
-		if m.Name == module {
-			return optional.Some(m)
-		}
-	}
-	return optional.None[*schema.Module]()
-}
-
 func (r *SchemaState) deleteChangeset(key key.Changeset) {
 	r.state.Changesets = ftlslices.Filter(r.state.Changesets, func(cs *schema.Changeset) bool {
 		return cs.Key != key
@@ -231,37 +226,10 @@ func (r *SchemaState) upsertChangeset(cs *schema.Changeset) {
 	r.state.Changesets = append(r.state.Changesets, cs)
 }
 
-func (r *SchemaState) upsertRealm(realm *schema.RealmState) {
-	for i, re := range r.state.Realms {
-		if re.Name == realm.Name {
-			r.state.Realms[i] = realm
-			return
-		}
-	}
-	r.state.Realms = append(r.state.Realms, realm)
-}
-
-func (r *SchemaState) upsertModule(module *schema.Module) {
-	for i, m := range r.state.Modules {
-		if m.Name == module.Name {
-			r.state.Modules[i] = module
-			return
-		}
-	}
-	r.state.Modules = append(r.state.Modules, module)
-}
-
 func (r *SchemaState) clearDeploymentEvents(module string) {
 	r.state.DeploymentEvents = ftlslices.Filter(r.state.DeploymentEvents, func(event *schema.DeploymentRuntimeEvent) bool {
 		return event.Payload.Deployment.Payload.Module != module
 	})
-}
-
-func (r *SchemaState) deleteModule(module string) {
-	r.state.Modules = ftlslices.Filter(r.state.Modules, func(m *schema.Module) bool {
-		return m.Name != module
-	})
-	r.clearDeploymentEvents(module)
 }
 
 type NiceSlice[T any] []T
@@ -373,4 +341,4 @@ func (c *schemaStateMachine) Save(w io.Writer) error {
 	return nil
 }
 
-func moduleByName(m *schema.Module) (string, *schema.Module) { return m.Name, m }
+func realmByName(m *schema.Realm) (string, *schema.Realm) { return m.Name, m }

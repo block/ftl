@@ -121,6 +121,24 @@ func (r *Realm) Module(name string) optional.Option[*Module] {
 	return optional.None[*Module]()
 }
 
+func (r *Realm) ModulesByName() map[string]*Module {
+	mods := make(map[string]*Module)
+	for _, m := range r.Modules {
+		mods[m.Name] = m
+	}
+	return mods
+}
+
+func (r *Realm) UpsertModule(module *Module) {
+	for i, m := range r.Modules {
+		if m.Name == module.Name {
+			r.Modules[i] = module
+			return
+		}
+	}
+	r.Modules = append(r.Modules, module)
+}
+
 // Deployment returns the named deployment if it exists.
 func (r *Realm) Deployment(name key.Deployment) optional.Option[*Module] {
 	for _, module := range r.Modules {
