@@ -251,6 +251,8 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	logger := log.Configure(&logWriter{logger: t}, log.Config{Level: log.Debug})
 	ctx := log.ContextWithLogger(context.Background(), logger)
 	binDir := filepath.Join(rootDir, "build", "release")
+	println("::group::" + t.Name())
+	defer println("::endgroup::")
 
 	var kubeClient *kubernetes.Clientset
 	var kubeNamespace string
@@ -331,6 +333,8 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 	}
 	for _, language := range opts.languages {
 		t.Run(language, func(t *testing.T) {
+			println("::group::" + t.Name())
+			defer println("::endgroup::")
 			t.Helper()
 
 			ctx, done := context.WithCancelCause(ctx)
