@@ -41,9 +41,6 @@ const (
 	LanguageServiceGetDependenciesProcedure = "/xyz.block.ftl.language.v1.LanguageService/GetDependencies"
 	// LanguageServiceBuildProcedure is the fully-qualified name of the LanguageService's Build RPC.
 	LanguageServiceBuildProcedure = "/xyz.block.ftl.language.v1.LanguageService/Build"
-	// LanguageServiceBuildContextUpdatedProcedure is the fully-qualified name of the LanguageService's
-	// BuildContextUpdated RPC.
-	LanguageServiceBuildContextUpdatedProcedure = "/xyz.block.ftl.language.v1.LanguageService/BuildContextUpdated"
 	// LanguageServiceGenerateStubsProcedure is the fully-qualified name of the LanguageService's
 	// GenerateStubs RPC.
 	LanguageServiceGenerateStubsProcedure = "/xyz.block.ftl.language.v1.LanguageService/GenerateStubs"
@@ -59,25 +56,8 @@ type LanguageServiceClient interface {
 	// Extract dependencies for a module
 	// FTL will ensure that these dependencies are built before requesting a build for this module.
 	GetDependencies(context.Context, *connect.Request[v11.GetDependenciesRequest]) (*connect.Response[v11.GetDependenciesResponse], error)
-	// Build the module and stream back build events.
-	//
-	// A BuildSuccess or BuildFailure event must be streamed back with the request's context id to indicate the
-	// end of the build.
-	//
-	// The request can include the option to "rebuild_automatically". In this case the plugin should watch for
-	// file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
-	// rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
-	// calls.
-	Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.ServerStreamForClient[v11.BuildResponse], error)
-	// While a Build call with "rebuild_automatically" set is active, BuildContextUpdated is called whenever the
-	// build context is updated.
-	//
-	// Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-	// event with the updated build context id with "is_automatic_rebuild" as false.
-	//
-	// If the plugin will not be able to return a BuildSuccess or BuildFailure, such as when there is no active
-	// build stream, it must fail the BuildContextUpdated call.
-	BuildContextUpdated(context.Context, *connect.Request[v11.BuildContextUpdatedRequest]) (*connect.Response[v11.BuildContextUpdatedResponse], error)
+	// Build the module and recive the result
+	Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error)
 	// Generate stubs for a module.
 	//
 	// Stubs allow modules to import other module's exported interface. If a language does not need this step,
@@ -126,12 +106,6 @@ func NewLanguageServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(languageServiceMethods.ByName("Build")),
 			connect.WithClientOptions(opts...),
 		),
-		buildContextUpdated: connect.NewClient[v11.BuildContextUpdatedRequest, v11.BuildContextUpdatedResponse](
-			httpClient,
-			baseURL+LanguageServiceBuildContextUpdatedProcedure,
-			connect.WithSchema(languageServiceMethods.ByName("BuildContextUpdated")),
-			connect.WithClientOptions(opts...),
-		),
 		generateStubs: connect.NewClient[v11.GenerateStubsRequest, v11.GenerateStubsResponse](
 			httpClient,
 			baseURL+LanguageServiceGenerateStubsProcedure,
@@ -149,12 +123,11 @@ func NewLanguageServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // languageServiceClient implements LanguageServiceClient.
 type languageServiceClient struct {
-	ping                *connect.Client[v1.PingRequest, v1.PingResponse]
-	getDependencies     *connect.Client[v11.GetDependenciesRequest, v11.GetDependenciesResponse]
-	build               *connect.Client[v11.BuildRequest, v11.BuildResponse]
-	buildContextUpdated *connect.Client[v11.BuildContextUpdatedRequest, v11.BuildContextUpdatedResponse]
-	generateStubs       *connect.Client[v11.GenerateStubsRequest, v11.GenerateStubsResponse]
-	syncStubReferences  *connect.Client[v11.SyncStubReferencesRequest, v11.SyncStubReferencesResponse]
+	ping               *connect.Client[v1.PingRequest, v1.PingResponse]
+	getDependencies    *connect.Client[v11.GetDependenciesRequest, v11.GetDependenciesResponse]
+	build              *connect.Client[v11.BuildRequest, v11.BuildResponse]
+	generateStubs      *connect.Client[v11.GenerateStubsRequest, v11.GenerateStubsResponse]
+	syncStubReferences *connect.Client[v11.SyncStubReferencesRequest, v11.SyncStubReferencesResponse]
 }
 
 // Ping calls xyz.block.ftl.language.v1.LanguageService.Ping.
@@ -168,13 +141,8 @@ func (c *languageServiceClient) GetDependencies(ctx context.Context, req *connec
 }
 
 // Build calls xyz.block.ftl.language.v1.LanguageService.Build.
-func (c *languageServiceClient) Build(ctx context.Context, req *connect.Request[v11.BuildRequest]) (*connect.ServerStreamForClient[v11.BuildResponse], error) {
-	return c.build.CallServerStream(ctx, req)
-}
-
-// BuildContextUpdated calls xyz.block.ftl.language.v1.LanguageService.BuildContextUpdated.
-func (c *languageServiceClient) BuildContextUpdated(ctx context.Context, req *connect.Request[v11.BuildContextUpdatedRequest]) (*connect.Response[v11.BuildContextUpdatedResponse], error) {
-	return c.buildContextUpdated.CallUnary(ctx, req)
+func (c *languageServiceClient) Build(ctx context.Context, req *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error) {
+	return c.build.CallUnary(ctx, req)
 }
 
 // GenerateStubs calls xyz.block.ftl.language.v1.LanguageService.GenerateStubs.
@@ -195,25 +163,8 @@ type LanguageServiceHandler interface {
 	// Extract dependencies for a module
 	// FTL will ensure that these dependencies are built before requesting a build for this module.
 	GetDependencies(context.Context, *connect.Request[v11.GetDependenciesRequest]) (*connect.Response[v11.GetDependenciesResponse], error)
-	// Build the module and stream back build events.
-	//
-	// A BuildSuccess or BuildFailure event must be streamed back with the request's context id to indicate the
-	// end of the build.
-	//
-	// The request can include the option to "rebuild_automatically". In this case the plugin should watch for
-	// file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
-	// rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
-	// calls.
-	Build(context.Context, *connect.Request[v11.BuildRequest], *connect.ServerStream[v11.BuildResponse]) error
-	// While a Build call with "rebuild_automatically" set is active, BuildContextUpdated is called whenever the
-	// build context is updated.
-	//
-	// Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-	// event with the updated build context id with "is_automatic_rebuild" as false.
-	//
-	// If the plugin will not be able to return a BuildSuccess or BuildFailure, such as when there is no active
-	// build stream, it must fail the BuildContextUpdated call.
-	BuildContextUpdated(context.Context, *connect.Request[v11.BuildContextUpdatedRequest]) (*connect.Response[v11.BuildContextUpdatedResponse], error)
+	// Build the module and recive the result
+	Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error)
 	// Generate stubs for a module.
 	//
 	// Stubs allow modules to import other module's exported interface. If a language does not need this step,
@@ -252,16 +203,10 @@ func NewLanguageServiceHandler(svc LanguageServiceHandler, opts ...connect.Handl
 		connect.WithSchema(languageServiceMethods.ByName("GetDependencies")),
 		connect.WithHandlerOptions(opts...),
 	)
-	languageServiceBuildHandler := connect.NewServerStreamHandler(
+	languageServiceBuildHandler := connect.NewUnaryHandler(
 		LanguageServiceBuildProcedure,
 		svc.Build,
 		connect.WithSchema(languageServiceMethods.ByName("Build")),
-		connect.WithHandlerOptions(opts...),
-	)
-	languageServiceBuildContextUpdatedHandler := connect.NewUnaryHandler(
-		LanguageServiceBuildContextUpdatedProcedure,
-		svc.BuildContextUpdated,
-		connect.WithSchema(languageServiceMethods.ByName("BuildContextUpdated")),
 		connect.WithHandlerOptions(opts...),
 	)
 	languageServiceGenerateStubsHandler := connect.NewUnaryHandler(
@@ -284,8 +229,6 @@ func NewLanguageServiceHandler(svc LanguageServiceHandler, opts ...connect.Handl
 			languageServiceGetDependenciesHandler.ServeHTTP(w, r)
 		case LanguageServiceBuildProcedure:
 			languageServiceBuildHandler.ServeHTTP(w, r)
-		case LanguageServiceBuildContextUpdatedProcedure:
-			languageServiceBuildContextUpdatedHandler.ServeHTTP(w, r)
 		case LanguageServiceGenerateStubsProcedure:
 			languageServiceGenerateStubsHandler.ServeHTTP(w, r)
 		case LanguageServiceSyncStubReferencesProcedure:
@@ -307,12 +250,8 @@ func (UnimplementedLanguageServiceHandler) GetDependencies(context.Context, *con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageService.GetDependencies is not implemented"))
 }
 
-func (UnimplementedLanguageServiceHandler) Build(context.Context, *connect.Request[v11.BuildRequest], *connect.ServerStream[v11.BuildResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageService.Build is not implemented"))
-}
-
-func (UnimplementedLanguageServiceHandler) BuildContextUpdated(context.Context, *connect.Request[v11.BuildContextUpdatedRequest]) (*connect.Response[v11.BuildContextUpdatedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageService.BuildContextUpdated is not implemented"))
+func (UnimplementedLanguageServiceHandler) Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.language.v1.LanguageService.Build is not implemented"))
 }
 
 func (UnimplementedLanguageServiceHandler) GenerateStubs(context.Context, *connect.Request[v11.GenerateStubsRequest]) (*connect.Response[v11.GenerateStubsResponse], error) {
