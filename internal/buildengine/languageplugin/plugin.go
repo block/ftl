@@ -7,14 +7,20 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	"github.com/alecthomas/types/pubsub"
+	"github.com/alecthomas/types/result"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/watch"
 )
 
 const BuildLockTimeout = time.Minute
@@ -41,6 +47,44 @@ type BuildResult struct {
 	DebugPort int
 }
 
+// PluginEvent is used to notify of updates from the plugin.
+//
+//sumtype:decl
+type PluginEvent interface {
+	pluginEvent()
+}
+
+type PluginBuildEvent interface {
+	PluginEvent
+	ModuleName() string
+}
+
+// AutoRebuildStartedEvent is sent when the plugin starts an automatic rebuild.
+type AutoRebuildStartedEvent struct {
+	Module string
+}
+
+func (AutoRebuildStartedEvent) pluginEvent()         {}
+func (e AutoRebuildStartedEvent) ModuleName() string { return e.Module }
+
+// AutoRebuildEndedEvent is sent when the plugin ends an automatic rebuild.
+type AutoRebuildEndedEvent struct {
+	Module string
+	Result result.Result[BuildResult]
+}
+
+func (AutoRebuildEndedEvent) pluginEvent()         {}
+func (e AutoRebuildEndedEvent) ModuleName() string { return e.Module }
+
+// PluginDiedEvent is sent when the plugin dies.
+type PluginDiedEvent struct {
+	// Plugins do not always have an associated module name, so we include the module
+	Plugin *LanguagePlugin
+	Error  error
+}
+
+func (PluginDiedEvent) pluginEvent() {}
+
 // BuildContext contains contextual information needed to build.
 //
 // Any change to the build context would require a new build.
@@ -66,7 +110,9 @@ func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, er
 
 func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlugin {
 	plugin := &LanguagePlugin{
-		client: client,
+		client:  client,
+		updates: pubsub.New[PluginEvent](),
+		bctx:    atomic.New[*buildInfo](nil),
 	}
 
 	return plugin
@@ -76,7 +122,10 @@ type LanguagePlugin struct {
 	client pluginClient
 
 	// cancels the run() context
-	cancel context.CancelCauseFunc
+	cancel  context.CancelCauseFunc
+	updates *pubsub.Topic[PluginEvent]
+	watch   *pubsub.Topic[watch.WatchEvent]
+	bctx    *atomic.Value[*buildInfo]
 }
 
 // Kill stops the plugin and cleans up any resources.
@@ -88,9 +137,10 @@ func (p *LanguagePlugin) Kill() error {
 	return nil
 }
 
-// Done returns a channel that will be closed when the plugin dies
-func (p *LanguagePlugin) Done() <-chan error {
-	return p.client.cmdErr()
+// Updates topic for all update events from the plugin
+// The same topic must be returned each time this method is called
+func (p *LanguagePlugin) Updates() *pubsub.Topic[PluginEvent] {
+	return p.updates
 }
 
 // GetDependencies returns the dependencies of the module.
@@ -163,6 +213,7 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // and publishing these automatic builds updates to Updates().
 func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
 	startTime := time.Now()
+	p.bctx.Store(&buildInfo{projectConfig: projectConfig, stubsRoot: stubsRoot, bctx: bctx})
 
 	configProto, err := langpb.ModuleConfigToProto(bctx.Config.Abs())
 	if err != nil {
@@ -187,8 +238,37 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 	if err != nil {
 		return BuildResult{}, errors.Wrap(err, "failed to invoke build command")
 	}
+	if rebuildAutomatically && p.watch == nil {
+		watcher := watch.NewWatcher(optional.Zero(bctx.Config.BuildLock), bctx.Config.Watch...)
+		updates, err := watcher.Watch(ctx, time.Second, []string{bctx.Config.Dir})
+		if err != nil {
+			log.FromContext(ctx).Errorf(err, "Failed to watch module directory")
+			return buildResultFromProto(result.Msg, startTime)
+		}
+		p.watch = updates
+		go p.runWatch(ctx)
+
+	}
 
 	return buildResultFromProto(result.Msg, startTime)
+
+}
+
+func (p *LanguagePlugin) runWatch(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	defer func() {
+		p.watch = nil
+	}()
+	updates := make(chan watch.WatchEvent)
+	p.watch.Subscribe(updates)
+	for i := range channels.IterContext(ctx, updates) {
+		switch event := i.(type) {
+		case watch.WatchEventModuleChanged:
+			info := p.bctx.Load()
+			result, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
+
+		}
+	}
 
 }
 
@@ -249,4 +329,10 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 
 func contextID(config moduleconfig.ModuleConfig, counter int) string {
 	return fmt.Sprintf("%v-%v", config.Module, counter)
+}
+
+type buildInfo struct {
+	projectConfig projectconfig.Config
+	stubsRoot     string
+	bctx          BuildContext
 }
