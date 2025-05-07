@@ -30,22 +30,24 @@ func TestEventExtractor(t *testing.T) {
 	}{
 		{
 			name:     "new deployment creates deployment event",
-			previous: SchemaState{},
+			previous: SchemaState{state: &schema.SchemaState{}},
 			current: SchemaState{
-				deployments: map[string]*schema.Module{
-					"test": {
-						Name: "test",
-						Runtime: &schema.ModuleRuntime{
-							Base: schema.ModuleRuntimeBase{Language: "go", CreateTime: now},
-							Deployment: &schema.ModuleRuntimeDeployment{
-								CreatedAt:     now,
-								DeploymentKey: newKey,
+				state: &schema.SchemaState{
+					Modules: []*schema.Module{
+						{
+							Name: "test",
+							Runtime: &schema.ModuleRuntime{
+								Base: schema.ModuleRuntimeBase{Language: "go", CreateTime: now},
+								Deployment: &schema.ModuleRuntimeDeployment{
+									CreatedAt:     now,
+									DeploymentKey: newKey,
+								},
 							},
 						},
 					},
-				},
-				realms: map[string]*schema.RealmState{
-					"test": {Name: "test"},
+					Realms: []*schema.RealmState{
+						{Name: "test"},
+					},
 				},
 			},
 			want: []*ftlv1.PullSchemaResponse{

@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
@@ -15,6 +16,7 @@ import (
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	ftlreflect "github.com/block/ftl/common/reflect"
+	"github.com/block/ftl/internal/iterops"
 	"github.com/block/ftl/internal/key"
 )
 
@@ -397,6 +399,14 @@ type SchemaState struct {
 	ChangesetEvents  []*DeploymentRuntimeEvent `protobuf:"3"`
 	DeploymentEvents []*DeploymentRuntimeEvent `protobuf:"4"`
 	Realms           []*RealmState             `protobuf:"5"`
+}
+
+func (s *SchemaState) Validate() error {
+	internals := iterops.Count(slices.Values(s.Realms), func(r *RealmState) bool { return !r.External })
+	if internals > 1 {
+		return errors.Errorf("only one internal realm is allowed, got %d", internals)
+	}
+	return nil
 }
 
 type RealmState struct {

@@ -75,17 +75,17 @@ func (r *SchemaState) VerifyEvent(ctx context.Context, event schema.Event) error
 
 func verifyDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEvent) error {
 	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
-		_, ok := t.changesets[cs]
+		changeset, ok := t.GetChangeset(cs).Get()
 		if !ok {
 			return errors.Errorf("changeset %s not found", cs.String())
 		}
-		for _, m := range t.changesets[cs].InternalRealm().Modules {
+		for _, m := range changeset.InternalRealm().Modules {
 			if m.Name == e.DeploymentKey().Payload.Module {
 				return nil
 			}
 		}
 	}
-	for _, m := range t.deployments {
+	for _, m := range t.GetDeployments() {
 		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
 			return nil
 		}
@@ -99,25 +99,28 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 	}
 	if cs, ok := e.ChangesetKey().Get(); ok && !cs.IsZero() {
 		module := e.DeploymentKey().Payload.Module
-		c := t.changesets[cs]
-		for _, m := range c.InternalRealm().Modules {
+		changeset, ok := t.GetChangeset(cs).Get()
+		if !ok {
+			return errors.Errorf("changeset %s not found", cs.String())
+		}
+		for _, m := range changeset.InternalRealm().Modules {
 			if m.Name == module {
 				err := e.Payload.ApplyToModule(m)
 				if err != nil {
 					return errors.Wrapf(err, "error applying runtime event to module %s", module)
 				}
-				t.changesetEvents[cs] = append(t.changesetEvents[cs], e)
+				t.state.ChangesetEvents = append(t.state.ChangesetEvents, e)
 				return nil
 			}
 		}
 	}
-	for k, m := range t.deployments {
+	for _, m := range t.state.Modules {
 		if m.Runtime.Deployment.DeploymentKey == e.DeploymentKey() {
 			err := e.Payload.ApplyToModule(m)
 			if err != nil {
 				return errors.Wrapf(err, "error applying runtime event to module %s", m)
 			}
-			t.deploymentEvents[k] = append(t.deploymentEvents[k], e)
+			t.state.DeploymentEvents = append(t.state.DeploymentEvents, e)
 			return nil
 		}
 	}
@@ -125,7 +128,7 @@ func handleDeploymentRuntimeEvent(t *SchemaState, e *schema.DeploymentRuntimeEve
 }
 
 func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent) error {
-	if existing := t.changesets[e.Changeset.Key]; existing != nil {
+	if _, ok := t.GetChangeset(e.Changeset.Key).Get(); ok {
 		return errors.Errorf("changeset %s already exists ", e.Changeset.Key)
 	}
 	activeCount := 0
@@ -142,7 +145,7 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 			return errors.Errorf("changeset can have at most one internal realm")
 		}
 		hasInternalRealm = true
-		for _, sr := range t.realms {
+		for _, sr := range t.state.Realms {
 			if sr.External {
 				continue
 			}
@@ -152,7 +155,7 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 		}
 	}
 
-	for _, cs := range t.changesets {
+	for _, cs := range t.GetChangesets() {
 		if cs.ModulesAreCanonical() {
 			for _, mod := range cs.InternalRealm().Modules {
 				existingModules[mod.Name] = cs.Key
@@ -185,7 +188,7 @@ func verifyChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	for _, mod := range e.Changeset.InternalRealm().ToRemove {
 		rem[mod] = true
 	}
-	updatedDep := reflect.DeepCopy(t.deployments)
+	updatedDep := reflect.DeepCopy(t.ModulesByName())
 	for _, mod := range updatingModules {
 		updatedDep[mod.Name] = mod
 	}
@@ -226,19 +229,19 @@ func handleChangesetCreatedEvent(t *SchemaState, e *schema.ChangesetCreatedEvent
 	}
 	for _, dep := range e.Changeset.InternalRealm().Modules {
 		if dep.Runtime.Scaling == nil {
-			if existing, ok := t.deployments[dep.Name]; ok {
+			if existing, ok := t.GetModule(dep.Name).Get(); ok {
 				dep.Runtime.ModScaling().MinReplicas = existing.Runtime.Scaling.MinReplicas
 			} else {
 				dep.Runtime.Scaling = &schema.ModuleRuntimeScaling{MinReplicas: 1}
 			}
 		}
 	}
-	t.changesets[e.Changeset.Key] = e.Changeset
+	t.upsertChangeset(e.Changeset)
 	return nil
 }
 
 func verifyChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEvent) error {
-	changeset, ok := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -257,7 +260,10 @@ func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 	if err := verifyChangesetPreparedEvent(t, e); err != nil {
 		return errors.WithStack(err)
 	}
-	changeset := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	changeset.State = schema.ChangesetStatePrepared
 	// TODO: what does this actually mean? Worry about it when we start implementing canaries, but it will be clunky
 	// If everything that cares about canaries needs to scan for prepared changesets
@@ -268,7 +274,7 @@ func handleChangesetPreparedEvent(t *SchemaState, e *schema.ChangesetPreparedEve
 }
 
 func verifyChangesetCommittedEvent(t *SchemaState, e *schema.ChangesetCommittedEvent) error {
-	changeset, ok := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -286,23 +292,26 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 		return errors.WithStack(err)
 	}
 
-	changeset := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	logger := log.FromContext(ctx)
 	changeset.State = schema.ChangesetStateCommitted
 	for _, realm := range changeset.RealmChanges {
-		t.realms[realm.Name] = &schema.RealmState{
+		t.upsertRealm(&schema.RealmState{
 			Name:     realm.Name,
 			External: realm.External,
-		}
+		})
 	}
 	for _, dep := range changeset.InternalRealm().Modules {
 		logger.Debugf("activating deployment %s %s", dep.GetRuntime().GetDeployment().DeploymentKey.String(), dep.Runtime.GetRunner().Endpoint)
-		if old, ok := t.deployments[dep.Name]; ok {
+		if old, ok := t.GetModule(dep.Name).Get(); ok {
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
 			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
 		}
-		t.deployments[dep.Name] = dep
-		delete(t.deploymentEvents, dep.Name)
+		t.upsertModule(dep)
+		t.clearDeploymentEvents(dep.Name)
 		dep.Runtime.Deployment.State = schema.DeploymentStateCanonical
 	}
 	for _, dep := range changeset.InternalRealm().ToRemove {
@@ -311,17 +320,20 @@ func handleChangesetCommittedEvent(ctx context.Context, t *SchemaState, e *schem
 		if err != nil {
 			logger.Errorf(err, "Error parsing deployment key %s", dep)
 		} else {
-			old := t.deployments[dk.Payload.Module]
+			old, ok := t.GetModule(dk.Payload.Module).Get()
+			if !ok {
+				return errors.Errorf("deployment %s not found", dk.Payload.Module)
+			}
 			old.Runtime.Deployment.State = schema.DeploymentStateDraining
 			changeset.InternalRealm().RemovingModules = append(changeset.InternalRealm().RemovingModules, old)
-			delete(t.deployments, dk.Payload.Module)
+			t.deleteModule(dk.Payload.Module)
 		}
 	}
 	return nil
 }
 
 func verifyChangesetDrainedEvent(t *SchemaState, e *schema.ChangesetDrainedEvent) error {
-	changeset, ok := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -344,7 +356,10 @@ func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.
 	}
 
 	logger := log.FromContext(ctx)
-	changeset := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	logger.Debugf("Changeset %s drained", e.Key)
 
 	for _, dep := range changeset.InternalRealm().RemovingModules {
@@ -356,7 +371,7 @@ func handleChangesetDrainedEvent(ctx context.Context, t *SchemaState, e *schema.
 	return nil
 }
 func verifyChangesetFinalizedEvent(t *SchemaState, e *schema.ChangesetFinalizedEvent) error {
-	changeset, ok := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -381,7 +396,10 @@ func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schem
 	}
 
 	logger := log.FromContext(ctx)
-	changeset := r.changesets[e.Key]
+	changeset, ok := r.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	logger.Debugf("Changeset %s de-provisioned", e.Key)
 
 	for _, dep := range changeset.InternalRealm().RemovingModules {
@@ -391,8 +409,7 @@ func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schem
 	}
 	changeset.State = schema.ChangesetStateFinalized
 	// TODO: archive changesets?
-	delete(r.changesets, changeset.Key)
-	delete(r.changesetEvents, e.Key)
+	r.deleteChangeset(changeset.Key)
 	// Archived changeset always has the most recent one at the head
 	nl := []*schema.Changeset{changeset}
 	nl = append(nl, r.archivedChangesets...)
@@ -401,7 +418,7 @@ func handleChangesetFinalizedEvent(ctx context.Context, r *SchemaState, e *schem
 }
 
 func verifyChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) error {
-	_, ok := t.changesets[e.Key]
+	_, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -413,10 +430,13 @@ func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) 
 		return errors.WithStack(err)
 	}
 
-	changeset := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	changeset.State = schema.ChangesetStateFailed
 	//TODO: de-provisioning on failure?
-	delete(t.changesets, changeset.Key)
+	t.deleteChangeset(changeset.Key)
 	// Archived changeset always has the most recent one at the head
 	nl := []*schema.Changeset{changeset}
 	nl = append(nl, t.archivedChangesets...)
@@ -424,7 +444,7 @@ func handleChangesetFailedEvent(t *SchemaState, e *schema.ChangesetFailedEvent) 
 	return nil
 }
 func verifyChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingBackEvent) error {
-	cs, ok := t.changesets[e.Key]
+	cs, ok := t.GetChangeset(e.Key).Get()
 	if !ok {
 		return errors.Errorf("changeset %s not found", e.Key)
 	}
@@ -439,7 +459,10 @@ func handleChangesetRollingBackEvent(t *SchemaState, e *schema.ChangesetRollingB
 		return errors.WithStack(err)
 	}
 
-	changeset := t.changesets[e.Key]
+	changeset, ok := t.GetChangeset(e.Key).Get()
+	if !ok {
+		return errors.Errorf("changeset %s not found", e.Key)
+	}
 	changeset.State = schema.ChangesetStateRollingBack
 	changeset.Error = e.Error
 	for _, module := range changeset.InternalRealm().Modules {

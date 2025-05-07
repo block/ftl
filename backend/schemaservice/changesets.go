@@ -1,7 +1,6 @@
 package schemaservice
 
 import (
-	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"
@@ -9,7 +8,7 @@ import (
 )
 
 func (r *SchemaState) ActiveChangeset() optional.Option[*schema.Changeset] {
-	for _, changeset := range r.changesets {
+	for _, changeset := range r.state.Changesets {
 		if changeset.State == schema.ChangesetStatePreparing {
 			return optional.Some(changeset)
 		}
@@ -17,14 +16,19 @@ func (r *SchemaState) ActiveChangeset() optional.Option[*schema.Changeset] {
 	return optional.None[*schema.Changeset]()
 }
 
-func (r *SchemaState) GetChangeset(changeset key.Changeset) (*schema.Changeset, error) {
-	c, ok := r.changesets[changeset]
-	if !ok {
-		return nil, errors.Errorf("changeset %s not found", changeset)
+func (r *SchemaState) GetChangeset(changeset key.Changeset) optional.Option[*schema.Changeset] {
+	for _, cs := range r.state.Changesets {
+		if cs.Key == changeset {
+			return optional.Some(cs)
+		}
 	}
-	return c, nil
+	return optional.None[*schema.Changeset]()
 }
 
 func (r *SchemaState) GetChangesets() map[key.Changeset]*schema.Changeset {
-	return r.changesets
+	ret := map[key.Changeset]*schema.Changeset{}
+	for _, cs := range r.state.Changesets {
+		ret[cs.Key] = cs
+	}
+	return ret
 }
