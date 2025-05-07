@@ -114,6 +114,7 @@ func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlug
 		updates: pubsub.New[PluginEvent](),
 		bctx:    atomic.New[*buildInfo](nil),
 	}
+	go plugin.watchForCmdError(ctx)
 
 	return plugin
 }
@@ -261,16 +262,18 @@ func (p *LanguagePlugin) runWatch(ctx context.Context) {
 	updates := make(chan watch.WatchEvent)
 	p.watch.Subscribe(updates)
 	for i := range channels.IterContext(ctx, updates) {
-		switch i.(type) {
+		switch event := i.(type) {
 		case watch.WatchEventModuleChanged:
+			log.FromContext(ctx).Infof("Files %v", event.Changes)
 			info := p.bctx.Load()
+			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
 			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, false)
 			if err != nil {
-				p.updates.Publish(&AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
 			} else {
-				p.updates.Publish(&AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
+				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
 			}
-
+			<-time.After(time.Second)
 		}
 	}
 }
@@ -338,4 +341,21 @@ type buildInfo struct {
 	projectConfig projectconfig.Config
 	stubsRoot     string
 	bctx          BuildContext
+}
+
+func (p *LanguagePlugin) watchForCmdError(ctx context.Context) {
+	select {
+	case err := <-p.client.cmdErr():
+		if err == nil {
+			// closed
+			return
+		}
+		p.updates.Publish(PluginDiedEvent{
+			Plugin: p,
+			Error:  err,
+		})
+
+	case <-ctx.Done():
+
+	}
 }

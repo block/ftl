@@ -1389,6 +1389,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 				if err != nil {
 					continue
 				}
+				logger.Infof("Plugin build event %T", buildEvent)
 				switch event := buildEvent.(type) {
 				case languageplugin.AutoRebuildStartedEvent:
 					e.rawEngineUpdates <- &buildenginepb.EngineEvent{
