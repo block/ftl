@@ -392,7 +392,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		newKey := key.NewDeploymentKey(realm, module)
 		select {
 		case err := <-errs:
-			return errors.Wrap(err, "hot reload faile")
+			return errors.Wrap(err, "hot reload failed")
 		case bc := <-events:
 			logger.Debugf("Build context updated")
 			go func() {
