@@ -304,11 +304,6 @@ jobs:
         with:
           name: maven-repo
           path: ~/.m2/repository
-      - name: Log in to DockerHub to avoid rate limiting
-        env:
-          DOCKER_HUB_PULL_TOKEN: ${{ secrets.DOCKER_HUB_PULL_TOKEN }}
-        run: |
-          echo "${DOCKER_HUB_PULL_TOKEN}" | docker login --username "blockossreleases" --password-stdin
       - name: Run ${{ matrix.test }}
         run: |
           set -euo pipefail
