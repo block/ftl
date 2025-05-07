@@ -1223,24 +1223,34 @@ func parsePBTag(tag string) (pbTag, bool, error) {
 	return out, true, nil
 }
 
+var fset = token.NewFileSet()
+
 func loadInterface(pkg, symbol string) *types.Interface {
+	name := loadObject(pkg, symbol)
+	if t, ok := name.(*types.TypeName); ok {
+		if t.Name() == symbol {
+			return t.Type().Underlying().(*types.Interface) //nolint:forcetypeassert
+		}
+	}
+	panic("could not find " + pkg + "." + symbol)
+}
+
+func loadObject(pkgName, symbol string) types.Object {
 	pkgs, err := packages.Load(&packages.Config{
+		Fset: fset,
 		Mode: packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports | packages.NeedSyntax |
 			packages.NeedFiles | packages.NeedName,
-	}, pkg)
+	}, pkgName)
 	if err != nil {
 		panic(err)
 	}
 	for _, pkg := range pkgs {
-		for _, name := range pkg.TypesInfo.Defs {
-			if t, ok := name.(*types.TypeName); ok {
-				if t.Name() == symbol {
-					return t.Type().Underlying().(*types.Interface) //nolint:forcetypeassert
-				}
-			}
+		obj := pkg.Types.Scope().Lookup(symbol)
+		if obj != nil {
+			return obj
 		}
 	}
-	panic("could not find " + pkg + "." + symbol)
+	panic("could not find " + pkgName + "." + symbol)
 }
 
 // PackageDirectives captures the directives in the protobuf:XYZ directives extracted from package comments.
