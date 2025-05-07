@@ -298,7 +298,9 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 			}
 			return false, databases, errors.Wrapf(err, "failed to read engine directory %q", engineName)
 		}
-
+		dbDirs = slices.Filter(dbDirs, func(d os.DirEntry) bool {
+			return !strings.HasPrefix(d.Name(), ".")
+		})
 		if len(dbDirs) == 0 {
 			continue
 		}
