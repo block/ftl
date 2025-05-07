@@ -270,45 +270,40 @@ export class GetDependenciesResponse extends Message<GetDependenciesResponse> {
  */
 export class BuildContext extends Message<BuildContext> {
   /**
-   * @generated from field: string id = 1;
-   */
-  id = "";
-
-  /**
    * The configuration for the module
    *
-   * @generated from field: xyz.block.ftl.language.v1.ModuleConfig module_config = 2;
+   * @generated from field: xyz.block.ftl.language.v1.ModuleConfig module_config = 1;
    */
   moduleConfig?: ModuleConfig;
 
   /**
    * The FTL schema including all dependencies
    *
-   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 2;
    */
   schema?: Schema;
 
   /**
    * The dependencies for the module
    *
-   * @generated from field: repeated string dependencies = 4;
+   * @generated from field: repeated string dependencies = 3;
    */
   dependencies: string[] = [];
 
   /**
    * Build environment provides environment variables to be set for the build command
    *
-   * @generated from field: repeated string build_env = 5;
+   * @generated from field: repeated string build_env = 4;
    */
   buildEnv: string[] = [];
 
   /**
-   * @generated from field: string os = 6;
+   * @generated from field: string os = 5;
    */
   os = "";
 
   /**
-   * @generated from field: string arch = 7;
+   * @generated from field: string arch = 6;
    */
   arch = "";
 
@@ -320,13 +315,12 @@ export class BuildContext extends Message<BuildContext> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.BuildContext";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "module_config", kind: "message", T: ModuleConfig },
-    { no: 3, name: "schema", kind: "message", T: Schema },
-    { no: 4, name: "dependencies", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 5, name: "build_env", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 6, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "module_config", kind: "message", T: ModuleConfig },
+    { no: 2, name: "schema", kind: "message", T: Schema },
+    { no: 3, name: "dependencies", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "build_env", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildContext {

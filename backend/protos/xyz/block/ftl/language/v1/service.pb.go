@@ -428,17 +428,16 @@ func (x *GetDependenciesResponse) GetModules() []string {
 // For automatic rebuilds, plugins must use the most recent build context they have received.
 type BuildContext struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The configuration for the module
-	ModuleConfig *ModuleConfig `protobuf:"bytes,2,opt,name=module_config,json=moduleConfig,proto3" json:"module_config,omitempty"`
+	ModuleConfig *ModuleConfig `protobuf:"bytes,1,opt,name=module_config,json=moduleConfig,proto3" json:"module_config,omitempty"`
 	// The FTL schema including all dependencies
-	Schema *v1.Schema `protobuf:"bytes,3,opt,name=schema,proto3" json:"schema,omitempty"`
+	Schema *v1.Schema `protobuf:"bytes,2,opt,name=schema,proto3" json:"schema,omitempty"`
 	// The dependencies for the module
-	Dependencies []string `protobuf:"bytes,4,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	Dependencies []string `protobuf:"bytes,3,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
 	// Build environment provides environment variables to be set for the build command
-	BuildEnv      []string `protobuf:"bytes,5,rep,name=build_env,json=buildEnv,proto3" json:"build_env,omitempty"`
-	Os            string   `protobuf:"bytes,6,opt,name=os,proto3" json:"os,omitempty"`
-	Arch          string   `protobuf:"bytes,7,opt,name=arch,proto3" json:"arch,omitempty"`
+	BuildEnv      []string `protobuf:"bytes,4,rep,name=build_env,json=buildEnv,proto3" json:"build_env,omitempty"`
+	Os            string   `protobuf:"bytes,5,opt,name=os,proto3" json:"os,omitempty"`
+	Arch          string   `protobuf:"bytes,6,opt,name=arch,proto3" json:"arch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,13 +470,6 @@ func (x *BuildContext) ProtoReflect() protoreflect.Message {
 // Deprecated: Use BuildContext.ProtoReflect.Descriptor instead.
 func (*BuildContext) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *BuildContext) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
 }
 
 func (x *BuildContext) GetModuleConfig() *ModuleConfig {
@@ -1358,15 +1350,14 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"\x16GetDependenciesRequest\x12L\n" +
 	"\rmodule_config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\"3\n" +
 	"\x17GetDependenciesResponse\x12\x18\n" +
-	"\amodules\x18\x01 \x03(\tR\amodules\"\x8a\x02\n" +
-	"\fBuildContext\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12L\n" +
-	"\rmodule_config\x18\x02 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\x127\n" +
-	"\x06schema\x18\x03 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\x12\"\n" +
-	"\fdependencies\x18\x04 \x03(\tR\fdependencies\x12\x1b\n" +
-	"\tbuild_env\x18\x05 \x03(\tR\bbuildEnv\x12\x0e\n" +
-	"\x02os\x18\x06 \x01(\tR\x02os\x12\x12\n" +
-	"\x04arch\x18\a \x01(\tR\x04arch\"j\n" +
+	"\amodules\x18\x01 \x03(\tR\amodules\"\xfa\x01\n" +
+	"\fBuildContext\x12L\n" +
+	"\rmodule_config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\x127\n" +
+	"\x06schema\x18\x02 \x01(\v2\x1f.xyz.block.ftl.schema.v1.SchemaR\x06schema\x12\"\n" +
+	"\fdependencies\x18\x03 \x03(\tR\fdependencies\x12\x1b\n" +
+	"\tbuild_env\x18\x04 \x03(\tR\bbuildEnv\x12\x0e\n" +
+	"\x02os\x18\x05 \x01(\tR\x02os\x12\x12\n" +
+	"\x04arch\x18\x06 \x01(\tR\x04arch\"j\n" +
 	"\x1aBuildContextUpdatedRequest\x12L\n" +
 	"\rbuild_context\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.BuildContextR\fbuildContext\"\x1d\n" +
 	"\x1bBuildContextUpdatedResponse\"\xa4\x03\n" +

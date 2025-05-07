@@ -61,17 +61,16 @@ message GetDependenciesResponse {
 // Plugins must include the build context's id when a build succeeds or fails.
 // For automatic rebuilds, plugins must use the most recent build context they have received.
 message BuildContext {
-  string id = 1;
   // The configuration for the module
-  ModuleConfig module_config = 2;
+  ModuleConfig module_config = 1;
   // The FTL schema including all dependencies
-  ftl.schema.v1.Schema schema = 3;
+  ftl.schema.v1.Schema schema = 2;
   // The dependencies for the module
-  repeated string dependencies = 4;
+  repeated string dependencies = 3;
   // Build environment provides environment variables to be set for the build command
-  repeated string build_env = 5;
-  string os = 6;
-  string arch = 7;
+  repeated string build_env = 4;
+  string os = 5;
+  string arch = 6;
 }
 
 message BuildContextUpdatedRequest {
