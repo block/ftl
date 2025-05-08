@@ -297,6 +297,7 @@ type buildResult struct {
 	state               *hotreloadpb.SchemaState
 	buildContextUpdated bool
 	failed              bool
+	bctx                buildContext
 }
 
 func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
@@ -378,7 +379,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 	reloadEvents := make(chan *buildResult, 32)
 
 	go rpc.RetryStreamingServerStream(ctx, "hot-reload", backoff.Backoff{Max: time.Millisecond * 100}, &hotreloadpb.WatchRequest{}, client.Watch, func(ctx context.Context, stream *hotreloadpb.WatchResponse) error { //nolint
-		reloadEvents <- &buildResult{state: stream.GetState()}
+		reloadEvents <- &buildResult{state: stream.GetState(), bctx: buildCtx}
 		return nil
 	}, func(err error) bool {
 		return true
@@ -403,7 +404,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 					return
 				}
 				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed}
+				reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed, bctx: bc.buildCtx}
 			}()
 		case <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
@@ -433,7 +434,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 					return
 				}
 				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed}
+				reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed, bctx: s.buildContext.Load()}
 
 			}()
 		case <-ctx.Done():
@@ -464,16 +465,16 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 
 		if changed || event.buildContextUpdated || event.failed || lastFailed {
 			lastFailed = false
+			buildCtx := event.bctx
 			auto := firstResponseSent.Load() && !event.buildContextUpdated
 			if auto {
 				logger.Debugf("sending auto build event")
-				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: s.buildContext.Load().ID}}})
+				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 				if err != nil {
 					logger.Errorf(err, "could not send build event")
 					continue
 				}
 			}
-			buildCtx := s.buildContext.Load()
 			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) || event.failed {
 				lastFailed = true
 				// skip reading schema
