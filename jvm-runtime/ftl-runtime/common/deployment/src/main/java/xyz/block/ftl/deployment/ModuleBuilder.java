@@ -888,26 +888,58 @@ public class ModuleBuilder {
 
     public ModuleBuilder addDecls(Decl decl) {
         if (decl.hasData()) {
+            if (this.decls.containsKey(decl.getData().getName())) {
+                duplicateNameValidationError(decl.getData().getName(), decl.getData().getPos(), decl);
+                return this;
+            }
             Data data = decl.getData();
             if (!setDeclExport(data.getName(), data.getVisibility())) {
                 addDecl(decl, data.getPos(), data.getName());
             }
         } else if (decl.hasEnum()) {
+            if (this.decls.containsKey(decl.getEnum().getName())) {
+                duplicateNameValidationError(decl.getEnum().getName(), decl.getEnum().getPos(), decl);
+                return this;
+            }
             xyz.block.ftl.schema.v1.Enum enuum = decl.getEnum();
             if (!updateEnum(enuum.getName(), decl)) {
                 addDecl(decl, enuum.getPos(), enuum.getName());
             }
         } else if (decl.hasDatabase()) {
+            if (this.decls.containsKey(decl.getDatabase().getName())) {
+                duplicateNameValidationError(decl.getDatabase().getName(), decl.getDatabase().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getDatabase().getPos(), decl.getDatabase().getName());
         } else if (decl.hasConfig()) {
+            if (this.decls.containsKey(decl.getConfig().getName())) {
+                duplicateNameValidationError(decl.getConfig().getName(), decl.getConfig().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getConfig().getPos(), decl.getConfig().getName());
         } else if (decl.hasSecret()) {
+            if (this.decls.containsKey(decl.getSecret().getName())) {
+                duplicateNameValidationError(decl.getSecret().getName(), decl.getSecret().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getSecret().getPos(), decl.getSecret().getName());
         } else if (decl.hasVerb()) {
+            if (this.decls.containsKey(decl.getVerb().getName())) {
+                duplicateNameValidationError(decl.getVerb().getName(), decl.getVerb().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getVerb().getPos(), decl.getVerb().getName());
         } else if (decl.hasTypeAlias()) {
+            if (this.decls.containsKey(decl.getTypeAlias().getName())) {
+                duplicateNameValidationError(decl.getTypeAlias().getName(), decl.getTypeAlias().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getTypeAlias().getPos(), decl.getTypeAlias().getName());
         } else if (decl.hasTopic()) {
+            if (this.decls.containsKey(decl.getTopic().getName())) {
+                duplicateNameValidationError(decl.getTopic().getName(), decl.getTopic().getPos(), decl);
+                return this;
+            }
             addDecl(decl, decl.getTopic().getPos(), decl.getTopic().getName());
         }
 
