@@ -6,6 +6,7 @@ import { Checkbox } from '../../../../shared/components/Checkbox'
 import { CodeEditor } from '../../../../shared/components/CodeEditor'
 import { ResizablePanels } from '../../../../shared/components/ResizablePanels'
 import { useClient } from '../../../../shared/hooks/use-client'
+import { useInfo } from '../../../../shared/providers/info-provider'
 import { NotificationType } from '../../../../shared/providers/notifications-provider'
 import { NotificationsContext } from '../../../../shared/providers/notifications-provider'
 import { declIcon } from '../../module.utils'
@@ -19,6 +20,7 @@ export const SecretPanel = ({ secret, moduleName, declName }: { secret: Secret; 
   const [isLoading, setIsLoading] = useState(false)
   const [isJsonMode, setIsJsonMode] = useState(false)
   const notification = useContext(NotificationsContext)
+  const { isLocalDev } = useInfo()
 
   useEffect(() => {
     handleGetSecret()
@@ -98,20 +100,28 @@ export const SecretPanel = ({ secret, moduleName, declName }: { secret: Secret; 
       <ResizablePanels
         mainContent={
           <div className='p-4'>
-            <div className=''>
+            <div>
               <PanelHeader title='Secret' declRef={`${moduleName}.${declName}`} exported={false} comments={decl.comments} />
-              <CodeEditor value={secretValue} onTextChanged={setSecretValue} />
-              <div className='mt-2 flex items-center justify-between'>
-                <Checkbox checked={isJsonMode} onChange={(e) => setIsJsonMode(e.target.checked)} label='JSON mode' />
-                <div className='space-x-2 flex flex-nowrap'>
-                  <Button onClick={handleSetSecret} disabled={isLoading}>
-                    Save
-                  </Button>
-                  <Button onClick={handleGetSecret} disabled={isLoading}>
-                    Refresh
-                  </Button>
+              {isLocalDev ? (
+                <>
+                  <CodeEditor value={secretValue} onTextChanged={setSecretValue} />
+                  <div className='mt-2 flex items-center justify-between'>
+                    <Checkbox checked={isJsonMode} onChange={(e) => setIsJsonMode(e.target.checked)} label='JSON mode' />
+                    <div className='space-x-2 flex flex-nowrap'>
+                      <Button onClick={handleSetSecret} disabled={isLoading}>
+                        Save
+                      </Button>
+                      <Button onClick={handleGetSecret} disabled={isLoading}>
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className='p-4 bg-gray-100 dark:bg-gray-800 rounded-md'>
+                  <p className='text-gray-500 dark:text-gray-400'>Secret value is hidden in non-local development mode</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         }

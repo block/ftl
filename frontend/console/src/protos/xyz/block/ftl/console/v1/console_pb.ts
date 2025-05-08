@@ -1200,7 +1200,12 @@ export class GetInfoResponse extends Message<GetInfoResponse> {
   version = "";
 
   /**
-   * @generated from field: string build_time = 4;
+   * @generated from field: bool is_local_dev = 2;
+   */
+  isLocalDev = false;
+
+  /**
+   * @generated from field: string build_time = 3;
    */
   buildTime = "";
 
@@ -1213,7 +1218,8 @@ export class GetInfoResponse extends Message<GetInfoResponse> {
   static readonly typeName = "xyz.block.ftl.console.v1.GetInfoResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "build_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "is_local_dev", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "build_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetInfoResponse {

@@ -151,7 +151,8 @@ message GetInfoRequest {}
 
 message GetInfoResponse {
   string version = 1;
-  string build_time = 4;
+  bool is_local_dev = 2;
+  string build_time = 3;
 }
 
 message ExecuteGooseRequest {

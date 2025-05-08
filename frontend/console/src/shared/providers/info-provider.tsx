@@ -31,7 +31,7 @@ export const InfoProvider: React.FC<{ children: React.ReactNode }> = ({ children
   })
 
   const isLocalDev = useMemo(() => {
-    return infoData?.version?.includes('dev') ?? false
+    return infoData?.isLocalDev ?? false
   }, [infoData])
 
   const value: InfoContextType = { infoData, isLoading, error, isLocalDev }
