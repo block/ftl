@@ -897,9 +897,14 @@ public class ModuleBuilder {
                 addDecl(decl, data.getPos(), data.getName());
             }
         } else if (decl.hasEnum()) {
-            if (this.decls.containsKey(decl.getEnum().getName())) {
-                duplicateNameValidationError(decl.getEnum().getName(), decl.getEnum().getPos(), decl);
-                return this;
+            // Enums are built in two stages for now
+            // This will change in future
+            Decl existing = this.decls.get(decl.getEnum().getName());
+            if (existing != null) {
+                if (!existing.hasEnum() || !existing.getEnum().getVariantsList().isEmpty()) {
+                    duplicateNameValidationError(decl.getEnum().getName(), decl.getEnum().getPos(), decl);
+                    return this;
+                }
             }
             xyz.block.ftl.schema.v1.Enum enuum = decl.getEnum();
             if (!updateEnum(enuum.getName(), decl)) {
