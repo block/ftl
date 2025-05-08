@@ -1524,7 +1524,8 @@ func (*GetInfoRequest) Descriptor() ([]byte, []int) {
 type GetInfoResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	BuildTime     string                 `protobuf:"bytes,4,opt,name=build_time,json=buildTime,proto3" json:"build_time,omitempty"`
+	IsLocalDev    bool                   `protobuf:"varint,2,opt,name=is_local_dev,json=isLocalDev,proto3" json:"is_local_dev,omitempty"`
+	BuildTime     string                 `protobuf:"bytes,3,opt,name=build_time,json=buildTime,proto3" json:"build_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1564,6 +1565,13 @@ func (x *GetInfoResponse) GetVersion() string {
 		return x.Version
 	}
 	return ""
+}
+
+func (x *GetInfoResponse) GetIsLocalDev() bool {
+	if x != nil {
+		return x.IsLocalDev
+	}
+	return false
 }
 
 func (x *GetInfoResponse) GetBuildTime() string {
@@ -1875,11 +1883,13 @@ const file_xyz_block_ftl_console_v1_console_proto_rawDesc = "" +
 	"\a_module\")\n" +
 	"\x11SetSecretResponse\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\fR\x05value\"\x10\n" +
-	"\x0eGetInfoRequest\"J\n" +
+	"\x0eGetInfoRequest\"l\n" +
 	"\x0fGetInfoResponse\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1d\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12 \n" +
+	"\fis_local_dev\x18\x02 \x01(\bR\n" +
+	"isLocalDev\x12\x1d\n" +
 	"\n" +
-	"build_time\x18\x04 \x01(\tR\tbuildTime\"-\n" +
+	"build_time\x18\x03 \x01(\tR\tbuildTime\"-\n" +
 	"\x13ExecuteGooseRequest\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\"\xe0\x01\n" +
 	"\x14ExecuteGooseResponse\x12\x1a\n" +

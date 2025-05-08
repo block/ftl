@@ -50,7 +50,7 @@ func main() {
 
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
 
-	svc := console.New(eventSource, timelineClient, adminClient, routeManager, buildEngineClient, cli.Bind, cli.ConsoleConfig, optional.None[projectconfig.Config]())
+	svc := console.New(eventSource, timelineClient, adminClient, routeManager, buildEngineClient, cli.Bind, cli.ConsoleConfig, optional.None[projectconfig.Config](), false)
 	err = rpc.Serve(ctx, cli.Bind, rpc.WithServices(svc))
 	kctx.FatalIfErrorf(err, "failed to start console service")
 }

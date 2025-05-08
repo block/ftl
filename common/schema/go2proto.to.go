@@ -11,6 +11,7 @@ import "github.com/alecthomas/errors"
 import "github.com/alecthomas/types/optional"
 import "github.com/alecthomas/types/result"
 
+
 var _ fmt.Stringer
 var _ = timestamppb.Timestamp{}
 var _ = durationpb.Duration{}
@@ -83,7 +84,7 @@ func orZero[T any](v *T) T {
 }
 
 func orZeroR[T any](v result.Result[*T]) result.Result[T] {
-	if v.Err() != nil {
+		if v.Err() != nil {
 		return result.Err[T](v.Err())
 	}
 	r, _ := v.Get()
@@ -180,12 +181,13 @@ func unmarshallText[T any, TPtr textUnmarshallable[T]](v []byte, f TPtr) result.
 	return result.Ok[*T](&to)
 }
 
+
 func (x *AWSIAMAuthDatabaseConnector) ToProto() *destpb.AWSIAMAuthDatabaseConnector {
 	if x == nil {
 		return nil
 	}
 	return &destpb.AWSIAMAuthDatabaseConnector{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Username: orZero(ptr(string(x.Username))),
 		Endpoint: orZero(ptr(string(x.Endpoint))),
 		Database: orZero(ptr(string(x.Database))),
@@ -248,7 +250,7 @@ func (x *Array) ToProto() *destpb.Array {
 		return nil
 	}
 	return &destpb.Array{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Element: TypeToProto(x.Element),
 	}
 }
@@ -315,11 +317,11 @@ func (x *Changeset) ToProto() *destpb.Changeset {
 		return nil
 	}
 	return &destpb.Changeset{
-		Key:          orZero(ptr(string(protoMust(x.Key.MarshalText())))),
-		CreatedAt:    timestamppb.New(x.CreatedAt),
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		CreatedAt: timestamppb.New(x.CreatedAt),
 		RealmChanges: sliceMap(x.RealmChanges, func(v *RealmChange) *destpb.RealmChange { return v.ToProto() }),
-		State:        orZero(ptr(x.State.ToProto())),
-		Error:        ptr(string(x.Error)),
+		State: orZero(ptr(x.State.ToProto())),
+		Error: ptr(string(x.Error)),
 	}
 }
 
@@ -511,7 +513,7 @@ func (x *ChangesetFailedNotification) ToProto() *destpb.ChangesetFailedNotificat
 		return nil
 	}
 	return &destpb.ChangesetFailedNotification{
-		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 		Error: orZero(ptr(string(x.Error))),
 	}
 }
@@ -626,7 +628,7 @@ func (x *ChangesetRollingBackEvent) ToProto() *destpb.ChangesetRollingBackEvent 
 		return nil
 	}
 	return &destpb.ChangesetRollingBackEvent{
-		Key:   orZero(ptr(string(protoMust(x.Key.MarshalText())))),
+		Key: orZero(ptr(string(protoMust(x.Key.MarshalText())))),
 		Error: orZero(ptr(string(x.Error))),
 	}
 }
@@ -655,7 +657,7 @@ func (x *ChangesetRollingBackNotification) ToProto() *destpb.ChangesetRollingBac
 	}
 	return &destpb.ChangesetRollingBackNotification{
 		Changeset: x.Changeset.ToProto(),
-		Error:     orZero(ptr(string(x.Error))),
+		Error: orZero(ptr(string(x.Error))),
 	}
 }
 
@@ -688,10 +690,10 @@ func (x *Config) ToProto() *destpb.Config {
 		return nil
 	}
 	return &destpb.Config{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Name:     orZero(ptr(string(x.Name))),
-		Type:     TypeToProto(x.Type),
+		Name: orZero(ptr(string(x.Name))),
+		Type: TypeToProto(x.Type),
 	}
 }
 
@@ -724,9 +726,9 @@ func (x *DSNDatabaseConnector) ToProto() *destpb.DSNDatabaseConnector {
 		return nil
 	}
 	return &destpb.DSNDatabaseConnector{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Database: orZero(ptr(string(x.Database))),
-		Dsn:      orZero(ptr(string(x.DSN))),
+		Dsn: orZero(ptr(string(x.DSN))),
 	}
 }
 
@@ -753,13 +755,13 @@ func (x *Data) ToProto() *destpb.Data {
 		return nil
 	}
 	return &destpb.Data{
-		Pos:            x.Pos.ToProto(),
-		Comments:       sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Visibility:     orZero(ptr(x.Visibility.ToProto())),
-		Name:           orZero(ptr(string(x.Name))),
+		Pos: x.Pos.ToProto(),
+		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Visibility: orZero(ptr(x.Visibility.ToProto())),
+		Name: orZero(ptr(string(x.Name))),
 		TypeParameters: sliceMap(x.TypeParameters, func(v *TypeParameter) *destpb.TypeParameter { return v.ToProto() }),
-		Metadata:       sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
-		Fields:         sliceMap(x.Fields, func(v *Field) *destpb.Field { return v.ToProto() }),
+		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Fields: sliceMap(x.Fields, func(v *Field) *destpb.Field { return v.ToProto() }),
 	}
 }
 
@@ -781,14 +783,10 @@ func DataFromProto(v *destpb.Data) (out *Data, err error) {
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
 	}
-	if out.TypeParameters, err = sliceMapR(v.TypeParameters, func(v *destpb.TypeParameter) result.Result[*TypeParameter] {
-		return result.From(TypeParameterFromProto(v))
-	}).Result(); err != nil {
+	if out.TypeParameters, err = sliceMapR(v.TypeParameters, func(v *destpb.TypeParameter) result.Result[*TypeParameter] { return result.From(TypeParameterFromProto(v)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "TypeParameters")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Fields, err = sliceMapR(v.Fields, func(v *destpb.Field) result.Result[*Field] { return result.From(FieldFromProto(v)) }).Result(); err != nil {
@@ -802,11 +800,11 @@ func (x *Database) ToProto() *destpb.Database {
 		return nil
 	}
 	return &destpb.Database{
-		Pos:      x.Pos.ToProto(),
-		Runtime:  x.Runtime.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Runtime: x.Runtime.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Type:     orZero(ptr(string(x.Type))),
-		Name:     orZero(ptr(string(x.Name))),
+		Type: orZero(ptr(string(x.Type))),
+		Name: orZero(ptr(string(x.Name))),
 		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
@@ -832,9 +830,7 @@ func DatabaseFromProto(v *destpb.Database) (out *Database, err error) {
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
@@ -898,7 +894,7 @@ func (x *DatabaseRuntimeConnections) ToProto() *destpb.DatabaseRuntimeConnection
 		return nil
 	}
 	return &destpb.DatabaseRuntimeConnections{
-		Read:  DatabaseConnectorToProto(x.Read),
+		Read: DatabaseConnectorToProto(x.Read),
 		Write: DatabaseConnectorToProto(x.Write),
 	}
 }
@@ -991,7 +987,7 @@ func (x *DeploymentRuntimeEvent) ToProto() *destpb.DeploymentRuntimeEvent {
 		return nil
 	}
 	return &destpb.DeploymentRuntimeEvent{
-		Payload:   x.Payload.ToProto(),
+		Payload: x.Payload.ToProto(),
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
@@ -1019,7 +1015,7 @@ func (x *DeploymentRuntimeNotification) ToProto() *destpb.DeploymentRuntimeNotif
 		return nil
 	}
 	return &destpb.DeploymentRuntimeNotification{
-		Payload:   x.Payload.ToProto(),
+		Payload: x.Payload.ToProto(),
 		Changeset: orZero(ptr(string(protoMust(x.Changeset.MarshalText())))),
 	}
 }
@@ -1063,9 +1059,7 @@ func EgressRuntimeFromProto(v *destpb.EgressRuntime) (out *EgressRuntime, err er
 	}
 
 	out = &EgressRuntime{}
-	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressTarget) result.Result[EgressTarget] {
-		return orZeroR(result.From(EgressTargetFromProto(v)))
-	}).Result(); err != nil {
+	if out.Targets, err = sliceMapR(v.Targets, func(v *destpb.EgressTarget) result.Result[EgressTarget] { return orZeroR(result.From(EgressTargetFromProto(v))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Targets")
 	}
 	return out, nil
@@ -1077,7 +1071,7 @@ func (x *EgressTarget) ToProto() *destpb.EgressTarget {
 	}
 	return &destpb.EgressTarget{
 		Expression: orZero(ptr(string(x.Expression))),
-		Target:     orZero(ptr(string(x.Target))),
+		Target: orZero(ptr(string(x.Target))),
 	}
 }
 
@@ -1101,12 +1095,12 @@ func (x *Enum) ToProto() *destpb.Enum {
 		return nil
 	}
 	return &destpb.Enum{
-		Pos:        x.Pos.ToProto(),
-		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Pos: x.Pos.ToProto(),
+		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
 		Visibility: orZero(ptr(x.Visibility.ToProto())),
-		Name:       orZero(ptr(string(x.Name))),
-		Type:       TypeToProto(x.Type),
-		Variants:   sliceMap(x.Variants, func(v *EnumVariant) *destpb.EnumVariant { return v.ToProto() }),
+		Name: orZero(ptr(string(x.Name))),
+		Type: TypeToProto(x.Type),
+		Variants: sliceMap(x.Variants, func(v *EnumVariant) *destpb.EnumVariant { return v.ToProto() }),
 	}
 }
 
@@ -1142,10 +1136,10 @@ func (x *EnumVariant) ToProto() *destpb.EnumVariant {
 		return nil
 	}
 	return &destpb.EnumVariant{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Name:     orZero(ptr(string(x.Name))),
-		Value:    ValueToProto(x.Value),
+		Name: orZero(ptr(string(x.Name))),
+		Value: ValueToProto(x.Value),
 	}
 }
 
@@ -1243,10 +1237,10 @@ func (x *Field) ToProto() *destpb.Field {
 		return nil
 	}
 	return &destpb.Field{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Name:     orZero(ptr(string(x.Name))),
-		Type:     TypeToProto(x.Type),
+		Name: orZero(ptr(string(x.Name))),
+		Type: TypeToProto(x.Type),
 		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
@@ -1269,9 +1263,7 @@ func FieldFromProto(v *destpb.Field) (out *Field, err error) {
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Type")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
@@ -1312,7 +1304,7 @@ func (x *FullSchemaNotification) ToProto() *destpb.FullSchemaNotification {
 		return nil
 	}
 	return &destpb.FullSchemaNotification{
-		Schema:     x.Schema.ToProto(),
+		Schema: x.Schema.ToProto(),
 		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
 	}
 }
@@ -1369,7 +1361,7 @@ func (x *IngressPathLiteral) ToProto() *destpb.IngressPathLiteral {
 		return nil
 	}
 	return &destpb.IngressPathLiteral{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Text: orZero(ptr(string(x.Text))),
 	}
 }
@@ -1394,7 +1386,7 @@ func (x *IngressPathParameter) ToProto() *destpb.IngressPathParameter {
 		return nil
 	}
 	return &destpb.IngressPathParameter{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Name: orZero(ptr(string(x.Name))),
 	}
 }
@@ -1440,7 +1432,7 @@ func (x *IntValue) ToProto() *destpb.IntValue {
 		return nil
 	}
 	return &destpb.IntValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: orZero(ptr(int64(x.Value))),
 	}
 }
@@ -1465,8 +1457,8 @@ func (x *Map) ToProto() *destpb.Map {
 		return nil
 	}
 	return &destpb.Map{
-		Pos:   x.Pos.ToProto(),
-		Key:   TypeToProto(x.Key),
+		Pos: x.Pos.ToProto(),
+		Key: TypeToProto(x.Key),
 		Value: TypeToProto(x.Value),
 	}
 }
@@ -1646,8 +1638,8 @@ func (x *MetadataAlias) ToProto() *destpb.MetadataAlias {
 		return nil
 	}
 	return &destpb.MetadataAlias{
-		Pos:   x.Pos.ToProto(),
-		Kind:  orZero(ptr(x.Kind.ToProto())),
+		Pos: x.Pos.ToProto(),
+		Kind: orZero(ptr(x.Kind.ToProto())),
 		Alias: orZero(ptr(string(x.Alias))),
 	}
 }
@@ -1675,9 +1667,9 @@ func (x *MetadataArtefact) ToProto() *destpb.MetadataArtefact {
 		return nil
 	}
 	return &destpb.MetadataArtefact{
-		Pos:        x.Pos.ToProto(),
-		Path:       orZero(ptr(string(x.Path))),
-		Digest:     orZero(ptr(string(protoMust(x.Digest.MarshalText())))),
+		Pos: x.Pos.ToProto(),
+		Path: orZero(ptr(string(x.Path))),
+		Digest: orZero(ptr(string(protoMust(x.Digest.MarshalText())))),
 		Executable: orZero(ptr(bool(x.Executable))),
 	}
 }
@@ -1708,7 +1700,7 @@ func (x *MetadataCalls) ToProto() *destpb.MetadataCalls {
 		return nil
 	}
 	return &destpb.MetadataCalls{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Calls: sliceMap(x.Calls, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
@@ -1733,7 +1725,7 @@ func (x *MetadataConfig) ToProto() *destpb.MetadataConfig {
 		return nil
 	}
 	return &destpb.MetadataConfig{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Config: sliceMap(x.Config, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
@@ -1758,7 +1750,7 @@ func (x *MetadataCronJob) ToProto() *destpb.MetadataCronJob {
 		return nil
 	}
 	return &destpb.MetadataCronJob{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Cron: orZero(ptr(string(x.Cron))),
 	}
 }
@@ -1783,7 +1775,7 @@ func (x *MetadataDatabases) ToProto() *destpb.MetadataDatabases {
 		return nil
 	}
 	return &destpb.MetadataDatabases{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Uses: sliceMap(x.Uses, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
@@ -1808,7 +1800,7 @@ func (x *MetadataEgress) ToProto() *destpb.MetadataEgress {
 		return nil
 	}
 	return &destpb.MetadataEgress{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Targets: sliceMap(x.Targets, func(v string) string { return orZero(ptr(string(v))) }),
 	}
 }
@@ -1833,8 +1825,8 @@ func (x *MetadataEncoding) ToProto() *destpb.MetadataEncoding {
 		return nil
 	}
 	return &destpb.MetadataEncoding{
-		Pos:     x.Pos.ToProto(),
-		Type:    orZero(ptr(string(x.Type))),
+		Pos: x.Pos.ToProto(),
+		Type: orZero(ptr(string(x.Type))),
 		Lenient: orZero(ptr(bool(x.Lenient))),
 	}
 }
@@ -1862,7 +1854,7 @@ func (x *MetadataFixture) ToProto() *destpb.MetadataFixture {
 		return nil
 	}
 	return &destpb.MetadataFixture{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Manual: orZero(ptr(bool(x.Manual))),
 	}
 }
@@ -1908,10 +1900,10 @@ func (x *MetadataGit) ToProto() *destpb.MetadataGit {
 		return nil
 	}
 	return &destpb.MetadataGit{
-		Pos:        x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Repository: orZero(ptr(string(x.Repository))),
-		Commit:     orZero(ptr(string(x.Commit))),
-		Dirty:      orZero(ptr(bool(x.Dirty))),
+		Commit: orZero(ptr(string(x.Commit))),
+		Dirty: orZero(ptr(bool(x.Dirty))),
 	}
 }
 
@@ -1941,10 +1933,10 @@ func (x *MetadataIngress) ToProto() *destpb.MetadataIngress {
 		return nil
 	}
 	return &destpb.MetadataIngress{
-		Pos:    x.Pos.ToProto(),
-		Type:   orZero(ptr(string(x.Type))),
+		Pos: x.Pos.ToProto(),
+		Type: orZero(ptr(string(x.Type))),
 		Method: orZero(ptr(string(x.Method))),
-		Path:   sliceMap(x.Path, func(v IngressPathComponent) *destpb.IngressPathComponent { return IngressPathComponentToProto(v) }),
+		Path: sliceMap(x.Path, func(v IngressPathComponent) *destpb.IngressPathComponent { return IngressPathComponentToProto(v) }),
 	}
 }
 
@@ -1963,9 +1955,7 @@ func MetadataIngressFromProto(v *destpb.MetadataIngress) (out *MetadataIngress, 
 	if out.Method, err = orZeroR(result.From(ptr(string(v.Method)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Method")
 	}
-	if out.Path, err = sliceMapR(v.Path, func(v *destpb.IngressPathComponent) result.Result[IngressPathComponent] {
-		return orZeroR(ptrR(result.From(IngressPathComponentFromProto(v))))
-	}).Result(); err != nil {
+	if out.Path, err = sliceMapR(v.Path, func(v *destpb.IngressPathComponent) result.Result[IngressPathComponent] { return orZeroR(ptrR(result.From(IngressPathComponentFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Path")
 	}
 	return out, nil
@@ -1976,7 +1966,7 @@ func (x *MetadataPartitions) ToProto() *destpb.MetadataPartitions {
 		return nil
 	}
 	return &destpb.MetadataPartitions{
-		Pos:        x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Partitions: orZero(ptr(int64(x.Partitions))),
 	}
 }
@@ -2001,7 +1991,7 @@ func (x *MetadataPublisher) ToProto() *destpb.MetadataPublisher {
 		return nil
 	}
 	return &destpb.MetadataPublisher{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Topics: sliceMap(x.Topics, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
@@ -2026,11 +2016,11 @@ func (x *MetadataRetry) ToProto() *destpb.MetadataRetry {
 		return nil
 	}
 	return &destpb.MetadataRetry{
-		Pos:        x.Pos.ToProto(),
-		Count:      setNil(ptr(int64(orZero(x.Count))), x.Count),
+		Pos: x.Pos.ToProto(),
+		Count: setNil(ptr(int64(orZero(x.Count))), x.Count),
 		MinBackoff: orZero(ptr(string(x.MinBackoff))),
 		MaxBackoff: orZero(ptr(string(x.MaxBackoff))),
-		Catch:      x.Catch.ToProto(),
+		Catch: x.Catch.ToProto(),
 	}
 }
 
@@ -2063,9 +2053,9 @@ func (x *MetadataSQLColumn) ToProto() *destpb.MetadataSQLColumn {
 		return nil
 	}
 	return &destpb.MetadataSQLColumn{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Table: orZero(ptr(string(x.Table))),
-		Name:  orZero(ptr(string(x.Name))),
+		Name: orZero(ptr(string(x.Name))),
 	}
 }
 
@@ -2092,7 +2082,7 @@ func (x *MetadataSQLMigration) ToProto() *destpb.MetadataSQLMigration {
 		return nil
 	}
 	return &destpb.MetadataSQLMigration{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Digest: orZero(ptr(string(x.Digest))),
 	}
 }
@@ -2117,9 +2107,9 @@ func (x *MetadataSQLQuery) ToProto() *destpb.MetadataSQLQuery {
 		return nil
 	}
 	return &destpb.MetadataSQLQuery{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Command: orZero(ptr(string(x.Command))),
-		Query:   orZero(ptr(string(x.Query))),
+		Query: orZero(ptr(string(x.Query))),
 	}
 }
 
@@ -2146,7 +2136,7 @@ func (x *MetadataSecrets) ToProto() *destpb.MetadataSecrets {
 		return nil
 	}
 	return &destpb.MetadataSecrets{
-		Pos:     x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Secrets: sliceMap(x.Secrets, func(v *Ref) *destpb.Ref { return v.ToProto() }),
 	}
 }
@@ -2171,8 +2161,8 @@ func (x *MetadataSubscriber) ToProto() *destpb.MetadataSubscriber {
 		return nil
 	}
 	return &destpb.MetadataSubscriber{
-		Pos:        x.Pos.ToProto(),
-		Topic:      x.Topic.ToProto(),
+		Pos: x.Pos.ToProto(),
+		Topic: x.Topic.ToProto(),
 		FromOffset: orZero(ptr(x.FromOffset.ToProto())),
 		DeadLetter: orZero(ptr(bool(x.DeadLetter))),
 	}
@@ -2225,8 +2215,8 @@ func (x *MetadataTypeMap) ToProto() *destpb.MetadataTypeMap {
 		return nil
 	}
 	return &destpb.MetadataTypeMap{
-		Pos:        x.Pos.ToProto(),
-		Runtime:    orZero(ptr(string(x.Runtime))),
+		Pos: x.Pos.ToProto(),
+		Runtime: orZero(ptr(string(x.Runtime))),
 		NativeName: orZero(ptr(string(x.NativeName))),
 	}
 }
@@ -2254,13 +2244,13 @@ func (x *Module) ToProto() *destpb.Module {
 		return nil
 	}
 	return &destpb.Module{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Builtin:  orZero(ptr(bool(x.Builtin))),
-		Name:     orZero(ptr(string(x.Name))),
+		Builtin: orZero(ptr(bool(x.Builtin))),
+		Name: orZero(ptr(string(x.Name))),
 		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
-		Decls:    sliceMap(x.Decls, func(v Decl) *destpb.Decl { return DeclToProto(v) }),
-		Runtime:  x.Runtime.ToProto(),
+		Decls: sliceMap(x.Decls, func(v Decl) *destpb.Decl { return DeclToProto(v) }),
+		Runtime: x.Runtime.ToProto(),
 	}
 }
 
@@ -2282,9 +2272,7 @@ func ModuleFromProto(v *destpb.Module) (out *Module, err error) {
 	if out.Name, err = orZeroR(result.From(ptr(string(v.Name)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Name")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Decls, err = sliceMapR(v.Decls, func(v *destpb.Decl) result.Result[Decl] { return orZeroR(ptrR(result.From(DeclFromProto(v)))) }).Result(); err != nil {
@@ -2304,10 +2292,10 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 		return nil
 	}
 	return &destpb.ModuleRuntime{
-		Base:       x.Base.ToProto(),
-		Scaling:    x.Scaling.ToProto(),
+		Base: x.Base.ToProto(),
+		Scaling: x.Scaling.ToProto(),
 		Deployment: x.Deployment.ToProto(),
-		Runner:     x.Runner.ToProto(),
+		Runner: x.Runner.ToProto(),
 	}
 }
 
@@ -2338,10 +2326,10 @@ func (x *ModuleRuntimeBase) ToProto() *destpb.ModuleRuntimeBase {
 	}
 	return &destpb.ModuleRuntimeBase{
 		CreateTime: timestamppb.New(x.CreateTime),
-		Language:   orZero(ptr(string(x.Language))),
-		Os:         ptr(string(x.OS)),
-		Arch:       ptr(string(x.Arch)),
-		Image:      ptr(string(x.Image)),
+		Language: orZero(ptr(string(x.Language))),
+		Os: ptr(string(x.OS)),
+		Arch: ptr(string(x.Arch)),
+		Image: ptr(string(x.Image)),
 	}
 }
 
@@ -2375,9 +2363,9 @@ func (x *ModuleRuntimeDeployment) ToProto() *destpb.ModuleRuntimeDeployment {
 	}
 	return &destpb.ModuleRuntimeDeployment{
 		DeploymentKey: orZero(ptr(string(protoMust(x.DeploymentKey.MarshalText())))),
-		CreatedAt:     timestamppb.New(x.CreatedAt),
-		ActivatedAt:   setNil(timestamppb.New(orZero(x.ActivatedAt.Ptr())), x.ActivatedAt.Ptr()),
-		State:         orZero(ptr(x.State.ToProto())),
+		CreatedAt: timestamppb.New(x.CreatedAt),
+		ActivatedAt: setNil(timestamppb.New(orZero(x.ActivatedAt.Ptr())), x.ActivatedAt.Ptr()),
+		State: orZero(ptr(x.State.ToProto())),
 	}
 }
 
@@ -2407,7 +2395,7 @@ func (x *ModuleRuntimeRunner) ToProto() *destpb.ModuleRuntimeRunner {
 		return nil
 	}
 	return &destpb.ModuleRuntimeRunner{
-		Endpoint:          orZero(ptr(string(x.Endpoint))),
+		Endpoint: orZero(ptr(string(x.Endpoint))),
 		RunnerNotRequired: orZero(ptr(bool(x.RunnerNotRequired))),
 	}
 }
@@ -2527,7 +2515,7 @@ func (x *Optional) ToProto() *destpb.Optional {
 		return nil
 	}
 	return &destpb.Optional{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Type: TypeToProto(x.Type),
 	}
 }
@@ -2574,8 +2562,8 @@ func (x *Position) ToProto() *destpb.Position {
 	}
 	return &destpb.Position{
 		Filename: orZero(ptr(string(x.Filename))),
-		Line:     orZero(ptr(int64(x.Line))),
-		Column:   orZero(ptr(int64(x.Column))),
+		Line: orZero(ptr(int64(x.Line))),
+		Column: orZero(ptr(int64(x.Column))),
 	}
 }
 
@@ -2602,10 +2590,10 @@ func (x *Realm) ToProto() *destpb.Realm {
 		return nil
 	}
 	return &destpb.Realm{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		External: orZero(ptr(bool(x.External))),
-		Name:     orZero(ptr(string(x.Name))),
-		Modules:  sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		Name: orZero(ptr(string(x.Name))),
+		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
 	}
 }
 
@@ -2635,10 +2623,10 @@ func (x *RealmChange) ToProto() *destpb.RealmChange {
 		return nil
 	}
 	return &destpb.RealmChange{
-		Name:            orZero(ptr(string(x.Name))),
-		External:        orZero(ptr(bool(x.External))),
-		Modules:         sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
-		ToRemove:        sliceMap(x.ToRemove, func(v string) string { return orZero(ptr(string(v))) }),
+		Name: orZero(ptr(string(x.Name))),
+		External: orZero(ptr(bool(x.External))),
+		Modules: sliceMap(x.Modules, func(v *Module) *destpb.Module { return v.ToProto() }),
+		ToRemove: sliceMap(x.ToRemove, func(v string) string { return orZero(ptr(string(v))) }),
 		RemovingModules: sliceMap(x.RemovingModules, func(v *Module) *destpb.Module { return v.ToProto() }),
 	}
 }
@@ -2672,9 +2660,9 @@ func (x *Ref) ToProto() *destpb.Ref {
 		return nil
 	}
 	return &destpb.Ref{
-		Pos:            x.Pos.ToProto(),
-		Module:         orZero(ptr(string(x.Module))),
-		Name:           orZero(ptr(string(x.Name))),
+		Pos: x.Pos.ToProto(),
+		Module: orZero(ptr(string(x.Module))),
+		Name: orZero(ptr(string(x.Name))),
 		TypeParameters: sliceMap(x.TypeParameters, func(v Type) *destpb.Type { return TypeToProto(v) }),
 	}
 }
@@ -2767,9 +2755,9 @@ func (x *RuntimeElement) ToProto() *destpb.RuntimeElement {
 		return nil
 	}
 	return &destpb.RuntimeElement{
-		Element:    RuntimeToProto(x.Element),
+		Element: RuntimeToProto(x.Element),
 		Deployment: orZero(ptr(string(protoMust(x.Deployment.MarshalText())))),
-		Name:       setNil(ptr(string(orZero(x.Name.Ptr()))), x.Name.Ptr()),
+		Name: setNil(ptr(string(orZero(x.Name.Ptr()))), x.Name.Ptr()),
 	}
 }
 
@@ -2796,7 +2784,7 @@ func (x *Schema) ToProto() *destpb.Schema {
 		return nil
 	}
 	return &destpb.Schema{
-		Pos:    x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Realms: sliceMap(x.Realms, func(v *Realm) *destpb.Realm { return v.ToProto() }),
 	}
 }
@@ -2821,9 +2809,9 @@ func (x *SchemaState) ToProto() *destpb.SchemaState {
 		return nil
 	}
 	return &destpb.SchemaState{
-		Schema:           x.Schema.ToProto(),
-		Changesets:       sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
-		ChangesetEvents:  sliceMap(x.ChangesetEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
+		Schema: x.Schema.ToProto(),
+		Changesets: sliceMap(x.Changesets, func(v *Changeset) *destpb.Changeset { return v.ToProto() }),
+		ChangesetEvents: sliceMap(x.ChangesetEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 		DeploymentEvents: sliceMap(x.DeploymentEvents, func(v *DeploymentRuntimeEvent) *destpb.DeploymentRuntimeEvent { return v.ToProto() }),
 	}
 }
@@ -2840,14 +2828,10 @@ func SchemaStateFromProto(v *destpb.SchemaState) (out *SchemaState, err error) {
 	if out.Changesets, err = sliceMapR(v.Changesets, func(v *destpb.Changeset) result.Result[*Changeset] { return result.From(ChangesetFromProto(v)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Changesets")
 	}
-	if out.ChangesetEvents, err = sliceMapR(v.ChangesetEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
-		return result.From(DeploymentRuntimeEventFromProto(v))
-	}).Result(); err != nil {
+	if out.ChangesetEvents, err = sliceMapR(v.ChangesetEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] { return result.From(DeploymentRuntimeEventFromProto(v)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "ChangesetEvents")
 	}
-	if out.DeploymentEvents, err = sliceMapR(v.DeploymentEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] {
-		return result.From(DeploymentRuntimeEventFromProto(v))
-	}).Result(); err != nil {
+	if out.DeploymentEvents, err = sliceMapR(v.DeploymentEvents, func(v *destpb.DeploymentRuntimeEvent) result.Result[*DeploymentRuntimeEvent] { return result.From(DeploymentRuntimeEventFromProto(v)) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "DeploymentEvents")
 	}
 	if err := out.Validate(); err != nil {
@@ -2861,10 +2845,10 @@ func (x *Secret) ToProto() *destpb.Secret {
 		return nil
 	}
 	return &destpb.Secret{
-		Pos:      x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
-		Name:     orZero(ptr(string(x.Name))),
-		Type:     TypeToProto(x.Type),
+		Name: orZero(ptr(string(x.Name))),
+		Type: TypeToProto(x.Type),
 	}
 }
 
@@ -2918,7 +2902,7 @@ func (x *StringValue) ToProto() *destpb.StringValue {
 		return nil
 	}
 	return &destpb.StringValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: orZero(ptr(string(x.Value))),
 	}
 }
@@ -2990,13 +2974,13 @@ func (x *Topic) ToProto() *destpb.Topic {
 		return nil
 	}
 	return &destpb.Topic{
-		Pos:        x.Pos.ToProto(),
-		Runtime:    x.Runtime.ToProto(),
-		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Pos: x.Pos.ToProto(),
+		Runtime: x.Runtime.ToProto(),
+		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
 		Visibility: orZero(ptr(x.Visibility.ToProto())),
-		Name:       orZero(ptr(string(x.Name))),
-		Event:      TypeToProto(x.Event),
-		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Name: orZero(ptr(string(x.Name))),
+		Event: TypeToProto(x.Event),
+		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
 
@@ -3024,9 +3008,7 @@ func TopicFromProto(v *destpb.Topic) (out *Topic, err error) {
 	if out.Event, err = orZeroR(ptrR(result.From(TypeFromProto(v.Event)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Event")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
@@ -3038,7 +3020,7 @@ func (x *TopicRuntime) ToProto() *destpb.TopicRuntime {
 	}
 	return &destpb.TopicRuntime{
 		KafkaBrokers: sliceMap(x.KafkaBrokers, func(v string) string { return orZero(ptr(string(v))) }),
-		TopicId:      orZero(ptr(string(x.TopicID))),
+		TopicId: orZero(ptr(string(x.TopicID))),
 	}
 }
 
@@ -3172,12 +3154,12 @@ func (x *TypeAlias) ToProto() *destpb.TypeAlias {
 		return nil
 	}
 	return &destpb.TypeAlias{
-		Pos:        x.Pos.ToProto(),
-		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Pos: x.Pos.ToProto(),
+		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
 		Visibility: orZero(ptr(x.Visibility.ToProto())),
-		Name:       orZero(ptr(string(x.Name))),
-		Type:       TypeToProto(x.Type),
-		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Name: orZero(ptr(string(x.Name))),
+		Type: TypeToProto(x.Type),
+		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
 	}
 }
 
@@ -3202,9 +3184,7 @@ func TypeAliasFromProto(v *destpb.TypeAlias) (out *TypeAlias, err error) {
 	if out.Type, err = orZeroR(ptrR(result.From(TypeFromProto(v.Type)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Type")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	return out, nil
@@ -3215,7 +3195,7 @@ func (x *TypeParameter) ToProto() *destpb.TypeParameter {
 		return nil
 	}
 	return &destpb.TypeParameter{
-		Pos:  x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Name: orZero(ptr(string(x.Name))),
 	}
 }
@@ -3240,7 +3220,7 @@ func (x *TypeValue) ToProto() *destpb.TypeValue {
 		return nil
 	}
 	return &destpb.TypeValue{
-		Pos:   x.Pos.ToProto(),
+		Pos: x.Pos.ToProto(),
 		Value: TypeToProto(x.Value),
 	}
 }
@@ -3324,14 +3304,14 @@ func (x *Verb) ToProto() *destpb.Verb {
 		return nil
 	}
 	return &destpb.Verb{
-		Pos:        x.Pos.ToProto(),
-		Comments:   sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
+		Pos: x.Pos.ToProto(),
+		Comments: sliceMap(x.Comments, func(v string) string { return orZero(ptr(string(v))) }),
 		Visibility: orZero(ptr(x.Visibility.ToProto())),
-		Name:       orZero(ptr(string(x.Name))),
-		Request:    TypeToProto(x.Request),
-		Response:   TypeToProto(x.Response),
-		Metadata:   sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
-		Runtime:    x.Runtime.ToProto(),
+		Name: orZero(ptr(string(x.Name))),
+		Request: TypeToProto(x.Request),
+		Response: TypeToProto(x.Response),
+		Metadata: sliceMap(x.Metadata, func(v Metadata) *destpb.Metadata { return MetadataToProto(v) }),
+		Runtime: x.Runtime.ToProto(),
 	}
 }
 
@@ -3359,9 +3339,7 @@ func VerbFromProto(v *destpb.Verb) (out *Verb, err error) {
 	if out.Response, err = orZeroR(ptrR(result.From(TypeFromProto(v.Response)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "Response")
 	}
-	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] {
-		return orZeroR(ptrR(result.From(MetadataFromProto(v))))
-	}).Result(); err != nil {
+	if out.Metadata, err = sliceMapR(v.Metadata, func(v *destpb.Metadata) result.Result[Metadata] { return orZeroR(ptrR(result.From(MetadataFromProto(v)))) }).Result(); err != nil {
 		return nil, errors.Wrap(err, "Metadata")
 	}
 	if out.Runtime, err = result.From(VerbRuntimeFromProto(v.Runtime)).Result(); err != nil {
@@ -3376,7 +3354,7 @@ func (x *VerbRuntime) ToProto() *destpb.VerbRuntime {
 	}
 	return &destpb.VerbRuntime{
 		SubscriptionConnector: SubscriptionConnectorToProto(x.SubscriptionConnector),
-		EgressRuntime:         x.EgressRuntime.ToProto(),
+		EgressRuntime: x.EgressRuntime.ToProto(),
 	}
 }
 
@@ -3403,3 +3381,5 @@ func VisibilityFromProto(v destpb.Visibility) (Visibility, error) {
 	// TODO: Check if the value is valid.
 	return Visibility(v), nil
 }
+
+		

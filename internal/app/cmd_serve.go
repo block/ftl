@@ -235,7 +235,7 @@ func (s *serveCommonConfig) run(
 	services = append(services, controllerService)
 
 	if !s.NoConsole {
-		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, s.Bind, s.Console, optional.Some(projConfig))
+		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, s.Bind, s.Console, optional.Some(projConfig), true)
 		services = append(services, svc)
 		wg.Go(func() error {
 			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))

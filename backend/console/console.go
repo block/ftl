@@ -47,6 +47,7 @@ type Service struct {
 	bind              *url.URL
 	config            Config
 	pc                optional.Option[projectconfig.Config]
+	isLocalDev        bool
 }
 
 var _ consolepbconnect.ConsoleServiceHandler = (*Service)(nil)
@@ -60,6 +61,7 @@ func New(
 	bind *url.URL,
 	config Config,
 	pc optional.Option[projectconfig.Config],
+	isLocalDev bool,
 ) *Service {
 
 	return &Service{
@@ -71,6 +73,7 @@ func New(
 		bind:              bind,
 		config:            config,
 		pc:                pc,
+		isLocalDev:        isLocalDev,
 	}
 }
 
@@ -641,8 +644,9 @@ func (s *Service) StreamEngineEvents(ctx context.Context, req *connect.Request[b
 
 func (s *Service) GetInfo(ctx context.Context, _ *connect.Request[consolepb.GetInfoRequest]) (*connect.Response[consolepb.GetInfoResponse], error) {
 	return connect.NewResponse(&consolepb.GetInfoResponse{
-		Version:   ftlversion.Version,
-		BuildTime: ftlversion.Timestamp.Format(time.RFC3339),
+		Version:    ftlversion.Version,
+		BuildTime:  ftlversion.Timestamp.Format(time.RFC3339),
+		IsLocalDev: s.isLocalDev,
 	}), nil
 }
 
