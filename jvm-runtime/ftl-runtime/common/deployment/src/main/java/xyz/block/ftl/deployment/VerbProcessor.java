@@ -1,5 +1,6 @@
 package xyz.block.ftl.deployment;
 
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -262,7 +263,8 @@ public class VerbProcessor {
                                             public void visit(int version, int access, String name, String signature,
                                                     String superName,
                                                     String[] interfaces) {
-                                                super.visit(version, access, name, signature, superName, interfaces);
+                                                super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
+                                                        interfaces);
                                                 MethodVisitor ctor = visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
                                                         "<init>",
                                                         "()V", null,
@@ -278,6 +280,24 @@ public class VerbProcessor {
                                             }
                                         };
                                         return cv;
+                                    }
+                                }));
+            }
+            if (Modifier.isFinal(verbClass.flags())) {
+                bytecodeTransformerBuildItemBuildProducer
+                        .produce(new BytecodeTransformerBuildItem(verbClass.name().toString(),
+                                new BiFunction<String, ClassVisitor, ClassVisitor>() {
+                                    @Override
+                                    public ClassVisitor apply(String className, ClassVisitor classVisitor) {
+                                        return new ClassVisitor(Gizmo.ASM_API_VERSION, classVisitor) {
+                                            @Override
+                                            public void visit(int version, int access, String name, String signature,
+                                                    String superName,
+                                                    String[] interfaces) {
+                                                super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
+                                                        interfaces);
+                                            }
+                                        };
                                     }
                                 }));
             }
