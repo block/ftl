@@ -90,9 +90,8 @@ func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 }
 
 type secretSetCmd struct {
-	JSON  bool   `help:"Assume input value is JSON. Note: For string secrets, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
-	Ref   cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
-	Value string `arg:"" placeholder:"VALUE" help:"Secret value (read from stdin if omitted)." optional:""`
+	JSON bool   `help:"Assume input value is JSON. Note: For string secrets, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
+	Ref  cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
