@@ -209,6 +209,10 @@ func (c *cacheProvider[R]) sync(ctx context.Context) {
 		}
 		return
 	}
+	if values == nil {
+		logger.Warnf("provider %s returned nil values", provider.Key())
+		return
+	}
 	c.valuesLock.Lock()
 	defer c.valuesLock.Unlock()
 	c.values = values
