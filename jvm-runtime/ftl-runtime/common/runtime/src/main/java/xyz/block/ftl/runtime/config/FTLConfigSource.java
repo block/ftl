@@ -16,9 +16,11 @@ public class FTLConfigSource implements ConfigSource {
     final static String SEPARATE_SERVER = "quarkus.grpc.server.use-separate-server";
     final static String PORT = "quarkus.http.port";
     final static String HOST = "quarkus.http.host";
+    final static String OTEL_ENDPOINT = "quarkus.otel.exporter.otlp.endpoint";
 
     final static String FTL_BIND = "FTL_BIND";
     private static final String OTEL_ENV_VAR = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
     public static final String QUARKUS_LOG_LEVEL = "quarkus.log.level";
 
     final FTLController controller;
@@ -53,6 +55,9 @@ public class FTLConfigSource implements ConfigSource {
                 return Boolean
                         .toString(v == null || Objects.equals(v, "false") || Objects.equals(v, "0") || Objects.equals(v, "no")
                                 || Objects.equals(v, ""));
+            }
+            case OTEL_ENDPOINT -> {
+                return System.getenv(OTEL_ENV_VAR);
             }
             case SEPARATE_SERVER -> {
                 return "false";
