@@ -109,7 +109,7 @@ func (l *asmManager) sync(ctx context.Context) (map[configuration.Ref]configurat
 			delete(refsToLoad, ref)
 		}
 	}
-	return nil, nil
+	return values, nil
 }
 
 // store and if the secret already exists, update it.
