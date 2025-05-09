@@ -45,7 +45,7 @@ spec:
             - name: FTL_CONFIG
               value: /data/config.json
             - name: FTL_SECRETS
-              value: /secrets.json
+              value: /data/secrets.json
             - name: MY_POD_IP
               valueFrom:
                 fieldRef:
