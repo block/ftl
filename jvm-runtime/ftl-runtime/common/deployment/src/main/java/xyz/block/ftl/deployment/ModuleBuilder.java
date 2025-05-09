@@ -607,15 +607,15 @@ public class ModuleBuilder {
         return refs;
     }
 
-    public void registerSQLQueryMethod(MethodInfo method, String className, String returnType,
+    public void registerSQLQueryMethod(MethodInfo method, String className, org.jboss.jandex.Type returnType,
             String dbName,
             String command, String rawSQL, String[] fields, String[] colToFieldName) {
         try {
             Class<?> returnClass;
-            if (returnType.equals("void")) {
+            if (returnType.kind() == org.jboss.jandex.Type.Kind.VOID) {
                 returnClass = Void.class;
             } else {
-                returnClass = Class.forName(returnType, false, Thread.currentThread().getContextClassLoader());
+                returnClass = loadClass(returnType);
             }
             recorder.registerSqlQueryVerb(
                     moduleName,
