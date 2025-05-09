@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"math"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -738,6 +739,28 @@ func processFieldValue(val any) any {
 			return t
 		}
 		return v
+	case uint:
+		// Convert safely to avoid overflow
+		if v <= uint(math.MaxInt) {
+			return int(v)
+		}
+		return float64(v)
+	case uint8:
+		return int(v) // Safe: uint8 max (255) fits in int
+	case uint16:
+		return int(v) // Safe: uint16 max (65535) fits in int
+	case uint32:
+		// On 32-bit platforms int is 32 bits, on 64-bit it's 64 bits
+		if strconv.IntSize < 64 && v > uint32(math.MaxInt32) {
+			return float64(v)
+		}
+		return int(v)
+	case uint64:
+		// Convert safely to avoid overflow
+		if v <= uint64(math.MaxInt) {
+			return int(v)
+		}
+		return float64(v)
 	default:
 		return v
 	}

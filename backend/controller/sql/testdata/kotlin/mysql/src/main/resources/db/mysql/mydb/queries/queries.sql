@@ -16,3 +16,9 @@ WHERE id = ?;
 -- name: GetAllTestTypes :many
 SELECT id, int_val, float_val, text_val, bool_val, time_val, optional_val 
 FROM test_types;
+
+-- name: findMultiple :many
+SELECT * FROM requests WHERE `data` IN (sqlc.slice("dataValues"));
+
+-- name: findByDataAndIds :many
+SELECT * FROM requests WHERE `data` IN (sqlc.slice("dataValues")) AND `id` IN (sqlc.slice("ids"));

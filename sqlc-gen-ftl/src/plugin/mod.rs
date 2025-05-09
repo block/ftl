@@ -250,7 +250,7 @@ fn to_request_type(
     Some(schemapb::Decl {
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
-                name: format!("{}Query", upper_camel_name),
+                name: format!("{}Query", struct_name(&upper_camel_name)),
                 visibility: schemapb::Visibility::ScopeNone.into(),
                 type_parameters: Vec::new(),
                 fields: query.params
@@ -307,12 +307,12 @@ fn to_response_type(
     }
     
     let pascal_name = to_upper_camel(&query.name);
-    let struct_name = format!("{}Row", pascal_name);
+    let row_name = format!("{}Row", pascal_name);
     
     Some(schemapb::Decl {
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
-                name: struct_name,
+                name: struct_name(&row_name),
                 visibility: schemapb::Visibility::ScopeNone.into(),
                 type_parameters: Vec::new(),
                 fields: query.columns
@@ -493,8 +493,34 @@ fn to_schema_field(
         }
     }
 
+    let mut field_name = if name.is_empty() {
+        if let Some(col) = col {
+            if !col.name.is_empty() {
+                col.name.clone()
+            } else if !col.original_name.is_empty() {
+                col.original_name.clone()
+            } else {
+                format!("{}Field", sql_type.unwrap().name)
+            }
+        } else {
+            format!("{}Field", sql_type.unwrap().name)
+        }
+    } else {
+        name
+    };
+
+    // Convert to camel case
+    field_name = field_name.to_case(Case::Camel);
+
+    // For array types, pluralize
+    if let Some(col) = col {
+        if col.is_array {
+            field_name = format!("{}s", field_name);
+        }
+    }
+
     schemapb::Field {
-        name: name.to_case(Case::Camel),
+        name: struct_name(&field_name),
         r#type: Some(match (col, sql_type) {
             (Some(col), _) => to_schema_type(req, col),
             (None, _) =>
@@ -567,6 +593,25 @@ fn get_options(req: &pluginpb::GenerateRequest) -> Result<(String, String), io::
         )?;
 
     Ok((module_name, database_name))
+}
+
+/// Converts a name to a valid identifier.
+/// Replaces non-alphanumeric characters with underscores,
+/// converts to the specified case, and adds a leading underscore if the name starts with a digit.
+fn struct_name(name: &str) -> String {
+    // Replace non-alphanumeric chars with underscores
+    let sanitized = name.chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>();
+    
+    // Add leading underscore if first char is a digit
+    if let Some(first_char) = sanitized.chars().next() {
+        if first_char.is_digit(10) {
+            return format!("_{}", sanitized);
+        }
+    }
+    
+    sanitized
 }
 
 fn to_upper_camel(s: &str) -> String {
@@ -753,7 +798,7 @@ fn postgresql_to_schema_type(col: &pluginpb::Column) -> schemapb::Type {
 
     // For PostgreSQL arrays, sqlc might pass the type name as "_int4", "text[]", etc.
     // We need to get the element type name.
-    if col.is_array { // Or check col.array_dims > 0
+    if col.is_array {
         if column_type_name.starts_with('_') {
             column_type_name = column_type_name[1..].to_string();
         } else if column_type_name.ends_with("[]") {
