@@ -659,10 +659,10 @@ public class VerbProcessor {
             beans.addBeanClass(className);
 
             var returnType = callMethod.returnType();
-            final String actualReturnType = returnType.name().toString().startsWith("java.util.List")
+            final var actualReturnType = returnType.name().toString().startsWith("java.util.List")
                     && returnType.kind() == Type.Kind.PARAMETERIZED_TYPE
-                            ? returnType.asParameterizedType().arguments().get(0).name().toString()
-                            : returnType.name().toString();
+                            ? returnType.asParameterizedType().arguments().get(0)
+                            : returnType;
 
             AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleValue == null || moduleValue.asString().isEmpty() ? null : moduleValue.asString();
