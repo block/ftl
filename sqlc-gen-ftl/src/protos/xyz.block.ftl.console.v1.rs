@@ -15,6 +15,8 @@ pub struct Config {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Data {
@@ -24,6 +26,8 @@ pub struct Data {
     pub schema: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
     pub edges: ::core::option::Option<Edges>,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Database {
@@ -33,6 +37,8 @@ pub struct Database {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Enum {
@@ -42,6 +48,8 @@ pub struct Enum {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Topic {
@@ -51,6 +59,8 @@ pub struct Topic {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TypeAlias {
@@ -60,6 +70,8 @@ pub struct TypeAlias {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Secret {
@@ -69,6 +81,8 @@ pub struct Secret {
     pub edges: ::core::option::Option<Edges>,
     #[prost(string, tag="3")]
     pub schema: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Verb {
@@ -80,6 +94,8 @@ pub struct Verb {
     pub json_request_schema: ::prost::alloc::string::String,
     #[prost(message, optional, tag="4")]
     pub edges: ::core::option::Option<Edges>,
+    #[prost(message, optional, tag="5")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Module {
@@ -105,6 +121,10 @@ pub struct Module {
     pub topics: ::prost::alloc::vec::Vec<Topic>,
     #[prost(message, repeated, tag="11")]
     pub typealiases: ::prost::alloc::vec::Vec<TypeAlias>,
+    #[prost(message, optional, tag="12")]
+    pub module: ::core::option::Option<super::super::schema::v1::Module>,
+    #[prost(message, optional, tag="13")]
+    pub git: ::core::option::Option<super::super::schema::v1::MetadataGit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TopologyGroup {
@@ -195,7 +215,9 @@ pub struct GetInfoRequest {
 pub struct GetInfoResponse {
     #[prost(string, tag="1")]
     pub version: ::prost::alloc::string::String,
-    #[prost(string, tag="4")]
+    #[prost(bool, tag="2")]
+    pub is_local_dev: bool,
+    #[prost(string, tag="3")]
     pub build_time: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -244,5 +266,19 @@ pub mod execute_goose_response {
             }
         }
     }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OpenFileInEditorRequest {
+    #[prost(string, tag="1")]
+    pub editor: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(int32, tag="3")]
+    pub line: i32,
+    #[prost(int32, tag="4")]
+    pub column: i32,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct OpenFileInEditorResponse {
 }
 // @@protoc_insertion_point(module)

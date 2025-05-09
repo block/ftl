@@ -149,8 +149,8 @@ pub struct Data {
     pub pos: ::core::option::Option<Position>,
     #[prost(string, repeated, tag="2")]
     pub comments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag="3")]
-    pub export: bool,
+    #[prost(enumeration="Visibility", tag="3")]
+    pub visibility: i32,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="5")]
@@ -263,8 +263,8 @@ pub struct Enum {
     pub pos: ::core::option::Option<Position>,
     #[prost(string, repeated, tag="2")]
     pub comments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag="3")]
-    pub export: bool,
+    #[prost(enumeration="Visibility", tag="3")]
+    pub visibility: i32,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, boxed, tag="5")]
@@ -772,13 +772,6 @@ pub struct RealmChange {
     #[prost(message, repeated, tag="5")]
     pub removing_modules: ::prost::alloc::vec::Vec<Module>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RealmState {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(bool, tag="2")]
-    pub external: bool,
-}
 /// Ref is an untyped reference to a symbol.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Ref {
@@ -835,16 +828,14 @@ pub struct Schema {
 /// SchemaState is the schema service state as persisted in Raft
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SchemaState {
-    #[prost(message, repeated, tag="1")]
-    pub modules: ::prost::alloc::vec::Vec<Module>,
+    #[prost(message, optional, tag="1")]
+    pub schema: ::core::option::Option<Schema>,
     #[prost(message, repeated, tag="2")]
     pub changesets: ::prost::alloc::vec::Vec<Changeset>,
     #[prost(message, repeated, tag="3")]
     pub changeset_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
     #[prost(message, repeated, tag="4")]
     pub deployment_events: ::prost::alloc::vec::Vec<DeploymentRuntimeEvent>,
-    #[prost(message, repeated, tag="5")]
-    pub realms: ::prost::alloc::vec::Vec<RealmState>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Secret {
@@ -896,8 +887,8 @@ pub struct Topic {
     pub runtime: ::core::option::Option<TopicRuntime>,
     #[prost(string, repeated, tag="2")]
     pub comments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag="3")]
-    pub export: bool,
+    #[prost(enumeration="Visibility", tag="3")]
+    pub visibility: i32,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
@@ -960,8 +951,8 @@ pub struct TypeAlias {
     pub pos: ::core::option::Option<Position>,
     #[prost(string, repeated, tag="2")]
     pub comments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag="3")]
-    pub export: bool,
+    #[prost(enumeration="Visibility", tag="3")]
+    pub visibility: i32,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, boxed, tag="5")]
@@ -1012,8 +1003,8 @@ pub struct Verb {
     pub pos: ::core::option::Option<Position>,
     #[prost(string, repeated, tag="2")]
     pub comments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag="3")]
-    pub export: bool,
+    #[prost(enumeration="Visibility", tag="3")]
+    pub visibility: i32,
     #[prost(string, tag="4")]
     pub name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
@@ -1175,6 +1166,36 @@ impl FromOffset {
             "FROM_OFFSET_UNSPECIFIED" => Some(Self::Unspecified),
             "FROM_OFFSET_BEGINNING" => Some(Self::Beginning),
             "FROM_OFFSET_LATEST" => Some(Self::Latest),
+            _ => None,
+        }
+    }
+}
+/// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Visibility {
+    ScopeNone = 0,
+    ScopeModule = 1,
+    ScopeRealm = 2,
+}
+impl Visibility {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::ScopeNone => "VISIBILITY_SCOPE_NONE",
+            Self::ScopeModule => "VISIBILITY_SCOPE_MODULE",
+            Self::ScopeRealm => "VISIBILITY_SCOPE_REALM",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VISIBILITY_SCOPE_NONE" => Some(Self::ScopeNone),
+            "VISIBILITY_SCOPE_MODULE" => Some(Self::ScopeModule),
+            "VISIBILITY_SCOPE_REALM" => Some(Self::ScopeRealm),
             _ => None,
         }
     }

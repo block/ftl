@@ -93,12 +93,15 @@ pub struct ModuleDeploySuccess {
     #[prost(string, tag="1")]
     pub module: ::prost::alloc::string::String,
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ReachedEndOfHistory {
+}
 /// EngineEvent is an event published by the engine as modules get built and deployed.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EngineEvent {
     #[prost(message, optional, tag="1")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(oneof="engine_event::Event", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13")]
+    #[prost(oneof="engine_event::Event", tags="2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14")]
     pub event: ::core::option::Option<engine_event::Event>,
 }
 /// Nested message and enum types in `EngineEvent`.
@@ -129,6 +132,8 @@ pub mod engine_event {
         ModuleDeployFailed(super::ModuleDeployFailed),
         #[prost(message, tag="13")]
         ModuleDeploySuccess(super::ModuleDeploySuccess),
+        #[prost(message, tag="14")]
+        ReachedEndOfHistory(super::ReachedEndOfHistory),
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
