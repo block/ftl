@@ -26,6 +26,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import xyz.block.ftl.VariantName;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.schema.v1.Decl;
 import xyz.block.ftl.schema.v1.Enum;
@@ -174,6 +175,7 @@ public class EnumProcessor {
         var variantClasses = new ArrayList<Class<?>>();
         for (var variant : variants) {
             Type variantType;
+            String variantName = ModuleBuilder.classToName(variant);
             if (variant.hasAnnotation(ENUM_HOLDER)) {
                 // Enum value holder class
                 FieldInfo valueField = variant.field("value");
@@ -189,12 +191,16 @@ public class EnumProcessor {
                         Thread.currentThread().getContextClassLoader());
                 variantClasses.add(variantClazz);
             }
+            if (variant.hasDeclaredAnnotation(VariantName.class)) {
+                AnnotationInstance variantNameAnnotation = variant.annotation(VariantName.class);
+                variantName = variantNameAnnotation.value().asString();
+            }
             xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, visibility,
                     Nullability.NOT_NULL);
             TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
 
             EnumVariant.Builder variantBuilder = EnumVariant.newBuilder()
-                    .setName(variant.simpleName())
+                    .setName(variantName)
                     .setValue(Value.newBuilder().setTypeValue(typeValue).build());
             enumBuilder.addVariants(variantBuilder.build());
         }
