@@ -30,6 +30,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
   const [response, setResponse] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [path, setPath] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const bodyTextKey = `${module?.name}-${verb?.verb?.name}-body-text`
   const headersTextKey = `${module?.name}-${verb?.verb?.name}-headers-text`
@@ -114,6 +115,9 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
       .catch((error) => {
         setError(String(error))
       })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }
 
   const ftlCall = (path: string) => {
@@ -138,11 +142,15 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
       .catch((error) => {
         setError(String(error))
       })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }
 
   const handleSubmit = async (path: string) => {
     setResponse('')
     setError('')
+    setIsLoading(true)
 
     try {
       if (isHttpIngress(verb)) {
@@ -153,6 +161,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
     } catch (error) {
       console.error('There was an error with the request:', error)
       setError(String(error))
+      setIsLoading(false)
     }
   }
 
@@ -210,6 +219,7 @@ export const VerbRequestForm = ({ module, verb }: { module?: Module; verb?: Verb
         readOnly={!isHttpIngress(verb)}
         onSubmit={handleSubmit}
         handleCopyButton={handleCopyButton}
+        isLoading={isLoading}
       />
       <div>
         <div className='border-b border-gray-200 dark:border-white/10'>

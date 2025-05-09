@@ -1,6 +1,7 @@
 import { Copy01Icon } from 'hugeicons-react'
 import { useEffect, useRef } from 'react'
 import { Button } from '../../../../shared/components/Button'
+import { Loader } from '../../../../shared/components/Loader'
 
 export const VerbFormInput = ({
   requestType,
@@ -10,6 +11,7 @@ export const VerbFormInput = ({
   readOnly,
   onSubmit,
   handleCopyButton,
+  isLoading = false,
 }: {
   requestType: string
   path: string
@@ -18,6 +20,7 @@ export const VerbFormInput = ({
   readOnly: boolean
   onSubmit: (path: string) => void
   handleCopyButton?: () => void
+  isLoading?: boolean
 }) => {
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -58,8 +61,8 @@ export const VerbFormInput = ({
           readOnly={readOnly}
           onChange={(event) => setPath(event.target.value)}
         />
-        <Button variant='primary' size='md' type='submit' title={shortcutText} className='mx-2'>
-          Send
+        <Button variant='primary' size='md' type='submit' title={shortcutText} className='mx-2' disabled={isLoading}>
+          {isLoading ? <Loader className='size-5' /> : 'Send'}
         </Button>
         <Button variant='secondary' size='md' type='button' title='Copy' onClick={handleCopyButton} className='mr-2'>
           <Copy01Icon className='size-5' />
