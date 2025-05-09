@@ -1,5 +1,6 @@
-realmName: "ftl"
+fullnameOverride: "ftl"
 nameOverride: ""
+realmName: "ftl"
 
 logLevel: debug
 logJson: true

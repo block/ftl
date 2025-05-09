@@ -81,7 +81,7 @@ spec:
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_REALM
-              value: {{ include "ftl.fullname" . }}
+              value: {{ .Values.realmName }}
           ports:
             - name: http2
               containerPort: {{ .Values.schema.services.schema.port }}
