@@ -1713,7 +1713,7 @@ var scaffoldFuncs = scaffolder.FuncMap{
 		query, _ := verb.GetQuery()
 		return query.Query
 	},
-	"queryRequestResponseType": func(s *schema.Module, typ schema.Type) string {
+	"queryResponseType": func(s *schema.Module, typ schema.Type) string {
 		if arr, ok := typ.(*schema.Array); ok {
 			return genType(s, arr.Element)
 		}

@@ -175,7 +175,7 @@ fn create_table_schema(
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
                 name: name.to_string(),
-                export: false,
+                visibility: schemapb::Visibility::ScopeNone.into(),
                 type_parameters: Vec::new(),
                 fields: query.columns
                     .iter()
@@ -251,7 +251,7 @@ fn to_request_type(
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
                 name: format!("{}Query", upper_camel_name),
-                export: false,
+                visibility: schemapb::Visibility::ScopeNone.into(),
                 type_parameters: Vec::new(),
                 fields: query.params
                     .iter()
@@ -313,7 +313,7 @@ fn to_response_type(
         value: Some(
             schemapb::decl::Value::Data(schemapb::Data {
                 name: struct_name,
-                export: false,
+                visibility: schemapb::Visibility::ScopeNone.into(),
                 type_parameters: Vec::new(),
                 fields: query.columns
                     .iter()
@@ -458,7 +458,7 @@ fn to_verb(
         value: Some(
             schemapb::decl::Value::Verb(schemapb::Verb {
                 name: query.name.to_case(Case::Camel),
-                export: false,
+                visibility: schemapb::Visibility::ScopeNone.into(),
                 runtime: None,
                 request: request_type,
                 response: response_type,
@@ -583,10 +583,21 @@ fn to_schema_type(req: &pluginpb::GenerateRequest, col: &pluginpb::Column) -> sc
         .and_then(|s| Some(s.engine.as_str()))
         .unwrap_or("mysql");
 
-    match engine {
+    let base_type = match engine {
         "mysql" => mysql_to_schema_type(col),
         "postgresql" | "postgres" => postgresql_to_schema_type(col),
-        _ => mysql_to_schema_type(col),
+        _ => mysql_to_schema_type(col), // Default case
+    };
+
+    if col.is_sqlc_slice || col.is_array {
+        schemapb::Type {
+            value: Some(TypeValue::Array(Box::new(schemapb::Array {
+                pos: None,
+                element: Some(Box::new(base_type)),
+            }))),
+        }
+    } else {
+        base_type
     }
 }
 
@@ -735,13 +746,26 @@ fn mysql_to_schema_type(col: &pluginpb::Column) -> schemapb::Type {
 }
 
 fn postgresql_to_schema_type(col: &pluginpb::Column) -> schemapb::Type {
-    let column_type = col.r#type
+    let mut column_type_name = col.r#type
         .as_ref()
         .map(|t| t.name.to_lowercase())
         .unwrap_or_default();
-    let not_null = col.not_null || col.is_array;
 
-    let value = match column_type.as_str() {
+    // For PostgreSQL arrays, sqlc might pass the type name as "_int4", "text[]", etc.
+    // We need to get the element type name.
+    if col.is_array { // Or check col.array_dims > 0
+        if column_type_name.starts_with('_') {
+            column_type_name = column_type_name[1..].to_string();
+        } else if column_type_name.ends_with("[]") {
+            column_type_name = column_type_name[..column_type_name.len()-2].to_string();
+        }
+        // Potentially, sqlc might already provide the direct element type in r#type even for arrays.
+        // The above is a fallback if it gives the array type specifier.
+    }
+
+    let not_null = col.not_null; // For arrays, not_null applies to the array itself, elements are handled by the base_type resolution.
+
+    let value = match column_type_name.as_str() {
         | "smallint"
         | "int2"
         | "pg_catalog.int2"

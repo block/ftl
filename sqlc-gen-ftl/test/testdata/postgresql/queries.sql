@@ -24,3 +24,6 @@ SELECT * FROM all_types LIMIT 10;
 
 -- name: CreateConcatRequest :exec
 INSERT INTO requests (data) VALUES (CONCAT(LOWER($1), LOWER($2)));
+
+-- name: SelectWithSlice :many
+SELECT * FROM requests WHERE id = ANY($1::int[]);

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -384,14 +385,14 @@ func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[query
 }
 
 func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream serverStream) error {
-	params, err := parseJSONParameters(req.GetParametersJson())
+	rawSQL, params, err := getSQLAndParams(req)
 	if err != nil {
 		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to parse parameters")))
 	}
 
 	switch req.CommandType {
 	case querypb.CommandType_COMMAND_TYPE_EXEC:
-		result, err := db.ExecContext(ctx, req.RawSql, params...)
+		result, err := db.ExecContext(ctx, rawSQL, params...)
 		if err != nil {
 			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
 		}
@@ -414,7 +415,7 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 		}
 
 	case querypb.CommandType_COMMAND_TYPE_ONE:
-		row := db.QueryRowContext(ctx, req.RawSql, params...)
+		row := db.QueryRowContext(ctx, rawSQL, params...)
 		jsonRows, err := scanRowToMap(row, req.ResultColumns)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -438,7 +439,7 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 		}
 
 	case querypb.CommandType_COMMAND_TYPE_MANY:
-		rows, err := db.QueryContext(ctx, req.RawSql, params...)
+		rows, err := db.QueryContext(ctx, rawSQL, params...)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return errors.WithStack(handleNoRows(stream))
@@ -483,6 +484,88 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("unknown command type: %v", req.CommandType)))
 	}
 	return nil
+}
+
+// getSQLAndParams returns the SQL and parameters for a query.
+// It handles SLICE patterns, which are used via SQLC to pass arrays to the database.
+func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
+	params, err := parseJSONParameters(req.GetParametersJson())
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to parse parameters")
+	}
+
+	sql := req.RawSql
+	re := regexp.MustCompile(`/\*SLICE:[^*]*\*/\s*\?`)
+
+	// If no SLICE patterns, return original
+	if !re.MatchString(sql) {
+		return sql, params, nil
+	}
+
+	// Track which parameter index we're at as we scan the query
+	paramIdx := 0
+	var newParams []any
+
+	// Replace each /*SLICE:xxx*/? with the right number of placeholders
+	newSQL := re.ReplaceAllStringFunc(sql, func(match string) string {
+		if paramIdx >= len(params) {
+			return match // Keep original if out of params
+		}
+
+		// Get the parameter that corresponds to this ?
+		param := params[paramIdx]
+		paramIdx++
+
+		sliceVal := reflect.ValueOf(param)
+		if sliceVal.Kind() != reflect.Slice && sliceVal.Kind() != reflect.Array {
+			// Not a slice, keep original ? and add param as-is
+			newParams = append(newParams, param)
+			return "?"
+		}
+
+		sliceLen := sliceVal.Len()
+		if sliceLen == 0 {
+			return "NULL" // Empty slice case
+		}
+
+		// Add each slice element to our params
+		for i := range sliceLen {
+			newParams = append(newParams, sliceVal.Index(i).Interface())
+		}
+
+		// Generate ?, ?, ... with the right number of placeholders
+		placeholders := strings.TrimSuffix(strings.Repeat("?, ", sliceLen), ", ")
+		return placeholders
+	})
+
+	// Find all ? positions in the original SQL to count non-slice params
+	questionCount := 0
+	sliceMatches := re.FindAllStringIndex(sql, -1)
+
+	// Check each ? to see if it's within a SLICE pattern
+	for i, char := range sql {
+		if char != '?' {
+			continue
+		}
+
+		// Is this ? part of a SLICE pattern?
+		isSlicePattern := false
+		for _, match := range sliceMatches {
+			if i >= match[0] && i <= match[1] {
+				isSlicePattern = true
+				break
+			}
+		}
+
+		if !isSlicePattern && questionCount < len(params) {
+			// This is a regular parameter
+			newParams = append(newParams, params[questionCount])
+		}
+
+		questionCount++
+	}
+
+	return newSQL, newParams, nil
 }
 
 func parseJSONParameters(paramsJSON string) ([]any, error) {

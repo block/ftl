@@ -413,4 +413,24 @@ pub struct GetModuleConfigDefaultsResponse {
     #[prost(string, tag="8")]
     pub sql_root_dir: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSqlInterfacesRequest {
+    #[prost(message, optional, tag="1")]
+    pub config: ::core::option::Option<ModuleConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSqlInterfacesResponse {
+    #[prost(message, repeated, tag="1")]
+    pub interfaces: ::prost::alloc::vec::Vec<get_sql_interfaces_response::Interface>,
+}
+/// Nested message and enum types in `GetSQLInterfacesResponse`.
+pub mod get_sql_interfaces_response {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Interface {
+        #[prost(string, tag="1")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(string, tag="2")]
+        pub interface: ::prost::alloc::string::String,
+    }
+}
 // @@protoc_insertion_point(module)

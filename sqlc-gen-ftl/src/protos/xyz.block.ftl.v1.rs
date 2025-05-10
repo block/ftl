@@ -251,6 +251,9 @@ pub struct RealmChange {
     /// The deployments to remove.
     #[prost(string, repeated, tag="3")]
     pub to_remove: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Whether this is an external realm.
+    #[prost(bool, tag="4")]
+    pub external: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateChangesetRequest {
