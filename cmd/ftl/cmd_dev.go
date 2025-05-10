@@ -46,8 +46,9 @@ func (d *devCmd) Run(
 	timelineClient *timelineclient.Client,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	csm *currentStatusManager,
+	cli *SharedCLI,
 ) error {
-	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.ServeCmd.Bind.String(), log.Error)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -95,7 +96,7 @@ func (d *devCmd) Run(
 	defer statusManager.Close()
 	starting := statusManager.NewStatus("\u001B[92mStarting FTL Server 🚀\u001B[39m")
 
-	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 2)
+	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}
@@ -116,7 +117,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine}, cli)
 			if err != nil {
 				return errors.Wrap(err, "failed to stop server")
 			}
@@ -124,7 +125,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine})
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine}, cli)
 			if err != nil {
 				cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev server failed"))
 			} else {
