@@ -12,9 +12,7 @@ public class FTLTestResource implements QuarkusTestResourceLifecycleManager {
     public Map<String, String> start() {
         server = new FTLTestServer();
         server.start();
-        String endpoint = "http://127.0.0.1:" + server.getPort();
-        System.setProperty("ftl.test.endpoint", endpoint);
-        return Map.of("ftl.endpoint", endpoint);
+        return Map.of();
     }
 
     @Override

@@ -88,7 +88,7 @@ func (s *serveCmd) Run(
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
 ) error {
-	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
+	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}

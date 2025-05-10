@@ -221,8 +221,11 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private void init() {
         // We are doing our own live reload
         // Disable the normal Quarkus one
-        RuntimeUpdatesProcessor.INSTANCE.setLiveReloadEnabled(false);
-        int port = Integer.getInteger("ftl.language.port");
+        if (RuntimeUpdatesProcessor.INSTANCE != null) {
+            RuntimeUpdatesProcessor.INSTANCE.setLiveReloadEnabled(false);
+        }
+        // TODO: this is a hack, we need to find a better way to do this
+        int port = Integer.getInteger("ftl.language.port", 7792);
         server = ServerBuilder.forPort(port)
                 .addService(this)
                 .build();
@@ -233,12 +236,15 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
             throw new RuntimeException(e);
         }
 
-        ((QuarkusClassLoader) HotReloadHandler.class.getClassLoader()).addCloseTask(new Runnable() {
-            @Override
-            public void run() {
-                server.shutdownNow();
-            }
-        });
+        ClassLoader cl = HotReloadHandler.class.getClassLoader();
+        if (cl instanceof QuarkusClassLoader) {
+            ((QuarkusClassLoader) cl).addCloseTask(new Runnable() {
+                @Override
+                public void run() {
+                    server.shutdownNow();
+                }
+            });
+        }
     }
 
     void doScan() {

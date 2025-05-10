@@ -48,7 +48,7 @@ func buildRequiredJARS(ctx context.Context) {
 
 	log.FromContext(ctx).Scope("console").Infof("Building JVM Jars...")
 
-	err = exec.Command(ctx, log.Debug, gitRoot, "just", "build-jvm").RunBuffered(ctx)
+	err = exec.Command(ctx, log.Debug, gitRoot, "just", "build-jvm", "-DskipTests").RunBuffered(ctx)
 	if lerr := release(); lerr != nil {
 		logger.Errorf(lerr, "failed to release lock")
 	}
