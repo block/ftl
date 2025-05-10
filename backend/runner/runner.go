@@ -490,6 +490,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			deploymentDir,
 			"./launch",
 			ftlv1connect.NewVerbServiceClient,
+			false, // we log the plugins output directly
 			plugin.WithEnvars(
 				envVars...,
 			),

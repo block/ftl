@@ -75,6 +75,7 @@ func (p *pluginClientImpl) start(ctx context.Context, dir, language, name string
 		dir,
 		cmdPath,
 		langconnect.NewLanguageServiceClient,
+		true,
 		plugin.WithEnvars(envvars...),
 	)
 	if err != nil {
