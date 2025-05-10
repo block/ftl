@@ -25,48 +25,73 @@ type errorDetector struct {
 }
 
 func (o *errorDetector) Write(p []byte) (n int, err error) {
-	// Forward output to stdout
+	// We track the last log level for things like stack traces that don't have a prefix
+	var last = func(format string, args ...interface{}) {
+		o.logger.Debugf(format, args...)
+	}
 	for _, line := range strings.Split(string(p), "\n") {
+		skip := false
 		if len(line) == 0 {
 			continue
 		}
-		if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
+		if line[0] == '{' {
+			record := JvmLogRecord{}
+			if err := json.Unmarshal([]byte(line), &record); err == nil {
+				// We do not want to dump any raw json output
+				skip = true
+				entry := record.ToEntry()
+				o.logger.Log(entry)
+				last = func(format string, args ...interface{}) {
+					o.logger.Logf(entry.Level, format, args...)
+				}
+			} else {
+				o.logger.Infof("Log Parse Failure: %s", line) //nolint
+			}
+		} else if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
 			o.logger.Logf(log.Error, "%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "ERROR "); ok {
+			last = func(format string, args ...interface{}) {
+				o.logger.Logf(log.Error, format, args...)
+			}
+		} else if _, cleanLine, ok := strings.Cut(line, "ERROR"); ok {
 			o.logger.Logf(log.Error, "%s", cleanLine)
+			last = func(format string, args ...interface{}) {
+				o.logger.Logf(log.Error, format, args...)
+			}
 		} else if cleanLine, ok := strings.CutPrefix(line, "[WARNING] "); ok {
 			o.logger.Warnf("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "WARN "); ok {
+			last = o.logger.Warnf
+		} else if _, cleanLine, ok := strings.Cut(line, "WARN"); ok {
 			o.logger.Warnf("%s", cleanLine)
+			last = o.logger.Warnf
 		} else if cleanLine, ok := strings.CutPrefix(line, "[INFO] "); ok {
 			// We downgrade maven errors, as maven is very verbose
 			// Basically we just log maven Info as our Debug
 			o.logger.Debugf("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "INFO "); ok {
+			last = o.logger.Debugf
+		} else if _, cleanLine, ok := strings.Cut(line, "INFO"); ok {
 			o.logger.Debugf("%s", cleanLine)
+			last = o.logger.Debugf
 		} else if cleanLine, ok := strings.CutPrefix(line, "[DEBUG] "); ok {
 			o.logger.Debugf("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "DEBUG "); ok {
+			last = o.logger.Debugf
+		} else if cleanLine, _, ok := strings.Cut(line, "DEBUG"); ok {
 			o.logger.Debugf("%s", cleanLine)
+			last = o.logger.Debugf
 		} else if cleanLine, ok := strings.CutPrefix(line, "[TRACE] "); ok {
 			o.logger.Tracef("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "TRACE "); ok {
+			last = o.logger.Tracef
+		} else if _, cleanLine, ok := strings.Cut(line, "TRACE"); ok {
 			o.logger.Tracef("%s", cleanLine)
-		} else if cleanLine, ok := strings.CutPrefix(line, "FINE "); ok {
+			last = o.logger.Tracef
+		} else if _, cleanLine, ok := strings.Cut(line, "FINE"); ok {
 			o.logger.Tracef("%s", cleanLine)
-		} else if line[0] == '{' {
-			record := JvmLogRecord{}
-			if err := json.Unmarshal([]byte(line), &record); err == nil {
-				o.logger.Log(record.ToEntry())
-			} else {
-				o.logger.Infof("Log Parse Failure: %s", line) //nolint
-			}
+			last = o.logger.Tracef
 		} else {
-			o.logger.Debugf("%s", line)
+			last("%s", line)
 		}
-	}
-	if !o.ended.Load() {
-		o.output += string(p)
+		if !o.ended.Load() && !skip {
+			o.output += line + "\n"
+		}
 	}
 	return len(p), nil
 }
