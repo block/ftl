@@ -371,10 +371,13 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 
 	// Wait for the plugin to start.
 	hotReloadEndpoint := fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-	client, err := s.connectReloadClient(ctx, hotReloadEndpoint, output)
+	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
+	err = s.connectReloadClient(ctx, client)
 	if err != nil || client == nil {
+		_ = output.FinalizeCapture(true)
 		return errors.WithStack(err)
 	}
+	_ = output.FinalizeCapture(false)
 	logger.Debugf("Dev mode process started")
 	reloadEvents := make(chan *buildResult, 32)
 
@@ -397,14 +400,10 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		case bc := <-events:
 			logger.Debugf("Build context updated")
 			go func() {
-				buildCtx = bc.buildCtx
-				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}))
+				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}, reloadEvents, true, newKey)
 				if err != nil {
 					errs <- err
-					return
 				}
-				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), buildContextUpdated: true, failed: result.Msg.Failed, bctx: bc.buildCtx}
 			}()
 		case <-fileEvents:
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
@@ -427,20 +426,41 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			}
 
 			go func() {
-				result, err := client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
-
+				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}, reloadEvents, false, newKey)
 				if err != nil {
 					errs <- err
-					return
 				}
-				handleReloadResponse(result, newKey)
-				reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed, bctx: s.buildContext.Load()}
 
 			}()
 		case <-ctx.Done():
 			return errors.Wrap(ctx.Err(), "context cancelled")
 		}
 	}
+}
+
+func (s *Service) doReload(ctx context.Context, client hotreloadpbconnect.HotReloadServiceClient, request *hotreloadpb.ReloadRequest, reloadEvents chan *buildResult, buildContextUpdated bool, newKey key.Deployment) error {
+	logger := log.FromContext(ctx)
+	logger.Debugf("Sending hot reload request")
+	result, err := client.Reload(ctx, connect.NewRequest(request))
+
+	if err != nil {
+		logger.Debugf("Reload failed, attempting to reconnect")
+		// If the connection has failed we try again
+		err = s.connectReloadClient(ctx, client)
+
+		if err != nil {
+			logger.Debugf("Reconnect failed, unable to connect to client")
+			return err
+		}
+		result, err = client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+	}
+	if err != nil {
+		logger.Debugf("Unable to invoke reload on the JVM") //TODO: restart
+		return errors.Wrap(err, "unable to invoke hot reload")
+	}
+	handleReloadResponse(result, newKey)
+	reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed, bctx: s.buildContext.Load(), buildContextUpdated: buildContextUpdated}
+	return nil
 }
 
 func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], newKey key.Deployment) {
@@ -461,7 +481,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 	for event := range channels.IterContext(ctx, reloadEvents) {
 		changed := event.state.GetNewRunnerRequired()
 		errorList := event.state.GetErrors()
-		logger.Debugf("Checking for schema changes: changed: %v failed: %v", changed, event.failed)
+		logger.Debugf("Checking for schema changes: changed: %v failed: %v buildContextUpdated: %v newRunnerRequired: %v", changed, event.failed, event.buildContextUpdated, event.state.NewRunnerRequired)
 
 		if changed || event.buildContextUpdated || event.failed || lastFailed {
 			lastFailed = false
@@ -565,21 +585,19 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, project
 	}()
 }
 
-func (s *Service) connectReloadClient(ctx context.Context, hotReloadEndpoint string, output *errorDetector) (hotreloadpbconnect.HotReloadServiceClient, error) {
+func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbconnect.HotReloadServiceClient) error {
 	logger := log.FromContext(ctx)
-	client := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotReloadEndpoint, log.Trace)
 	err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, client)
 	if err != nil {
 		logger.Infof("Dev mode process failed to start")
 		select {
 		case <-ctx.Done():
-			return nil, nil
+			return nil
 		default:
 		}
-		return nil, errors.Wrap(err, "timed out waiting for star")
+		return errors.Wrap(err, "timed out waiting for star")
 	}
-	_ = output.FinalizeCapture(false)
-	return client, nil
+	return nil
 }
 
 func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext, autoRebuild bool) (*langpb.BuildResponse, error) {
