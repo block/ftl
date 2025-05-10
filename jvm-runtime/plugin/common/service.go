@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -377,11 +376,11 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		_ = output.FinalizeCapture(true)
 		return errors.WithStack(err)
 	}
-	_ = output.FinalizeCapture(false)
 	logger.Debugf("Dev mode process started")
 	reloadEvents := make(chan *buildResult, 32)
 
 	go rpc.RetryStreamingServerStream(ctx, "hot-reload", backoff.Backoff{Max: time.Millisecond * 100}, &hotreloadpb.WatchRequest{}, client.Watch, func(ctx context.Context, stream *hotreloadpb.WatchResponse) error { //nolint
+		_ = output.FinalizeCapture(false)
 		reloadEvents <- &buildResult{state: stream.GetState(), bctx: buildCtx}
 		return nil
 	}, func(err error) bool {
@@ -396,9 +395,11 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		newKey := key.NewDeploymentKey(realm, module)
 		select {
 		case err := <-errs:
+			_ = output.FinalizeCapture(true)
 			return errors.Wrap(err, "hot reload failed")
 		case bc := <-events:
 			logger.Debugf("Build context updated")
+			_ = output.FinalizeCapture(false)
 			go func() {
 				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}, reloadEvents, true, newKey)
 				if err != nil {
@@ -406,6 +407,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 				}
 			}()
 		case <-fileEvents:
+			_ = output.FinalizeCapture(false)
 			newDeps, err := extractDependencies(buildCtx.Config.Module, buildCtx.Config.Dir)
 			if err != nil {
 				logger.Errorf(err, "could not extract dependencies")
@@ -433,6 +435,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 
 			}()
 		case <-ctx.Done():
+			_ = output.FinalizeCapture(true)
 			return errors.Wrap(ctx.Err(), "context cancelled")
 		}
 	}
@@ -563,7 +566,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 	}
 }
 
-func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, bind string, stdout io.Writer, cancel context.CancelCauseFunc) {
+func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, bind string, stdout *errorDetector, cancel context.CancelCauseFunc) {
 	go func() {
 		logger := log.FromContext(ctx)
 		logger.Infof("Using dev mode build command '%s'", devModeBuild)
@@ -576,6 +579,7 @@ func launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, project
 		command.Stderr = os.Stderr
 		err := command.Run()
 		if err != nil {
+			stdout.FinalizeCapture(true)
 			logger.Errorf(err, "Dev mode process exited with error")
 			cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev mode process exited with error"))
 		} else {
@@ -592,7 +596,7 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 		logger.Infof("Dev mode process failed to start")
 		select {
 		case <-ctx.Done():
-			return nil
+			return errors.Errorf("dev mode process exited")
 		default:
 		}
 		return errors.Wrap(err, "timed out waiting for star")
