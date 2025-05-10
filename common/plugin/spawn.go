@@ -87,7 +87,7 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	defaultLevel log.Level,
 	name, module, dir, exe string,
 	makeClient rpc.ClientFactory[Client, Req, Resp, RespPtr],
-	streamJson bool,
+	streamJSON bool,
 	options ...Option,
 ) (plugin *Plugin[Client, Req, Resp, RespPtr], cmdCtx context.Context, err error) {
 	logger := log.FromContext(ctx).Scope(name).Module(module)
@@ -124,7 +124,7 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	logger.Tracef("Spawning plugin on %s", pluginEndpoint)
 	cmd := exec.Command(ctx, defaultLevel, dir, exe)
 
-	if streamJson {
+	if streamJSON {
 		// Send the plugin's stderr and stdout to the logger.
 		cmd.Stderr = nil
 		epipe, err := cmd.StderrPipe()
