@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/configuration"
@@ -24,7 +23,6 @@ import (
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
-	"github.com/block/ftl/internal/timelineclient"
 )
 
 const maxLogs = 10
@@ -42,13 +40,10 @@ func (d *devCmd) Run(
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
 	bindContext KongContextBinder,
-	schemaEventSource *schemaeventsource.EventSource,
-	timelineClient *timelineclient.Client,
-	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	csm *currentStatusManager,
-	cli *SharedCLI,
 ) error {
-	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
+	cli.AdminEndpoint = d.ServeCmd.Bind
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.ServeCmd.Bind.String(), log.Error)
 
 	startTime := time.Now()
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -80,7 +75,8 @@ func (d *devCmd) Run(
 	}
 	os.Setenv("FTL_DEV_DIRS", strings.Join(absDirs, ","))
 
-	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), schemaEventSource, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
+	source := schemaeventsource.New(ctx, "dev", adminClient)
+	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), source, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
 		return errors.WithStack(runInnerCmd(ctx, k, projConfig, bindContext, args, additionalExit))
 	})
 	var deployClient buildengine.AdminClient = adminClient
@@ -96,7 +92,7 @@ func (d *devCmd) Run(
 	defer statusManager.Close()
 	starting := statusManager.NewStatus("\u001B[92mStarting FTL Server 🚀\u001B[39m")
 
-	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
+	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}
@@ -108,7 +104,7 @@ func (d *devCmd) Run(
 	devModeEndpointUpdates := make(chan dev.LocalEndpoint, 1)
 
 	opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-	engine, err := buildengine.New(ctx, deployClient, schemaEventSource, projConfig, d.Build.Dirs, false, opts...)
+	engine, err := buildengine.New(ctx, deployClient, source, projConfig, d.Build.Dirs, false, opts...)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -117,7 +113,7 @@ func (d *devCmd) Run(
 	controllerReady := make(chan bool, 1)
 	if !d.NoServe {
 		if d.ServeCmd.Stop {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine}, cli)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
 				return errors.Wrap(err, "failed to stop server")
 			}
@@ -125,7 +121,7 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
-			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, timelineClient, adminClient, buildEngineClient, devModeEndpointUpdates, []rpc.Service{engine}, cli)
+			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, devModeEndpointUpdates, []rpc.Service{engine})
 			if err != nil {
 				cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev server failed"))
 			} else {
