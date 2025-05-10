@@ -70,9 +70,9 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 				entry.Entry.Level = Debug
 			case "finest":
 				entry.Entry.Level = Trace
-			case "severe":
+			case "severe", "error":
 				entry.Entry.Level = Error
-			case "warning":
+			case "warning", "warn":
 				entry.Entry.Level = Warn
 			case "":
 				entry.Entry.Level = Info

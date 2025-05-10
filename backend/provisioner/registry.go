@@ -103,6 +103,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 			workingDir,
 			"ftl-provisioner-"+id,
 			provisionerconnect.NewProvisionerPluginServiceClient,
+			true,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error spawning plugin")

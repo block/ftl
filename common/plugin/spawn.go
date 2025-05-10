@@ -87,6 +87,7 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	defaultLevel log.Level,
 	name, module, dir, exe string,
 	makeClient rpc.ClientFactory[Client, Req, Resp, RespPtr],
+	streamJson bool,
 	options ...Option,
 ) (plugin *Plugin[Client, Req, Resp, RespPtr], cmdCtx context.Context, err error) {
 	logger := log.FromContext(ctx).Scope(name).Module(module)
@@ -123,16 +124,31 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	logger.Tracef("Spawning plugin on %s", pluginEndpoint)
 	cmd := exec.Command(ctx, defaultLevel, dir, exe)
 
-	// Send the plugin's stderr and stdout to the logger.
-	cmd.Stderr = nil
-	epipe, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create stderr pipe")
-	}
-	cmd.Stdout = nil
-	opipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to create stdout pipe")
+	if streamJson {
+		// Send the plugin's stderr and stdout to the logger.
+		cmd.Stderr = nil
+		epipe, err := cmd.StderrPipe()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to create stderr pipe")
+		}
+		cmd.Stdout = nil
+		opipe, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to create stdout pipe")
+		}
+
+		go func() {
+			err := log.JSONStreamer(epipe, logger, log.Error)
+			if err != nil {
+				logger.Errorf(err, "Error streaming plugin logs.")
+			}
+		}()
+		go func() {
+			err := log.JSONStreamer(opipe, logger, log.Info)
+			if err != nil {
+				logger.Errorf(err, "Error streaming plugin logs.")
+			}
+		}()
 	}
 	cmd.Env = append(cmd.Env, "FTL_BIND="+pluginEndpoint.String())
 	cmd.Env = append(cmd.Env, "FTL_WORKING_DIR="+workingDir)
@@ -152,19 +168,6 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 	var cancelWithCause context.CancelCauseFunc
 	cmdCtx, cancelWithCause = context.WithCancelCause(ctx)
 	go func() { cancelWithCause(cmd.Wait()) }()
-
-	go func() {
-		err := log.JSONStreamer(epipe, logger, log.Error)
-		if err != nil {
-			logger.Errorf(err, "Error streaming plugin logs.")
-		}
-	}()
-	go func() {
-		err := log.JSONStreamer(opipe, logger, log.Info)
-		if err != nil {
-			logger.Errorf(err, "Error streaming plugin logs.")
-		}
-	}()
 
 	defer func() {
 		if err != nil {
