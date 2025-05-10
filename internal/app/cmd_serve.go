@@ -57,6 +57,7 @@ type serveCmd struct {
 
 type serveCommonConfig struct {
 	IngressBind         *url.URL             `help:"HTTP Ingress bind" default:"http://127.0.0.1:8891"`
+	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to for all FTL services" default:"http://127.0.0.1:8892"`
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
 	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
@@ -86,16 +87,12 @@ func (s *serveCmd) Run(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
-	timelineClient *timelineclient.Client,
-	adminClient adminpbconnect.AdminServiceClient,
-	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
-	cli *SharedCLI,
 ) error {
-	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
+	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil, cli)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, nil, nil)
 }
 
 //nolint:maintidx
@@ -107,20 +104,20 @@ func (s *serveCommonConfig) run(
 	initialised optional.Option[chan bool],
 	devMode bool,
 	bindAllocator *bind.BindAllocator,
-	timelineClient *timelineclient.Client,
-	adminClient adminpbconnect.AdminServiceClient,
-	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 	additionalServices []rpc.Service,
-	cli *SharedCLI,
 ) error {
+	cli.AdminEndpoint = s.Bind
 
 	logger := log.FromContext(ctx)
 	services := additionalServices
 
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, cli.AdminEndpoint.String(), log.Error)
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.AdminEndpoint.String(), log.Error)
-	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, cli.AdminEndpoint.String(), log.Error)
+	timelineClient := timelineclient.NewClient(ctx, s.Bind)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, s.Bind.String(), log.Error)
+	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, s.Bind.String(), log.Error)
+	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Bind.String(), log.Error)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)
+	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Bind.String(), log.Error)
 
 	// We must use our own event source here
 	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly
@@ -197,9 +194,9 @@ func (s *serveCommonConfig) run(
 
 	runnerScaling, err := localscaling.NewLocalScaling(
 		ctx,
-		cli.AdminEndpoint,
-		cli.AdminEndpoint,
-		cli.AdminEndpoint,
+		s.Bind,
+		s.Bind,
+		s.Bind,
 		projConfig.Path,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableVSCodeIntegration,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableIntellijIntegration,
@@ -229,14 +226,14 @@ func (s *serveCommonConfig) run(
 
 	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
 
-	controllerService, err := controller.New(controllerCtx, cli.AdminEndpoint, adminClient, schemaClient, leaseClient, config, true)
+	controllerService, err := controller.New(controllerCtx, s.Bind, adminClient, schemaClient, leaseClient, config, true)
 	if err != nil {
 		return errors.Wrap(err, "controller failed")
 	}
 	services = append(services, controllerService)
 
 	if !s.NoConsole {
-		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, cli.AdminEndpoint, s.Console, optional.Some(projConfig), true)
+		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, s.Bind, s.Console, optional.Some(projConfig), true)
 		services = append(services, svc)
 		wg.Go(func() error {
 			ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("console"))
@@ -315,8 +312,8 @@ func (s *serveCommonConfig) run(
 	wg.Go(func() error {
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
 		c := cron.Config{
-			SchemaServiceEndpoint: cli.AdminEndpoint,
-			TimelineEndpoint:      cli.AdminEndpoint,
+			SchemaServiceEndpoint: s.Bind,
+			TimelineEndpoint:      s.Bind,
 		}
 		err := cron.Start(ctx, c, schemaEventSource, router, timelineClient)
 		if err != nil {
@@ -340,7 +337,7 @@ func (s *serveCommonConfig) run(
 
 	// Start the common server
 	wg.Go(func() error {
-		err := rpc.Serve(ctx, cli.AdminEndpoint, rpc.WithServices(services...))
+		err := rpc.Serve(ctx, s.Bind, rpc.WithServices(services...))
 		if err != nil {
 			return errors.Wrap(err, "lease failed")
 		}
