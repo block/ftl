@@ -404,7 +404,7 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             boolean boxPrimitives) {
         if (type.hasArray()) {
             return ParameterizedTypeName.get(ClassName.get(List.class),
-                    toJavaTypeName(type.getArray().getElement(), typeAliasMap, nativeTypeAliasMap, false));
+                    toJavaTypeName(type.getArray().getElement(), typeAliasMap, nativeTypeAliasMap, true));
         } else if (type.hasString()) {
             return ClassName.get(String.class);
         } else if (type.hasOptional()) {

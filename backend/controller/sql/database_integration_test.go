@@ -22,6 +22,8 @@ func TestPostgres(t *testing.T) {
 		// run tests which should only affect "testdb_test"
 		in.IfLanguage("go", in.ExecModuleTest("database")),
 		in.QueryRow("database_testdb", "SELECT data FROM requests", "hello"),
+
+		// TODO(worstell): Make slices work in Postgres
 	)
 }
 
@@ -38,6 +40,23 @@ func TestMySQL(t *testing.T) {
 		in.IfLanguage("go", in.ExecModuleTest("mysql")),
 		in.Call[in.Obj, in.Obj]("mysql", "query", map[string]any{}, func(t testing.TB, response in.Obj) {
 			assert.Equal(t, "hello", response["data"])
+		}),
+
+		// Add more data for SLICE testing
+		in.Call[in.Obj, in.Obj]("mysql", "insert", in.Obj{"data": "apple"}, nil),
+		in.Call[in.Obj, in.Obj]("mysql", "insert", in.Obj{"data": "banana"}, nil),
+
+		// Test SLICE pattern with IN clause
+		in.Call[[]string, []in.Obj]("mysql", "findMultiple", []string{"hello", "apple", "banana"}, func(t testing.TB, response []in.Obj) {
+			assert.Equal(t, 3, len(response), "Should find all 3 items")
+		}),
+
+		// Test multiple SLICE patterns in one query
+		in.Call[in.Obj, []in.Obj]("mysql", "findByDataAndIds", in.Obj{
+			"dataValues": []string{"hello", "apple"},
+			"ids":        []int{1},
+		}, func(t testing.TB, response []in.Obj) {
+			assert.True(t, len(response) == 1, "Should find only items matching both criteria")
 		}),
 	)
 }
@@ -117,4 +136,13 @@ func TestTransactions(t *testing.T) {
 		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests WHERE data = 'should-not-be-committed'", float64(0)),
 		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
 	)
+}
+
+func containsString(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
