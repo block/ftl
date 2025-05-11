@@ -108,6 +108,7 @@ func (s *serveCommonConfig) run(
 	additionalServices []rpc.Service,
 ) error {
 	cli.AdminEndpoint = s.Bind
+	os.Unsetenv("FTL_ENDPOINT") //nolint:errcheck
 
 	logger := log.FromContext(ctx)
 	services := additionalServices

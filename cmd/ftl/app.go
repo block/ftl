@@ -256,14 +256,19 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.Bind(csm)
 		kctx.Bind(&cli.SharedCLI)
 
-		timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
-		kctx.Bind(timelineClient)
+		err = kctx.BindToProvider(func() (*timelineclient.Client, error) {
+			return timelineclient.NewClient(ctx, cli.TimelineEndpoint), nil
+		})
+		kctx.FatalIfErrorf(err)
+		err = kctx.BindToProvider(func() (adminpbconnect.AdminServiceClient, error) {
+			return rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error), nil
+		})
+		kctx.FatalIfErrorf(err)
 
-		adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
-		kctx.BindTo(adminClient, (*adminpbconnect.AdminServiceClient)(nil))
-
-		buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.AdminEndpoint.String(), log.Error)
-		kctx.BindTo(buildEngineClient, (*buildenginepbconnect.BuildEngineServiceClient)(nil))
+		err = kctx.BindToProvider(func() (buildenginepbconnect.BuildEngineServiceClient, error) {
+			return rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.AdminEndpoint.String(), log.Error), nil
+		})
+		kctx.FatalIfErrorf(err)
 
 		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Configuration], error) {
 			return providers.NewDefaultConfigRegistry(), nil
@@ -275,9 +280,14 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		})
 		kctx.FatalIfErrorf(err)
 
-		source := schemaeventsource.New(ctx, "cli", adminClient)
-		kctx.BindTo(source, (**schemaeventsource.EventSource)(nil))
-		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(source.ViewOnly())))
+		err = kctx.BindToProvider(func(adminClient adminpbconnect.AdminServiceClient) (*schemaeventsource.EventSource, error) {
+			return schemaeventsource.New(ctx, "cli", adminClient), nil
+		})
+		kctx.FatalIfErrorf(err)
+		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(func() schemaeventsource.View {
+			ac := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
+			return schemaeventsource.New(ctx, "terminal-predicators", ac).ViewOnly()
+		})))
 
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))

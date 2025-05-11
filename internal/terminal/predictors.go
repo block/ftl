@@ -9,19 +9,32 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
-func Predictors(view *schemaeventsource.View) map[string]complete.Predictor {
+func Predictors(lazy func() schemaeventsource.View) map[string]complete.Predictor {
+	view := &lazyView{init: lazy}
 	return map[string]complete.Predictor{
-		"decls":         &declPredictor[schema.Decl]{view: *view},
-		"verbs":         &declPredictor[*schema.Verb]{view: *view},
-		"configs":       &declPredictor[*schema.Config]{view: *view},
-		"secrets":       &declPredictor[*schema.Secret]{view: *view},
-		"databases":     &declPredictor[*schema.Database]{view: *view},
-		"topics":        &declPredictor[*schema.Topic]{view: *view},
-		"subscriptions": &subscriptionsPredictor{view: *view},
-		"modules":       &modulePredictor{view: *view},
-		"deployments":   &deploymentsPredictor{view: *view},
+		"decls":         &declPredictor[schema.Decl]{view: view},
+		"verbs":         &declPredictor[*schema.Verb]{view: view},
+		"configs":       &declPredictor[*schema.Config]{view: view},
+		"secrets":       &declPredictor[*schema.Secret]{view: view},
+		"databases":     &declPredictor[*schema.Database]{view: view},
+		"topics":        &declPredictor[*schema.Topic]{view: view},
+		"subscriptions": &subscriptionsPredictor{view: view},
+		"modules":       &modulePredictor{view: view},
+		"deployments":   &deploymentsPredictor{view: view},
 		"log-level":     &logLevelPredictor{},
 	}
+}
+
+type lazyView struct {
+	view schemaeventsource.View
+	init func() schemaeventsource.View
+}
+
+func (l *lazyView) GetCanonical() *schema.Schema {
+	if l.view == nil {
+		l.view = l.init()
+	}
+	return l.view.GetCanonical()
 }
 
 type declPredictor[d schema.Decl] struct {

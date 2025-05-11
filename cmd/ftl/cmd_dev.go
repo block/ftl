@@ -43,6 +43,7 @@ func (d *devCmd) Run(
 	csm *currentStatusManager,
 ) error {
 	cli.AdminEndpoint = d.ServeCmd.Bind
+	os.Unsetenv("FTL_ENDPOINT") //nolint:errcheck
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, d.ServeCmd.Bind.String(), log.Error)
 
 	startTime := time.Now()

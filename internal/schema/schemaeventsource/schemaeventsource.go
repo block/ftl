@@ -28,7 +28,11 @@ type PullSchemaClient interface {
 }
 
 // View is a read-only view of the schema.
-type View struct {
+type View interface {
+	GetCanonical() *schema.Schema
+}
+
+type viewImpl struct {
 	eventSource *EventSource
 }
 
@@ -38,7 +42,9 @@ type currentState struct {
 }
 
 // GetCanonical returns the current canonical schema (ie: without any changes applied from active changesets)
-func (v *View) GetCanonical() *schema.Schema { return v.eventSource.view.Load().schema.WithBuiltins() }
+func (v *viewImpl) GetCanonical() *schema.Schema {
+	return v.eventSource.view.Load().schema.WithBuiltins()
+}
 
 // NewUnattached creates a new EventSource that is not attached to a SchemaService.
 func NewUnattached() *EventSource {
@@ -87,8 +93,8 @@ func (e *EventSource) Subscribe(ctx context.Context) <-chan schema.Notification 
 }
 
 // ViewOnly converts the EventSource into a read-only view of the schema.
-func (e *EventSource) ViewOnly() *View {
-	return &View{eventSource: e}
+func (e *EventSource) ViewOnly() View {
+	return &viewImpl{eventSource: e}
 
 }
 
