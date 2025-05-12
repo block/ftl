@@ -50,8 +50,12 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
 
     FTLController() {
         this.moduleName = System.getProperty("ftl.module.name");
-        if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+        if (LaunchMode.current() == LaunchMode.NORMAL) {
             runnerDetails = DefaultRunnerDetails.INSTANCE;
+        } else if (LaunchMode.current() == LaunchMode.TEST
+                && getClass().getClassLoader().toString().contains("(QuarkusUnitTest)")) { // huge hack to run QuarkusUnitTest
+            runnerDetails = DefaultRunnerDetails.INSTANCE;
+            runnerConnection = new MockRunnerConnection();
         } else {
             RunnerNotification.setCallback(this);
         }

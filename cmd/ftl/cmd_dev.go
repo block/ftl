@@ -41,6 +41,7 @@ func (d *devCmd) Run(
 	projConfig projectconfig.Config,
 	bindContext KongContextBinder,
 	csm *currentStatusManager,
+	cli *SharedCLI,
 ) error {
 	cli.AdminEndpoint = d.ServeCmd.Bind
 	os.Unsetenv("FTL_ENDPOINT") //nolint:errcheck
@@ -93,7 +94,7 @@ func (d *devCmd) Run(
 	defer statusManager.Close()
 	starting := statusManager.NewStatus("\u001B[92mStarting FTL Server 🚀\u001B[39m")
 
-	bindAllocator, err := bind.NewBindAllocator(d.ServeCmd.Bind, 2)
+	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}

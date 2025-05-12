@@ -88,6 +88,7 @@ type CLI struct {
 	Interactive interactiveCmd            `cmd:"" help:"Interactive mode." default:""`
 	Dev         devCmd                    `cmd:"" help:"Develop FTL modules. Will start the FTL cluster, build and deploy all modules found in the specified directories, and watch for changes."`
 	Serve       serveCmd                  `cmd:"" help:"Start the FTL server."`
+	Test        testCmd                   `cmd:"" help:"Start the FTL test server" hidden:""`
 	Completion  kongcompletion.Completion `cmd:"" help:"Outputs shell code for initialising tab completions."`
 	Logs        logsCmd                   `cmd:"" help:"View logs from FTL modules."`
 

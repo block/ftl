@@ -180,6 +180,11 @@
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
                                 <include>**/query.proto</include>
+                                <include>**/test.proto</include>
+                                <include>**/admin.proto</include>
+                                <include>**/schemaservice.proto</include>
+                                <include>**/timeline.proto</include>
+                                <include>**/event.proto</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -213,6 +218,11 @@
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
                                 <include>**/query.proto</include>
+                                <include>**/test.proto</include>
+                                <include>**/admin.proto</include>
+                                <include>**/schemaservice.proto</include>
+                                <include>**/timeline.proto</include>
+                                <include>**/event.proto</include>
                             </includes>
                         </configuration>
                     </execution>

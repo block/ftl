@@ -85,10 +85,10 @@ public class ModuleProcessor {
     }
 
     @BuildStep
-    ModuleNameBuildItem moduleName(ApplicationInfoBuildItem applicationInfoBuildItem) throws IOException {
+    ModuleNameBuildItem moduleName() throws IOException {
         String ftlModuleName = System.getenv("FTL_MODULE_NAME");
         if (ftlModuleName == null || ftlModuleName.isEmpty()) {
-            return new ModuleNameBuildItem(applicationInfoBuildItem.getName());
+            return new ModuleNameBuildItem(ModuleNameUtil.getModuleName());
         }
         return new ModuleNameBuildItem(ftlModuleName);
     }
@@ -205,6 +205,10 @@ public class ModuleProcessor {
                                 .setModule(schRef.get())
                                 .setNewRunnerRequired(newRunnerRequired).build());
             }
+        } else if (launchModeBuildItem.getLaunchMode() == LaunchMode.TEST) {
+            HotReloadHandler.getInstance()
+                    .setResults(SchemaState.newBuilder()
+                            .setModule(schRef.get()).build());
         } else {
             var launch = outputTargetBuildItem.getOutputDirectory().resolve("launch");
             try (var out = Files.newOutputStream(launch)) {
