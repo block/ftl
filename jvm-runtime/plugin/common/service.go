@@ -195,10 +195,11 @@ func (s *Service) runDevMode(ctx context.Context, projectConfig projectconfig.Co
 			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 			if err != nil {
 				logger.Errorf(err, "Could not send build event")
+				return errors.Wrap(err, "could not sent build event on new process launch")
 			}
 		}
 
-		err := s.runQuarkusDev(ctx, projectConfig, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents)
+		err := s.runQuarkusDev(ctx, projectConfig, buildCtx.Config.Realm, buildCtx.Config.Module, stream, firstResponseSent, fileEvents, cancel)
 		if err != nil {
 			logger.Errorf(err, "Dev mode process exited")
 		}
@@ -299,7 +300,7 @@ type buildResult struct {
 	bctx                buildContext
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged, parentCancel context.CancelCauseFunc) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (Quarkus dev modew"))
@@ -331,6 +332,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			}}})
 		if err != nil {
 			logger.Errorf(err, "could not send build event")
+			parentCancel(err)
 		}
 	}()
 
@@ -387,7 +389,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 		return true
 	})
 	go func() {
-		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32)
+		s.watchReloadEvents(ctx, reloadEvents, firstResponseSent, stream, devModeEndpoint, hotReloadEndpoint, debugPort32, cancel)
 	}()
 
 	errs := make(chan error)
@@ -422,6 +424,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 					},
 				})
 				if err != nil {
+					parentCancel(err)
 					return errors.Wrap(err, "could not send build event")
 				}
 				continue
@@ -478,7 +481,7 @@ func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], 
 	}
 }
 
-func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32) {
+func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buildResult, firstResponseSent *atomic.Value[bool], stream *connect.ServerStream[langpb.BuildResponse], devModeEndpoint string, hotReloadEndpoint string, debugPort32 int32, cancel context.CancelCauseFunc) {
 	logger := log.FromContext(ctx)
 	lastFailed := false
 	for event := range channels.IterContext(ctx, reloadEvents) {
@@ -495,7 +498,8 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 				err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_AutoRebuildStarted{AutoRebuildStarted: &langpb.AutoRebuildStarted{ContextId: buildCtx.ID}}})
 				if err != nil {
 					logger.Errorf(err, "could not send build event")
-					continue
+					cancel(err)
+					return
 				}
 			}
 			if builderrors.ContainsTerminalError(langpb.ErrorsFromProto(errorList)) || event.failed {
@@ -510,6 +514,8 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 					}}})
 				if err != nil {
 					logger.Errorf(err, "Could not send build event")
+					cancel(err)
+					return
 				}
 				firstResponseSent.Store(true)
 				continue
@@ -524,6 +530,8 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 				}))
 				if err != nil {
 					logger.Errorf(err, "Could not send build event")
+					cancel(err)
+					return
 				}
 				firstResponseSent.Store(true)
 				continue
@@ -536,6 +544,8 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 				}))
 				if err != nil {
 					logger.Errorf(err, "Could not send build event")
+					cancel(err)
+					return
 				}
 				firstResponseSent.Store(true)
 				continue
@@ -561,6 +571,8 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 			})
 			if err != nil {
 				logger.Errorf(err, "could not send build event")
+				cancel(err)
+				return
 			}
 		}
 	}
