@@ -87,15 +87,12 @@ func (s *serveCmd) Run(
 	cm *manager.Manager[configuration.Configuration],
 	sm *manager.Manager[configuration.Secrets],
 	projConfig projectconfig.Config,
-	timelineClient *timelineclient.Client,
-	adminClient adminpbconnect.AdminServiceClient,
-	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(s.Bind, 2)
 	if err != nil {
 		return errors.Wrap(err, "could not create bind allocator")
 	}
-	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, timelineClient, adminClient, buildEngineClient, nil, nil)
+	return s.run(ctx, projConfig, cm, sm, optional.None[chan bool](), false, bindAllocator, nil, nil)
 }
 
 //nolint:maintidx
@@ -107,16 +104,18 @@ func (s *serveCommonConfig) run(
 	initialised optional.Option[chan bool],
 	devMode bool,
 	bindAllocator *bind.BindAllocator,
-	timelineClient *timelineclient.Client,
-	adminClient adminpbconnect.AdminServiceClient,
-	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 	additionalServices []rpc.Service,
 ) error {
+	cli.AdminEndpoint = s.Bind
+	os.Unsetenv("FTL_ENDPOINT") //nolint:errcheck
 
 	logger := log.FromContext(ctx)
 	services := additionalServices
 
+	timelineClient := timelineclient.NewClient(ctx, s.Bind)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, s.Bind.String(), log.Error)
+	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, s.Bind.String(), log.Error)
 	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Bind.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)
 	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Bind.String(), log.Error)

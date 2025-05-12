@@ -181,7 +181,7 @@ func errorf(format string, args ...any) {
 
 type FTLCompletion struct {
 	app  *kong.Kong
-	view *schemaeventsource.View
+	view schemaeventsource.View
 }
 
 func (f *FTLCompletion) Do(line []rune, pos int) ([][]rune, int) {
@@ -235,7 +235,7 @@ func (f *FTLCompletion) Do(line []rune, pos int) ([][]rune, int) {
 		LastCompleted: lastCompleted,
 	}
 
-	command, err := kongcompletion.Command(parser, kongcompletion.WithPredictors(Predictors(f.view)))
+	command, err := kongcompletion.Command(parser, kongcompletion.WithPredictors(Predictors(func() schemaeventsource.View { return f.view })))
 	if err != nil {
 		// TODO handle error
 		println(err.Error())
