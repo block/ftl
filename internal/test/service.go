@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+
 	testpb "github.com/block/ftl/backend/protos/xyz/block/ftl/test/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/test/v1/testpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
