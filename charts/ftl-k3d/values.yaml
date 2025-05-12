@@ -1,5 +1,12 @@
 
 ftl:
+  ingress:
+    enabled: true
+    urlPrefix: "/ingress/"
+    ports:
+      - name: http
+        port: 8892
+        targetPort: 8892
   registry:
     repository: "ftl-registry.default:5000/ftl-artefacts"
     allowInsecure: "true"

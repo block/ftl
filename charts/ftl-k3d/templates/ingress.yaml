@@ -9,13 +9,6 @@ spec:
   rules:
   - http:
       paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: ftl-console
-              port:
-                number: 8892
         - path: /ingress/
           pathType: Prefix
           backend:
@@ -42,6 +35,13 @@ spec:
           backend:
             service:
               name: ftl-timeline
+              port:
+                number: 8892
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: ftl-console
               port:
                 number: 8892
 
