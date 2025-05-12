@@ -69,4 +69,12 @@ func TestGraph(t *testing.T) {
 	assert.Equal(t, expected, graph)
 	err = engine.Build(ctx)
 	assert.NoError(t, err)
+	for _, module := range []string{
+		"alpha",
+		"other",
+		"another",
+	} {
+		_, success := engine.GetModuleSchema(module)
+		assert.True(t, success, "expected schema for %s to be found", module)
+	}
 }

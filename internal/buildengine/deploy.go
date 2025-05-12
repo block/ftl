@@ -16,7 +16,6 @@ import (
 	"github.com/alecthomas/types/result"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
@@ -31,7 +30,6 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
-	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -55,16 +53,16 @@ type pendingModule struct {
 	deployPaths  []string
 	tmpDeployDir string
 
-	schemaPath string
-	schema     *schema.Module
+	schema *schema.Module
 }
 
-func newPendingModule(module Module, tmpDeployDir string, deployPaths []string, schemaPath string) *pendingModule {
+func newPendingModule(module Module, tmpDeployDir string, deployPaths []string, schema *schema.Module) *pendingModule {
 	return &pendingModule{
 		module:       module,
 		deployPaths:  deployPaths,
 		tmpDeployDir: tmpDeployDir,
-		schemaPath:   schemaPath,
+		// Schema is mutated by deploy coordinator
+		schema: reflect.DeepCopy(schema),
 	}
 }
 
@@ -655,11 +653,10 @@ func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, ad
 	uploadGroup := errgroup.Group{}
 	for _, module := range modules {
 		uploadGroup.Go(func() error {
-			sch, err := uploadArtefacts(ctx, module, adminClient)
+			err := uploadArtefacts(ctx, module, adminClient)
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			module.schema = sch
 			return nil
 		})
 	}
@@ -726,50 +723,40 @@ type deploymentArtefact struct {
 	localPath string
 }
 
-func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminClient) (*schema.Module, error) {
+func uploadArtefacts(ctx context.Context, module *pendingModule, client AdminClient) error {
 	logger := log.FromContext(ctx).Module(module.moduleName()).Scope("deploy")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	moduleConfig := module.module.Config.Abs()
 	filesByHash, err := hashFiles(module.tmpDeployDir, module.deployPaths)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 
 	gadResp, err := client.GetArtefactDiffs(ctx, connect.NewRequest(&adminpb.GetArtefactDiffsRequest{ClientDigests: stdslices.Collect(maps.Keys(filesByHash))}))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get artefact diffs")
-	}
-
-	moduleSchema, err := loadProtoSchema(moduleConfig, module.schemaPath)
-	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.Wrap(err, "failed to get artefact diffs")
 	}
 
 	logger.Debugf("Uploading %d/%d files", len(gadResp.Msg.MissingDigests), len(module.deployPaths))
 	for _, missing := range gadResp.Msg.MissingDigests {
 		file := filesByHash[missing]
 		if err := uploadDeploymentArtefact(ctx, client, file); err != nil {
-			return nil, errors.Wrap(err, "failed to upload deployment artefact")
+			return errors.Wrap(err, "failed to upload deployment artefact")
 		}
 	}
 
 	for _, artefact := range filesByHash {
-		moduleSchema.Metadata = append(moduleSchema.Metadata, &schemapb.Metadata{
-			Value: &schemapb.Metadata_Artefact{
-				Artefact: &schemapb.MetadataArtefact{
-					Path:       artefact.Path,
-					Digest:     hex.EncodeToString(artefact.Digest),
-					Executable: artefact.Executable,
-				},
-			},
+		digest, err := sha256.ParseSHA256(hex.EncodeToString(artefact.Digest))
+		if err != nil {
+			return errors.Wrap(err, "failed to parse SHA256 digest")
+		}
+		module.schema.Metadata = append(module.schema.Metadata, &schema.MetadataArtefact{
+			Path:       artefact.Path,
+			Digest:     digest,
+			Executable: artefact.Executable,
 		})
 	}
-	parsedSchema, err := schema.ModuleFromProto(moduleSchema)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not parse schema to upload")
-	}
-	return parsedSchema, nil
+	return nil
 }
 
 func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file deploymentArtefact) error {
@@ -814,32 +801,6 @@ func uploadDeploymentArtefact(ctx context.Context, client AdminClient, file depl
 	}
 	logger.Debugf("Uploaded %s as %s:%s", relToCWD(file.localPath), digest, file.Path)
 	return nil
-}
-
-func loadProtoSchema(config moduleconfig.AbsModuleConfig, schPath string) (*schemapb.Module, error) {
-	content, err := os.ReadFile(schPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load protobuf schema from %q", schPath)
-	}
-	module := &schemapb.Module{}
-	err = proto.Unmarshal(content, module)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load protobuf schema from %q", schPath)
-	}
-	runtime := module.Runtime
-	if runtime == nil {
-		runtime = &schemapb.ModuleRuntime{}
-		module.Runtime = runtime
-	}
-	module.Runtime = runtime
-	if runtime.Base == nil {
-		runtime.Base = &schemapb.ModuleRuntimeBase{}
-	}
-	if runtime.Base.CreateTime == nil {
-		runtime.Base.CreateTime = timestamppb.Now()
-	}
-	runtime.Base.Language = config.Language
-	return module, nil
 }
 
 func hashFiles(base string, files []string) (filesByHash map[string]deploymentArtefact, err error) {
