@@ -300,7 +300,7 @@ type buildResult struct {
 	bctx                buildContext
 }
 
-func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged, cancel context.CancelCauseFunc) error {
+func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig projectconfig.Config, realm, module string, stream *connect.ServerStream[langpb.BuildResponse], firstResponseSent *atomic.Value[bool], fileEvents chan watch.WatchEventModuleChanged, parentCancel context.CancelCauseFunc) error {
 	logger := log.FromContext(parentCtx)
 	ctx, cancel := context.WithCancelCause(parentCtx)
 	defer cancel(errors.Wrap(context.Canceled, "stopping JVM language plugin (Quarkus dev modew"))
@@ -332,7 +332,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			}}})
 		if err != nil {
 			logger.Errorf(err, "could not send build event")
-			cancel(err)
+			parentCancel(err)
 		}
 	}()
 
@@ -424,7 +424,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 					},
 				})
 				if err != nil {
-					cancel(err)
+					parentCancel(err)
 					return errors.Wrap(err, "could not send build event")
 				}
 				continue
