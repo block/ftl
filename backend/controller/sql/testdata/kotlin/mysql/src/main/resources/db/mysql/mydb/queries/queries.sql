@@ -22,3 +22,6 @@ SELECT * FROM requests WHERE `data` IN (sqlc.slice("dataValues"));
 
 -- name: findByDataAndIds :many
 SELECT * FROM requests WHERE `data` IN (sqlc.slice("dataValues")) AND `id` IN (sqlc.slice("ids"));
+
+-- name: findTestTypesBySlices :many
+SELECT * FROM test_types WHERE `text_val` IN (sqlc.slice("textValues")) AND `int_val` IN (sqlc.slice("intValues")) AND `float_val` IN (sqlc.slice("floatValues"));

@@ -137,3 +137,20 @@ func TestTransactions(t *testing.T) {
 		in.QueryRow("postgres_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
 	)
 }
+
+func TestLists(t *testing.T) {
+	in.Run(t,
+		in.WithDebugLogging(),
+		in.WithLanguages("kotlin"),
+		in.CopyModule("mysql"),
+		in.Deploy("mysql"),
+
+		in.Call[in.Obj, in.Obj]("mysql", "insertTestData", in.Obj{"intVal": 1, "floatVal": 2, "textVal": "test"}, nil),
+		in.Call[in.Obj, []in.Obj]("mysql", "querySlices", in.Obj{"ints": []int{1}, "floats": []float64{2.0}, "texts": []string{"test"}}, func(t testing.TB, response []in.Obj) {
+			assert.Equal(t, 1, len(response))
+			assert.Equal(t, 1, response[0]["intVal"])
+			assert.Equal(t, 2, response[0]["floatVal"])
+			assert.Equal(t, "test", response[0]["textVal"])
+		}),
+	)
+}
