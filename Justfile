@@ -119,9 +119,9 @@ dev *args:
 capture-hermit-versions:
     #!/bin/bash
     set -euo pipefail
-    rm internal/app/dependency-versions.txt
+    rm cmd/ftl/dependency-versions.txt
     for dep in {{USER_HERMIT_PACKAGES}}; do
-        ls bin/.* | grep "/.$dep" | sed 's/.....\(.*\)....$/\1/' >> internal/app/dependency-versions.txt
+        ls bin/.* | grep "/.$dep" | sed 's/.....\(.*\)....$/\1/' >> cmd/ftl/dependency-versions.txt
     done
 
 # Build everything

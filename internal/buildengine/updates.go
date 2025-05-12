@@ -49,7 +49,7 @@ func (e *Engine) startUpdatesService(ctx context.Context) rpc.Service {
 
 	// Subscribe to engine updates from the start
 	events := make(chan *buildenginepb.EngineEvent, 128)
-	svc.engine.EngineUpdates.Subscribe(events)
+	svc.engine.engineUpdates.Subscribe(events)
 
 	// Start goroutine to collect events
 	go func() {

@@ -9,7 +9,6 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/internal/app"
 	_ "github.com/block/ftl/internal/prodinit" // Set GOMAXPROCS to match Linux container CPU quota.
 )
 
@@ -24,7 +23,7 @@ func main() {
 		_ = syscall.Kill(-syscall.Getpid(), sig.(syscall.Signal)) //nolint:forcetypeassert,errcheck // best effort
 		os.Exit(0)
 	}()
-	app, err := app.New(ctx)
+	app, err := New(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ftl: error: %s", err)
 		os.Exit(1)

@@ -114,7 +114,7 @@ type Engine struct {
 	rawEngineUpdates chan *buildenginepb.EngineEvent
 
 	// topic to subscribe to engine events
-	EngineUpdates *pubsub.Topic[*buildenginepb.EngineEvent]
+	engineUpdates *pubsub.Topic[*buildenginepb.EngineEvent]
 
 	devModeEndpointUpdates chan dev.LocalEndpoint
 	devMode                bool
@@ -167,7 +167,7 @@ func WithStartTime(startTime time.Time) Option {
 // locally available. If the FTL controller is available, it will be used to
 // pull in missing schemas.
 //
-// "dirs" are directories to scan for local modules.
+// "moduleDirs" are directories to scan for local modules.
 func New(
 	ctx context.Context,
 	adminClient AdminClient,
@@ -191,7 +191,7 @@ func New(
 		modulesToBuild:   xsync.NewMapOf[string, bool](),
 		rebuildEvents:    make(chan rebuildEvent, 128),
 		rawEngineUpdates: rawEngineUpdates,
-		EngineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
+		engineUpdates:    pubsub.New[*buildenginepb.EngineEvent](),
 		arch:             runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
 		os:               runtime.GOOS,
 		externalRealms:   xsync.NewMapOf[string, *schema.Realm](),
@@ -223,7 +223,7 @@ func New(
 		return nil, errors.Wrap(err, "failed to clean stubs")
 	}
 
-	updateTerminalWithEngineEvents(ctx, e.EngineUpdates)
+	updateTerminalWithEngineEvents(ctx, e.engineUpdates)
 
 	go e.watchForPluginEvents(ctx)
 	e.updatesService = e.startUpdatesService(ctx)
@@ -748,7 +748,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 				},
 			}
 			addTimestamp(evt)
-			e.EngineUpdates.Publish(evt)
+			e.engineUpdates.Publish(evt)
 
 		case evt := <-e.rawEngineUpdates:
 			switch rawEvent := evt.Event.(type) {
@@ -771,7 +771,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 						},
 					}
 					addTimestamp(started)
-					e.EngineUpdates.Publish(started)
+					e.engineUpdates.Publish(started)
 				}
 				if rawEvent.ModuleBuildStarted.IsAutoRebuild {
 					moduleStates[rawEvent.ModuleBuildStarted.Config.Name] = moduleStateAutoRebuilding
@@ -800,7 +800,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 						},
 					}
 					addTimestamp(started)
-					e.EngineUpdates.Publish(started)
+					e.engineUpdates.Publish(started)
 				}
 				moduleStates[rawEvent.ModuleDeployStarted.Module] = moduleStateDeploying
 				delete(moduleErrors, rawEvent.ModuleDeployStarted.Module)
@@ -813,7 +813,7 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			}
 
 			addTimestamp(evt)
-			e.EngineUpdates.Publish(evt)
+			e.engineUpdates.Publish(evt)
 		}
 		if !idle && e.isIdle(moduleStates) {
 			endTime = time.Now()
