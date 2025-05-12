@@ -134,15 +134,13 @@ func NewFunction(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 	in.Run(t,
 		in.CopyModule("time"),
 		in.Deploy("time"),
-		in.ExecWithOutput("ftl", []string{"schema", "diff"}, func(output string) {
-			assert.Equal(t, "", output)
-		}),
+		in.Exec("ftl", "schema", "save"),
 		in.EditFile("time", func(bytes []byte) []byte {
 			s := string(bytes)
 			s += newVerb
 			return []byte(s)
 		}, "time.go"),
-		in.Build("time"),
+		in.Deploy("time"),
 		// We exit with code 1 when there is a difference
 		in.ExpectError(
 			in.ExecWithOutput("ftl", []string{"schema", "diff"}, func(output string) {

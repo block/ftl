@@ -367,8 +367,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				}
 				ctx = startProcess(ctx, t, tmpDir, opts.devMode, args...)
 			}
+			adminEndpoint := "http://localhost:" + adminPort
 			if opts.startController || opts.kube {
-				admin = rpc.Dial(adminpbconnect.NewAdminServiceClient, "http://localhost:"+adminPort, log.Debug)
+				admin = rpc.Dial(adminpbconnect.NewAdminServiceClient, adminEndpoint, log.Debug)
 				console = rpc.Dial(consolepbconnect.NewConsoleServiceClient, "http://localhost:"+consolePort, log.Debug)
 				schema = rpc.Dial(ftlv1connect.NewSchemaServiceClient, "http://localhost:"+schemaPort, log.Debug)
 			}
@@ -393,6 +394,7 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			}
 			defer dumpTestContents(ctx, ic)
 			defer dumpKubePods(ctx, t, ic.kubeClient, ic.kubeNamespace)
+			ic.AdminEndpoint = adminEndpoint
 			if opts.startController || opts.kube {
 				ic.Admin = admin
 				ic.Schema = schema
@@ -403,13 +405,13 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 			}
 
 			if opts.startTimeline {
-				ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, "http://localhost:"+adminPort, log.Debug)
+				ic.Timeline = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, adminEndpoint, log.Debug)
 				Infof("Waiting for timeline to be ready")
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
 			}
 
 			if opts.devMode {
-				ic.BuildEngine = rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, "http://localhost:"+adminPort, log.Debug)
+				ic.BuildEngine = rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, adminEndpoint, log.Debug)
 
 				Infof("Waiting for build engine client to be ready")
 				assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{Max: time.Millisecond * 50}, time.Minute*2, ic.Timeline))
@@ -527,12 +529,13 @@ type TestContext struct {
 	kubeNamespace string
 	devMode       bool
 
-	Admin       adminpbconnect.AdminServiceClient
-	Schema      ftlv1connect.SchemaServiceClient
-	Console     consolepbconnect.ConsoleServiceClient
-	Verbs       ftlv1connect.VerbServiceClient
-	Timeline    timelinepbconnect.TimelineServiceClient
-	BuildEngine buildenginepbconnect.BuildEngineServiceClient
+	AdminEndpoint string
+	Admin         adminpbconnect.AdminServiceClient
+	Schema        ftlv1connect.SchemaServiceClient
+	Console       consolepbconnect.ConsoleServiceClient
+	Verbs         ftlv1connect.VerbServiceClient
+	Timeline      timelinepbconnect.TimelineServiceClient
+	BuildEngine   buildenginepbconnect.BuildEngineServiceClient
 
 	realT *testing.T
 }
