@@ -42,6 +42,8 @@ spec:
             {{- end }}
             - name: FTL_INGRESS_ALLOW_ORIGIN
               value: "{{ .Values.ingress.allowOrigin }}"
+            - name: FTL_INGRESS_URL_PREFIX
+              value: "{{ .Values.ingress.urlPrefix | default "" }}"
             - name: FTL_BIND
               value: "http://0.0.0.0:8892"
             - name: FTL_TIMELINE_ENDPOINT

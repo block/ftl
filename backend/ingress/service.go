@@ -24,8 +24,9 @@ import (
 )
 
 type Config struct {
-	AllowOrigins []string `help:"Allow CORS requests to ingress endpoints from these origins." env:"FTL_INGRESS_ALLOW_ORIGIN"`
-	AllowHeaders []string `help:"Allow these headers in CORS requests. (Requires AllowOrigins)" env:"FTL_INGRESS_ALLOW_HEADERS"`
+	AllowOrigins     []string `help:"Allow CORS requests to ingress endpoints from these origins." env:"FTL_INGRESS_ALLOW_ORIGIN"`
+	AllowHeaders     []string `help:"Allow these headers in CORS requests. (Requires AllowOrigins)" env:"FTL_INGRESS_ALLOW_HEADERS"`
+	IngressURLPrefix string   `help:"URL prefix for ingress endpoints." env:"FTL_INGRESS_URL_PREFIX" default:""`
 }
 
 func (c *Config) Validate() error {
@@ -41,6 +42,7 @@ type service struct {
 	client         routing.CallClient
 	timelineClient *timelineclient.Client
 	routeTable     *routing.RouteTable
+	urlPrefix      string
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
@@ -52,6 +54,7 @@ func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schem
 		client:         client,
 		timelineClient: timelineClient,
 		routeTable:     routing.New(ctx, eventSource),
+		urlPrefix:      config.IngressURLPrefix,
 	}
 
 	ingressHandler := otelhttp.NewHandler(http.Handler(svc), "ftl.ingress")
@@ -77,8 +80,13 @@ func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	if s.urlPrefix != "" {
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, s.urlPrefix)
+	}
+
 	start := time.Now()
 	method := strings.ToLower(r.Method)
+
 	requestKey := key.NewRequestKey(key.OriginIngress, fmt.Sprintf("%s %s", method, r.URL.Path))
 
 	state := s.view.Load()
