@@ -14,14 +14,14 @@ func TestPostgres(t *testing.T) {
 	in.Run(t,
 		in.WithLanguages("go", "java", "kotlin"),
 		// deploy real module against "testdb"
-		in.CopyModule("database"),
-		in.Deploy("database"),
-		in.Call[in.Obj, in.Obj]("database", "insert", in.Obj{"data": "hello"}, nil),
-		in.QueryRow("database_testdb", "SELECT data FROM requests", "hello"),
+		in.CopyModule("postgres"),
+		in.Deploy("postgres"),
+		in.Call[in.Obj, in.Obj]("postgres", "insert", in.Obj{"data": "hello"}, nil),
+		in.QueryRow("postgres_testdb", "SELECT data FROM requests", "hello"),
 
 		// run tests which should only affect "testdb_test"
-		in.IfLanguage("go", in.ExecModuleTest("database")),
-		in.QueryRow("database_testdb", "SELECT data FROM requests", "hello"),
+		in.IfLanguage("go", in.ExecModuleTest("postgres")),
+		in.QueryRow("postgres_testdb", "SELECT data FROM requests", "hello"),
 
 		// TODO(worstell): Make slices work in Postgres
 	)
@@ -111,38 +111,29 @@ func TestSQLVerbs(t *testing.T) {
 func TestTransactions(t *testing.T) {
 	in.Run(t,
 		in.WithLanguages("go", "java", "kotlin"),
-		in.CopyModule("database"),
-		in.Deploy("database"),
+		in.CopyModule("postgres"),
+		in.Deploy("postgres"),
 
 		// successful transaction
-		in.Call[in.Obj, in.Obj]("database", "transactionInsert", in.Obj{
+		in.Call("postgres", "transactionInsert", in.Obj{
 			"items": []string{"item1", "item2", "item3"},
 		}, func(t testing.TB, response in.Obj) {
 			count := response["count"].(float64)
 			assert.Equal(t, float64(3), count, "Transaction should have inserted 3 items")
 		}),
-		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item1'", "item1"),
-		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item2'", "item2"),
-		in.QueryRow("database_testdb", "SELECT data FROM requests WHERE data = 'item3'", "item3"),
-		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
+		in.QueryRow("postgres_testdb", "SELECT data FROM requests WHERE data = 'item1'", "item1"),
+		in.QueryRow("postgres_testdb", "SELECT data FROM requests WHERE data = 'item2'", "item2"),
+		in.QueryRow("postgres_testdb", "SELECT data FROM requests WHERE data = 'item3'", "item3"),
+		in.QueryRow("postgres_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
 
 		// rollback
 		in.ExpectError(
-			in.Call[in.Obj, in.Obj]("database", "transactionRollback", in.Obj{
+			in.Call[in.Obj, in.Obj]("postgres", "transactionRollback", in.Obj{
 				"items": []string{"should-not-be-committed"},
 			}, nil),
 			"deliberate error to test rollback",
 		),
-		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests WHERE data = 'should-not-be-committed'", float64(0)),
-		in.QueryRow("database_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
+		in.QueryRow("postgres_testdb", "SELECT COUNT(*) FROM requests WHERE data = 'should-not-be-committed'", float64(0)),
+		in.QueryRow("postgres_testdb", "SELECT COUNT(*) FROM requests", float64(3)),
 	)
-}
-
-func containsString(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
