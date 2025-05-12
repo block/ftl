@@ -281,6 +281,14 @@ func (e *Engine) Close() error {
 	return nil
 }
 
+func (e *Engine) GetSchema() (*schema.Schema, bool) {
+	sch := e.targetSchema.Load()
+	if sch == nil {
+		return nil, false
+	}
+	return sch, true
+}
+
 func (e *Engine) GetModuleSchema(moduleName string) (*schema.Module, bool) {
 	sch := e.targetSchema.Load()
 	if sch == nil {
