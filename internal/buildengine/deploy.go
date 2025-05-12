@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	stdslices "slices"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
@@ -650,6 +651,17 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 }
 
 func prepareForDeploy(ctx context.Context, modules map[string]*pendingModule, adminClient AdminClient) (err error) {
+	for _, module := range modules {
+		if module.schema.Runtime == nil {
+			module.schema.Runtime = &schema.ModuleRuntime{
+				Base: schema.ModuleRuntimeBase{
+					CreateTime: time.Now(),
+				},
+			}
+		}
+		module.schema.Runtime.Base.Language = module.module.Config.Language
+	}
+
 	uploadGroup := errgroup.Group{}
 	for _, module := range modules {
 		uploadGroup.Go(func() error {
