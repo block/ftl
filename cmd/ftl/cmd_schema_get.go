@@ -17,7 +17,7 @@ import (
 	"github.com/block/ftl/internal/projectconfig"
 )
 
-type getSchemaCmd struct {
+type schemaGetCmd struct {
 	Watch    bool     `help:"Watch for changes to the schema."`
 	Protobuf bool     `help:"Output the schema as binary protobuf." xor:"format"`
 	JSON     bool     `help:"Output the schema as JSON." xor:"format"`
@@ -25,7 +25,7 @@ type getSchemaCmd struct {
 	External bool     `help:"Outputs the externally exported part of the schema"`
 }
 
-func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
+func (g *schemaGetCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-get"}))
 	if err != nil {
 		return errors.WithStack(err)
@@ -87,7 +87,7 @@ func (g *getSchemaCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 	return nil
 }
 
-func (g *getSchemaCmd) displaySchema(sch *schema.Schema) error {
+func (g *schemaGetCmd) displaySchema(sch *schema.Schema) error {
 	for _, realm := range sch.Realms {
 		fmt.Println(realm)
 	}
@@ -115,7 +115,7 @@ func fullSchemaFromStream(resp *connect.ServerStreamForClient[ftlv1.PullSchemaRe
 	return nil, errors.New("no FullSchemaNotification received")
 }
 
-func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
+func (g *schemaGetCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
 	sch, err := fullSchemaFromStream(resp)
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
@@ -135,7 +135,7 @@ func (g *getSchemaCmd) generateJSON(resp *connect.ServerStreamForClient[ftlv1.Pu
 	return nil
 }
 
-func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
+func (g *schemaGetCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) error {
 	sch, err := fullSchemaFromStream(resp)
 	if err != nil {
 		return errors.Wrap(err, "error receiving schema")
@@ -157,7 +157,7 @@ func (g *getSchemaCmd) generateProto(resp *connect.ServerStreamForClient[ftlv1.P
 	return nil
 }
 
-func (g *getSchemaCmd) applyFilters(sch *schema.Schema) (*schema.Schema, []schema.RefKey) {
+func (g *schemaGetCmd) applyFilters(sch *schema.Schema) (*schema.Schema, []schema.RefKey) {
 	var missing []schema.RefKey
 	if len(g.Modules) > 0 {
 		sch, missing = sch.FilterModules(moduleNamesToRefKeys(g.Modules))
