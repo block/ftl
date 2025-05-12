@@ -5,77 +5,58 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/chroma/v2/quick"
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/either"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
 	"github.com/mattn/go-isatty"
+	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/block/ftl/backend/admin"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/terminal"
-	"github.com/block/ftl/internal/watch"
 )
 
 type schemaDiffCmd struct {
-	OtherEndpoint url.URL `arg:"" help:"Other endpoint URL to compare against. If this is not specified then ftl will perform a diff against the local schema." optional:""`
-	Color         bool    `help:"Enable colored output regardless of TTY."`
+	From  string `arg:"" optional:"" help:"Schema source to diff from, either an FTL endpoint URL or a file created by 'ftl schema save' (defaults to 'ftl-schema.json')."`
+	To    string `arg:"" optional:"" help:"Schema source representing the current schema, either an FTL endpoint URL or a file created by 'ftl schema save' (defaults to running cluster)."`
+	Color bool   `help:"Enable colored output regardless of TTY."`
 }
 
 func (d *schemaDiffCmd) Run(
 	ctx context.Context,
-	currentURL *url.URL,
+	endpoint *url.URL,
 	projConfig projectconfig.Config,
-	schemaClient admin.EnvironmentClient,
 ) error {
-	var other *schema.Schema
-	var err error
-	sameModulesOnly := false
-	otherEndpoint := d.OtherEndpoint.String()
-	if otherEndpoint == "" {
-		otherEndpoint = "Local Changes"
-		sameModulesOnly = true
+	from := d.From
+	if from == "" {
+		from = filepath.Join(projConfig.Root(), "ftl-schema.json")
+	}
+	to := d.To
+	if to == "" {
+		to = endpoint.String()
+	}
 
-		other, err = localSchema(ctx, projConfig)
-	} else {
-		other, err = schemaForURL(ctx, schemaClient, d.OtherEndpoint)
-	}
-	if err != nil {
-		return errors.Wrap(err, "failed to get other schema")
-	}
-	current, err := schemaForURL(ctx, schemaClient, *currentURL)
+	current, err := retrieveSchema(ctx, from)
 	if err != nil {
 		return errors.Wrap(err, "failed to get current schema")
 	}
-	if sameModulesOnly {
-		for _, realm := range current.Realms {
-			tempModules := realm.Modules
-			realm.Modules = []*schema.Module{}
-			moduleMap := map[string]*schema.Module{}
-			for _, i := range tempModules {
-				moduleMap[i.Name] = i
-			}
-			for _, r := range other.Realms {
-				if r.Name != realm.Name {
-					continue
-				}
-				for _, i := range r.Modules {
-					if mod, ok := moduleMap[i.Name]; ok {
-						realm.Modules = append(realm.Modules, mod)
-					}
-				}
-			}
-		}
+	other, err := retrieveSchema(ctx, to)
+	if err != nil {
+		return errors.Wrap(err, "failed to get other schema")
 	}
-
 	edits := myers.ComputeEdits(span.URIFromPath(""), current.String(), other.String())
-	diff := fmt.Sprint(gotextdiff.ToUnified(currentURL.String(), otherEndpoint, current.String(), edits))
+	diff := fmt.Sprint(gotextdiff.ToUnified(from, to, current.String(), edits))
 
 	color := d.Color || isatty.IsTerminal(os.Stdout.Fd())
 	if color {
@@ -98,58 +79,40 @@ func (d *schemaDiffCmd) Run(
 	return nil
 }
 
-func localSchema(ctx context.Context, projectConfig projectconfig.Config) (*schema.Schema, error) {
-	errs := []error{}
-	modules, err := watch.DiscoverModules(ctx, projectConfig.AbsModuleDirs())
+func retrieveSchema(ctx context.Context, source string) (*schema.Schema, error) {
+	if strings.HasPrefix(source, "http") || strings.HasPrefix(source, "https") {
+		return schemaFromServer(ctx, source)
+	}
+	return schemaFromDisk(source)
+}
+
+func schemaFromDisk(path string) (*schema.Schema, error) {
+	pb, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to discover module")
+		return nil, errors.Wrap(err, "failed to load schema")
 	}
-
-	moduleSchemas := make(chan either.Either[*schema.Module, error], len(modules))
-	defer close(moduleSchemas)
-
-	for _, m := range modules {
-		go func() {
-			module, err := schema.ModuleFromProtoFile(projectConfig.SchemaPath(m.Module))
-			if err != nil {
-				moduleSchemas <- either.RightOf[*schema.Module](err)
-				return
-			}
-			moduleSchemas <- either.LeftOf[error](module)
-		}()
+	schemaProto := &schemapb.Schema{}
+	err = protojson.Unmarshal(pb, schemaProto)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal schema")
 	}
-	realm := &schema.Realm{
-		Name:    projectConfig.Name,
-		Modules: []*schema.Module{},
-	}
-	sch := &schema.Schema{Realms: []*schema.Realm{realm}}
-	for range len(modules) {
-		result := <-moduleSchemas
-		switch result := result.(type) {
-		case either.Left[*schema.Module, error]:
-			realm.Upsert(result.Get())
-		case either.Right[*schema.Module, error]:
-			errs = append(errs, result.Get())
-		default:
-			panic(fmt.Sprintf("unexpected type %T", result))
-
-		}
-	}
-	// we want schema even if there are errors as long as we have some modules
-	if len(sch.InternalModules()) == 0 && len(errs) > 0 {
-		return nil, errors.Wrap(errors.Join(errs...), "failed to read schema, possibly due to not building")
+	sch, err := schema.FromProto(schemaProto)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse schema")
 	}
 	return sch, nil
 }
-func schemaForURL(ctx context.Context, schemaClient admin.EnvironmentClient, url url.URL) (*schema.Schema, error) {
+
+func schemaFromServer(ctx context.Context, url string) (*schema.Schema, error) {
+	schemaClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, url, log.Warn)
 	resp, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
 	if err != nil {
-		return nil, errors.Wrapf(err, "url %s: failed to get schema", url.String())
+		return nil, errors.Wrap(err, "failed to get schema")
 	}
 
 	s, err := schema.FromProto(resp.Msg.Schema)
 	if err != nil {
-		return nil, errors.Wrapf(err, "url %s: failed to parse schema", url.String())
+		return nil, errors.Wrap(err, "failed to parse schema")
 	}
 
 	return s, nil
