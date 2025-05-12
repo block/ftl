@@ -373,7 +373,25 @@ func (e *Engine) Import(ctx context.Context, realmName string, moduleSch *schema
 
 // Build attempts to build all local modules.
 func (e *Engine) Build(ctx context.Context) error {
-	return errors.WithStack(e.buildWithCallback(ctx, nil))
+	schemas := make(chan *schema.Module, e.moduleMetas.Size())
+	if err := e.buildWithCallback(ctx, func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
+		schemas <- moduleSch
+		return nil
+	}); err != nil {
+		return errors.WithStack(err)
+	}
+	close(schemas)
+
+	realm := &schema.Realm{
+		Name: e.projectConfig.Name,
+	}
+	for moduleSch := range schemas {
+		realm.Modules = append(realm.Modules, moduleSch)
+	}
+	e.targetSchema.Store(&schema.Schema{
+		Realms: []*schema.Realm{realm},
+	})
+	return nil
 }
 
 // Each iterates over all local modules.
@@ -607,7 +625,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 				for _, event := range builtModuleEvents {
 					moduleToDeploy, ok := e.moduleMetas.Load(event.module)
 					if ok {
-						modulesToDeploy = append(modulesToDeploy, newPendingModule(moduleToDeploy.module, event.tmpDeployDir, event.deployPaths, e.projectConfig.SchemaPath(event.module)))
+						modulesToDeploy = append(modulesToDeploy, newPendingModule(moduleToDeploy.module, event.tmpDeployDir, event.deployPaths, event.schema))
 					}
 				}
 				go func() {
@@ -881,7 +899,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 	}()
 
 	modulesToDeploy := [](*pendingModule){}
-	buildErr := e.buildWithCallback(ctx, func(buildCtx context.Context, module Module, tmpDeployDir string, deployPaths []string) error {
+	buildErr := e.buildWithCallback(ctx, func(buildCtx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
 		e.modulesToBuild.Store(module.Config.Module, false)
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
@@ -890,7 +908,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 				},
 			},
 		}
-		pendingDeployModule := newPendingModule(module, tmpDeployDir, deployPaths, e.projectConfig.SchemaPath(module.Config.Module))
+		pendingDeployModule := newPendingModule(module, tmpDeployDir, deployPaths, moduleSch)
 		if singleChangeset {
 			modulesToDeploy = append(modulesToDeploy, pendingDeployModule)
 			return nil
@@ -924,7 +942,7 @@ func (e *Engine) BuildAndDeploy(ctx context.Context, replicas optional.Option[in
 	return nil
 }
 
-type buildCallback func(ctx context.Context, module Module, tmpDeployDir string, deployPaths []string) error
+type buildCallback func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error
 
 func (e *Engine) buildWithCallback(ctx context.Context, callback buildCallback, moduleNames ...string) error {
 	logger := log.FromContext(ctx)
@@ -1141,7 +1159,7 @@ func (e *Engine) handleDependencyCycleError(ctx context.Context, depErr Dependen
 					Comments: []string{"Dependency not built yet due to dependency cycle"},
 				}
 			}
-			_, _, _ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
+			_, _, _, _ = e.build(ctx, module, fakeDeps, ignoredSchemas) //nolint:errcheck
 			close(ignoredSchemas)
 		}()
 	}
@@ -1182,14 +1200,14 @@ func (e *Engine) tryBuild(ctx context.Context, mustBuild map[string]bool, module
 		},
 	}
 
-	tmpDeployDir, deployPaths, err := e.build(ctx, moduleName, builtModules, schemas)
+	moduleSch, tmpDeployDir, deployPaths, err := e.build(ctx, moduleName, builtModules, schemas)
 	if err == nil && callback != nil {
 		// load latest meta as it may have been updated
 		meta, ok = e.moduleMetas.Load(moduleName)
 		if !ok {
 			return errors.Errorf("module %q not found", moduleName)
 		}
-		return errors.WithStack(callback(ctx, meta.module, tmpDeployDir, deployPaths))
+		return errors.WithStack(callback(ctx, meta.module, moduleSch, tmpDeployDir, deployPaths))
 	}
 
 	return errors.WithStack(err)
@@ -1201,24 +1219,25 @@ func (e *Engine) mustSchema(ctx context.Context, moduleName string, builtModules
 		schemas <- sch
 		return nil
 	}
-	_, _, err := e.build(ctx, moduleName, builtModules, schemas)
+	sch, _, _, err := e.build(ctx, moduleName, builtModules, schemas)
+	schemas <- sch
 	return errors.WithStack(err)
 }
 
 // Build a module and publish its schema.
 //
 // Assumes that all dependencies have been built and are available in "built".
-func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) (tmpDeployDir string, deployPaths []string, err error) {
+func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[string]*schema.Module, schemas chan<- *schema.Module) (moduleSch *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	meta, ok := e.moduleMetas.Load(moduleName)
 	if !ok {
-		return "", nil, errors.Errorf("module %q not found", moduleName)
+		return nil, "", nil, errors.Errorf("module %q not found", moduleName)
 	}
 
 	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
 	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
 	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to marshal module config")
+		return nil, "", nil, errors.Wrap(err, "failed to marshal module config")
 	}
 	if meta.module.SQLError != nil {
 		meta.module = meta.module.CopyWithSQLErrors(nil)
@@ -1251,7 +1270,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 			// Do not start a build directly as we are already building out a graph of modules.
 			// Instead we send to a chan so that it can be processed after.
 			e.rebuildEvents <- rebuildRequestEvent{module: moduleName}
-			return "", nil, errors.WithStack(err)
+			return nil, "", nil, errors.WithStack(err)
 		}
 		e.rawEngineUpdates <- &buildenginepb.EngineEvent{
 			Timestamp: timestamppb.Now(),
@@ -1265,7 +1284,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 				},
 			},
 		}
-		return "", nil, errors.WithStack(err)
+		return nil, "", nil, errors.WithStack(err)
 	}
 
 	e.rawEngineUpdates <- &buildenginepb.EngineEvent{
@@ -1279,7 +1298,7 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 	}
 
 	schemas <- moduleSchema
-	return tmpDeployDir, deployPaths, nil
+	return moduleSchema, tmpDeployDir, deployPaths, nil
 }
 
 // Construct a combined schema for a module and its transitive dependencies.
