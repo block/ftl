@@ -7,7 +7,7 @@ import { CodeEditor } from '../../../../shared/components/CodeEditor'
 import { ResizablePanels } from '../../../../shared/components/ResizablePanels'
 import { useClient } from '../../../../shared/hooks/use-client'
 import { NotificationType, NotificationsContext } from '../../../../shared/providers/notifications-provider'
-import { declIcon } from '../../module.utils'
+import { declIcon, graphUrlForRef } from '../../module.utils'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { configPanels } from './ConfigRightPanels'
@@ -105,7 +105,9 @@ export const ConfigPanel = ({ config, moduleName, declName }: { config: Config; 
             </div>
           </div>
         }
-        rightPanelHeader={<RightPanelHeader Icon={declIcon('config', decl)} title={declName} />}
+        rightPanelHeader={
+          <RightPanelHeader Icon={declIcon('config', decl)} title={declName} url={graphUrlForRef(`${moduleName}.${declName}`)} urlHoverText='View in graph' />
+        }
         rightPanelPanels={configPanels(moduleName, config)}
         storageKeyPrefix='configPanel'
       />

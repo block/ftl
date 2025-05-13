@@ -8,7 +8,7 @@ import { Schema } from '../schema/Schema'
 import { EditDeclButton } from './EditDeclButton'
 import { References } from './References'
 
-export const DeclDefaultPanels = (moduleName: string, schema?: string, edges?: Edges, position?: Position, git?: MetadataGit) => {
+export const DeclDefaultPanels = (ref: string, schema?: string, edges?: Edges, position?: Position, git?: MetadataGit) => {
   const panels = [] as ExpandablePanelProps[]
 
   if (position) {
@@ -48,7 +48,7 @@ export const DeclDefaultPanels = (moduleName: string, schema?: string, edges?: E
       title: 'Schema',
       expanded: true,
       padding: 'p-2',
-      children: <Schema schema={schema} moduleName={moduleName} />,
+      children: <Schema schema={schema} moduleName={ref} />,
     })
   }
 

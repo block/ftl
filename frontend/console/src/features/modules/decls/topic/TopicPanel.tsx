@@ -1,7 +1,7 @@
 import type { Topic } from '../../../../protos/xyz/block/ftl/console/v1/console_pb'
 import { Visibility } from '../../../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import { ResizablePanels } from '../../../../shared/components/ResizablePanels'
-import { declIcon } from '../../module.utils'
+import { declIcon, graphUrlForRef } from '../../module.utils'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { topicPanels } from './TopicRightPanels'
@@ -29,7 +29,9 @@ export const TopicPanel = ({ topic, moduleName, declName }: { topic: Topic; modu
             />
           </div>
         }
-        rightPanelHeader={<RightPanelHeader Icon={declIcon('topic', decl)} title={declName} />}
+        rightPanelHeader={
+          <RightPanelHeader Icon={declIcon('topic', decl)} title={declName} url={graphUrlForRef(`${moduleName}.${declName}`)} urlHoverText='View in graph' />
+        }
         rightPanelPanels={topicPanels(moduleName, topic)}
         storageKeyPrefix='topicPanel'
       />

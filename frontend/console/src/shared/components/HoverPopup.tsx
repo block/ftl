@@ -10,15 +10,23 @@ interface HoverPopupProps {
 export const HoverPopup = ({ children, popupContent, className = '', position = 'top' }: HoverPopupProps) => {
   const [isHovering, setIsHovering] = useState(false)
   const elementRef = useRef<HTMLDivElement>(null)
-  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number; transform?: string }>({ top: 0, left: 0 })
+  const popupRef = useRef<HTMLDivElement>(null)
+  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
 
   useEffect(() => {
-    if (isHovering && elementRef.current) {
+    if (isHovering && elementRef.current && popupRef.current) {
       const rect = elementRef.current.getBoundingClientRect()
+      const popupRect = popupRef.current.getBoundingClientRect()
+      let top = position === 'top' ? rect.top - popupRect.height - 8 : rect.bottom + 8
+      let left = rect.left + rect.width / 2 - popupRect.width / 2
+
+      // Clamp to viewport with 8px margin
+      top = Math.max(8, Math.min(top, window.innerHeight - popupRect.height - 8))
+      left = Math.max(8, Math.min(left, window.innerWidth - popupRect.width - 8))
+
       setPopupStyle({
-        top: position === 'top' ? rect.top - 40 : rect.bottom + 8,
-        left: rect.left + rect.width / 2,
-        transform: 'translateX(-50%)',
+        top,
+        left,
       })
     }
   }, [isHovering, position])
@@ -27,7 +35,7 @@ export const HoverPopup = ({ children, popupContent, className = '', position = 
     <div ref={elementRef} className={`relative ${className}`} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
       {children}
       {isHovering && (
-        <div className='fixed bg-gray-100 dark:bg-gray-700 text-xs p-2 rounded shadow-lg z-[100] w-max whitespace-nowrap' style={popupStyle}>
+        <div ref={popupRef} className='fixed bg-gray-100 dark:bg-gray-700 text-xs p-2 rounded shadow-lg z-[100] w-max whitespace-nowrap' style={popupStyle}>
           {popupContent}
         </div>
       )}
