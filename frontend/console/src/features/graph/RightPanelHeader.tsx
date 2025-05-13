@@ -1,30 +1,33 @@
 import { CellsIcon, PackageIcon } from 'hugeicons-react'
 import { Config, Data, Database, Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
 import { RightPanelHeader } from '../modules/decls/RightPanelHeader'
-import { declIcon } from '../modules/module.utils'
+import { declIcon, moduleUrlForRef } from '../modules/module.utils'
 import type { FTLNode } from './graph-utils'
 
-export const headerForNode = (node: FTLNode | null, _moduleName?: string | null) => {
-  if (!node) {
+export const HeaderForNode = (node: FTLNode | null, ref?: string | null) => {
+  if (!node || !ref) {
     return header({
       IconComponent: CellsIcon,
       content: <div className='text-sm font-medium truncate'>Root</div>,
     })
   }
+
+  const urlHoverText = ref ? 'View in modules' : undefined
+
   if (node instanceof Module) {
-    return moduleHeader(node)
+    return <RightPanelHeader Icon={PackageIcon} title={node.name} url={moduleUrlForRef(ref, 'module')} urlHoverText={urlHoverText} />
   }
   if (node instanceof Verb) {
     if (!node.verb) return
-    return <RightPanelHeader Icon={declIcon('verb', node.verb)} title={node.verb.name} />
+    return <RightPanelHeader Icon={declIcon('verb', node.verb)} title={node.verb.name} url={moduleUrlForRef(ref, 'verb')} urlHoverText={urlHoverText} />
   }
   if (node instanceof Config) {
     if (!node.config) return
-    return <RightPanelHeader Icon={declIcon('config', node.config)} title={node.config.name} />
+    return <RightPanelHeader Icon={declIcon('config', node.config)} title={node.config.name} url={moduleUrlForRef(ref, 'config')} urlHoverText={urlHoverText} />
   }
   if (node instanceof Secret) {
     if (!node.secret) return
-    return <RightPanelHeader Icon={declIcon('secret', node.secret)} title={node.secret.name} />
+    return <RightPanelHeader Icon={declIcon('secret', node.secret)} title={node.secret.name} url={moduleUrlForRef(ref, 'secret')} urlHoverText={urlHoverText} />
   }
   if (node instanceof Data) {
     if (!node.data) return
@@ -32,7 +35,14 @@ export const headerForNode = (node: FTLNode | null, _moduleName?: string | null)
   }
   if (node instanceof Database) {
     if (!node.database) return
-    return <RightPanelHeader Icon={declIcon('database', node.database)} title={node.database.name} />
+    return (
+      <RightPanelHeader
+        Icon={declIcon('database', node.database)}
+        title={node.database.name}
+        url={moduleUrlForRef(ref, 'database')}
+        urlHoverText={urlHoverText}
+      />
+    )
   }
   if (node instanceof Enum) {
     if (!node.enum) return
@@ -40,7 +50,7 @@ export const headerForNode = (node: FTLNode | null, _moduleName?: string | null)
   }
   if (node instanceof Topic) {
     if (!node.topic) return
-    return <RightPanelHeader Icon={declIcon('topic', node.topic)} title={node.topic.name} />
+    return <RightPanelHeader Icon={declIcon('topic', node.topic)} title={node.topic.name} url={moduleUrlForRef(ref, 'topic')} urlHoverText={urlHoverText} />
   }
 }
 
@@ -51,20 +61,4 @@ const header = ({ IconComponent, content }: { IconComponent: React.ElementType; 
       <div className='flex flex-col min-w-0'>{content}</div>
     </div>
   )
-}
-
-const moduleHeader = (module: Module) => {
-  return header({
-    IconComponent: PackageIcon,
-    content: (
-      <>
-        <div className='text-sm font-medium truncate'>{module.name}</div>
-        <div className='flex pt-1'>
-          <span className='font-roboto-mono inline-flex items-center rounded truncate bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs px-1'>
-            <span className='truncate'>{module.runtime?.deployment?.deploymentKey}</span>
-          </span>
-        </div>
-      </>
-    ),
-  })
 }

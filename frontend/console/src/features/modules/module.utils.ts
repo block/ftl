@@ -236,6 +236,21 @@ export const getVerbType = (verb: SchemaVerb | ConsoleVerb, defaultType = 'verb'
 }
 
 export const declUrlFromInfo = (moduleName: string, decl: DeclInfo) => `/modules/${moduleName}/${decl.declType}/${decl.value.name}`
+export const moduleUrlForRef = (ref: string, declType: string) => {
+  const [moduleName, declName] = ref.split('.')
+  if (!declName) {
+    return `/modules/${moduleName}`
+  }
+  return `/modules/${moduleName}/${declType}/${declName}`
+}
+
+export const graphUrlForRef = (ref: string) => {
+  const [moduleName, declName] = ref.split('.')
+  if (!declName) {
+    return `/graph/${moduleName}`
+  }
+  return `/graph/${moduleName}/${declName}`
+}
 
 const treeWidthStorageKey = 'tree_w'
 

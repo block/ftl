@@ -2,7 +2,7 @@ import { CellsIcon, CodeIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ResizablePanels } from '../../shared/components/ResizablePanels'
-import { headerForNode } from '../graph/RightPanelHeader'
+import { HeaderForNode } from '../graph/RightPanelHeader'
 import { type FTLNode, panelsForNode } from '../graph/graph-utils'
 import { ModuleGraph } from './ModuleGraph'
 import { useStreamModules } from './hooks/use-stream-modules'
@@ -63,7 +63,7 @@ export const ModulePanel = () => {
       <div className='flex-1 min-h-0'>
         <ResizablePanels
           mainContent={mainContent}
-          rightPanelHeader={headerForNode(selectedNode, selectedModuleName)}
+          rightPanelHeader={HeaderForNode(selectedNode, selectedModuleName)}
           rightPanelPanels={panelsForNode(selectedNode, selectedModuleName)}
         />
       </div>

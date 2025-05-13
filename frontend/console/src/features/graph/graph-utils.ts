@@ -295,33 +295,33 @@ export const getModuleLayoutedElements = (nodes: Node[], edges: Edge[], directio
   return { nodes, edges }
 }
 
-export const panelsForNode = (node: FTLNode | null, moduleName: string | null) => {
+export const panelsForNode = (node: FTLNode | null, ref: string | null) => {
   if (node instanceof Module) {
     return modulePanels(node)
   }
 
   // If no module name is provided, we can't show the panels
-  if (!moduleName) {
+  if (!ref) {
     return [] as ExpandablePanelProps[]
   }
 
   if (node instanceof Config) {
-    return configPanels(moduleName, node, false)
+    return configPanels(ref, node, false)
   }
   if (node instanceof Secret) {
-    return secretPanels(moduleName, node, false)
+    return secretPanels(ref, node, false)
   }
   if (node instanceof Database) {
-    return databasePanels(moduleName, node, false)
+    return databasePanels(ref, node, false)
   }
   if (node instanceof Data) {
-    return dataPanels(moduleName, node, false)
+    return dataPanels(ref, node, false)
   }
   if (node instanceof Topic) {
-    return topicPanels(moduleName, node, false)
+    return topicPanels(ref, node, false)
   }
   if (node instanceof Verb) {
-    return verbPanels(moduleName, node, false)
+    return verbPanels(ref, node, false)
   }
   return [] as ExpandablePanelProps[]
 }

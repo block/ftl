@@ -9,7 +9,7 @@ import { useClient } from '../../../../shared/hooks/use-client'
 import { useInfo } from '../../../../shared/providers/info-provider'
 import { NotificationType } from '../../../../shared/providers/notifications-provider'
 import { NotificationsContext } from '../../../../shared/providers/notifications-provider'
-import { declIcon } from '../../module.utils'
+import { declIcon, graphUrlForRef } from '../../module.utils'
 import { PanelHeader } from '../PanelHeader'
 import { RightPanelHeader } from '../RightPanelHeader'
 import { secretPanels } from './SecretRightPanels'
@@ -125,7 +125,9 @@ export const SecretPanel = ({ secret, moduleName, declName }: { secret: Secret; 
             </div>
           </div>
         }
-        rightPanelHeader={<RightPanelHeader Icon={declIcon('secret', decl)} title={declName} />}
+        rightPanelHeader={
+          <RightPanelHeader Icon={declIcon('secret', decl)} title={declName} url={graphUrlForRef(`${moduleName}.${declName}`)} urlHoverText='View in graph' />
+        }
         rightPanelPanels={secretPanels(moduleName, secret)}
         storageKeyPrefix='secretPanel'
       />

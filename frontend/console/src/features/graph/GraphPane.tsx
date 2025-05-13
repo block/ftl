@@ -19,6 +19,7 @@ const NODE_TYPES = {
 interface GraphPaneProps {
   modules?: StreamModulesResult
   onTapped?: (item: FTLNode | null, moduleName: string | null) => void
+  selectedNodeId?: string | null
 }
 
 // Dagre layout function
@@ -247,10 +248,9 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   return { nodes, edges }
 }
 
-export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped }) => {
+export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selectedNodeId }) => {
   const { isDarkMode } = useUserPreferences()
   const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [moduleKey, setModuleKey] = useState<string>('empty')
 
   useEffect(() => {
@@ -277,7 +277,6 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped }) => {
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      setSelectedNodeId(node.id)
       onTapped?.(node.data?.item as FTLNode, node.id)
     },
     [onTapped],
@@ -289,10 +288,8 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped }) => {
       const targetNode = layoutedNodes.find((n) => n.id === edge.target)
 
       if (sourceNode?.id === selectedNodeId || targetNode?.id === selectedNodeId) {
-        setSelectedNodeId(null)
         onTapped?.(null, null)
       } else {
-        setSelectedNodeId(sourceNode?.id || null)
         onTapped?.((sourceNode?.data?.item as FTLNode) || null, sourceNode?.id || null)
       }
     },
@@ -300,7 +297,6 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped }) => {
   )
 
   const onPaneClick = useCallback(() => {
-    setSelectedNodeId(null)
     onTapped?.(null, null)
   }, [onTapped])
 

@@ -8,7 +8,8 @@ import { NotificationType, NotificationsContext } from '../../../../shared/provi
 import { SidePanelProvider } from '../../../../shared/providers/side-panel-provider'
 import { TraceRequestList } from '../../../traces/TraceRequestList'
 import { useModules } from '../../hooks/use-modules'
-import { verbTypeFromMetadata } from '../../module.utils'
+import { graphUrlForRef, verbTypeFromMetadata } from '../../module.utils'
+import { RightPanelHeader } from '../RightPanelHeader'
 import { VerbRequestForm } from './VerbRequestForm'
 import { verbPanels } from './VerbRightPanel'
 
@@ -56,21 +57,12 @@ export const VerbPage = ({ moduleName, declName }: { moduleName: string; declNam
     default: { Icon: FunctionIcon },
   } as const
 
-  const header = (
-    <div className='flex items-center gap-2 px-2 py-2'>
-      {(() => {
-        const verbType = verb.verb ? verbTypeFromMetadata(verb.verb) : undefined
-        const { Icon } = verbTypeConfig[(verbType ?? 'default') as VerbType]
+  const header = (() => {
+    const verbType = verb.verb ? verbTypeFromMetadata(verb.verb) : undefined
+    const { Icon } = verbTypeConfig[(verbType ?? 'default') as VerbType]
 
-        return (
-          <>
-            <Icon className='size-5 text-indigo-500' />
-            <div className='flex flex-col min-w-0'>{verb.verb?.name}</div>
-          </>
-        )
-      })()}
-    </div>
-  )
+    return <RightPanelHeader Icon={Icon} title={verb.verb?.name} url={graphUrlForRef(`${moduleName}.${declName}`)} urlHoverText='View in graph' />
+  })()
 
   return (
     <SidePanelProvider>

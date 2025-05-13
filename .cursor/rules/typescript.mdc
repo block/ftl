@@ -27,3 +27,4 @@ alwaysApply: false
 - Use pnpm
 - Use TailwindCSS
 - Use HugeIcons
+- Take a look at /frontend/console/package.json to see which dependencies `console` is using and look at /frontend/vscode/package.json to see which dependencies `vscode` is using.
