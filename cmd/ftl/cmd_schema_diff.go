@@ -58,6 +58,10 @@ func (d *schemaDiffCmd) Run(
 	edits := myers.ComputeEdits(span.URIFromPath(""), current.String(), other.String())
 	diff := fmt.Sprint(gotextdiff.ToUnified(from, to, current.String(), edits))
 
+	if diff == "" {
+		return nil
+	}
+
 	color := d.Color || isatty.IsTerminal(os.Stdout.Fd())
 	if color {
 		err = quick.Highlight(os.Stdout, diff, "diff", "terminal256", "solarized-dark")
@@ -68,13 +72,11 @@ func (d *schemaDiffCmd) Run(
 		fmt.Print(diff)
 	}
 
-	// Similar to the `diff` command, exit with 1 if there are differences.
-	if diff != "" {
-		// Unfortunately we need to close the terminal before exit to make sure the output is printed
-		// This is only applicable when we explicitly call os.Exit
-		terminal.FromContext(ctx).Close()
-		os.Exit(1)
-	}
+	// Similar to the `diff` command, exit with 2 if there are differences.
+	// Unfortunately we need to close the terminal before exit to make sure the output is printed
+	// This is only applicable when we explicitly call os.Exit
+	terminal.FromContext(ctx).Close()
+	os.Exit(2)
 
 	return nil
 }
