@@ -64,7 +64,7 @@ jobs:
           done
   create-go-release:
     name: Release Go Binaries
-    runs-on: ubuntu-latest
+    runs-on: ftl
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -75,8 +75,8 @@ jobs:
       - name: Build Cache
         uses: ./.github/actions/build-cache
         with:
-          enable-pnpm: 'true'
-          enable-maven: 'true'
+          enable-pnpm: "true"
+          enable-maven: "true"
       - name: Build Console
         run: just build-frontend
       - name: Publish Go Binaries
