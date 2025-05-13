@@ -145,6 +145,6 @@ func NewFunction(ctx context.Context, req TimeRequest) (TimeResponse, error) {
 		in.ExpectError(
 			in.ExecWithOutput("ftl", []string{"schema", "diff"}, func(output string) {
 				assert.Contains(t, output, "-  verb newFunction(time.TimeRequest) time.TimeResponse")
-			}), "exit status 1"),
+			}), "exit status 2"),
 	)
 }
