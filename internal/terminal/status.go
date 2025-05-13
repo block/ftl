@@ -154,7 +154,6 @@ func NewStatusManager(ctx context.Context) StatusManager {
 		current := ""
 		closed := false
 		for {
-
 			buf := bytes.Buffer{}
 			rawData := make([]byte, 104)
 			n, err := sm.read.Read(rawData)
@@ -182,7 +181,9 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					// Null byte, we are done
 					// we keep running though as there may be more data on exit
 					// that we handle on a best effort basis
-					sm.writeLine(current, true)
+					if current != "" {
+						sm.writeLine(current, true)
+					}
 					if !closed {
 						sm.statusLock.Lock()
 						sm.exitWait.Done()
@@ -205,8 +206,10 @@ func NewStatusManager(ctx context.Context) StatusManager {
 					continue
 				}
 				if d == '\n' {
-					sm.writeLine(current, false)
-					current = ""
+					if current != "" {
+						sm.writeLine(current, false)
+						current = ""
+					}
 				} else {
 					current += string(d)
 				}
@@ -215,7 +218,6 @@ func NewStatusManager(ctx context.Context) StatusManager {
 	}()
 
 	// Animate the spinners
-
 	go func() {
 		for !sm.closed.Load() {
 			time.Sleep(150 * time.Millisecond)
@@ -280,8 +282,8 @@ func (r *terminalStatusManager) clearStatusMessages() {
 	if r.interactiveConsole.Ok() {
 		// With the interactive console the cursor sits on the last line, so we just clear, we don't move up
 		r.underlyingWrite(ansiClearLine)
-	} else {
-		// Without the interactive console the cursor sits on an empty line by itself
+	} else if count > 0 {
+		// Without the interactive console, only move up if we have status lines to clear
 		r.underlyingWrite(ansiUpOneLine + ansiClearLine)
 	}
 	for range count - 1 {
@@ -394,7 +396,9 @@ func (r *terminalStatusManager) writeLine(s string, last bool) {
 	}
 
 	if r.totalStatusLines == 0 {
-		r.underlyingWrite("\r" + s)
+		// In interactive mode, we need to preserve the command line
+		// by moving up one line before writing the output
+		r.underlyingWrite(ansiUpOneLine + ansiClearLine + s)
 		return
 	}
 	r.clearStatusMessages()
@@ -402,7 +406,6 @@ func (r *terminalStatusManager) writeLine(s string, last bool) {
 	if !last {
 		r.redrawStatus()
 	}
-
 }
 func (r *terminalStatusManager) redrawStatus() {
 	if r.statusLock.TryLock() {
