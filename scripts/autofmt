@@ -29,4 +29,7 @@ just pnpm-install
 echo "Formatting TypeScript..."
 just format-frontend
 
+echo "Formatting Java..."
+just build-jvm
+
 git diff
