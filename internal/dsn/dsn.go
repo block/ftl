@@ -71,10 +71,13 @@ func MySQLDSN(dbName string, options ...Option) string {
 }
 
 func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector) (string, error) {
+	logger := log.FromContext(ctx)
 	switch c := connector.(type) {
 	case *schema.DSNDatabaseConnector:
+		logger.Debugf("Resolving Postgres DSN DSNDatabaseConnector")
 		return c.DSN, nil
 	case *schema.AWSIAMAuthDatabaseConnector:
+		logger.Debugf("Resolving Postgres DSN AWSIAMAuthDatabaseConnector")
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
 			return "", errors.Wrap(err, "configuration error")
@@ -132,8 +135,11 @@ func PostgresDBName(connector schema.DatabaseConnector) (string, error) {
 }
 
 func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector) (*mysqlauthproxy.Config, error) {
+	logger := log.FromContext(ctx)
+
 	switch c := connector.(type) {
 	case *schema.DSNDatabaseConnector:
+		logger.Debugf("Resolving MySQL config DSNDatabaseConnector")
 		cfg, err := mysqlauthproxy.ParseDSN(c.DSN)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse DSN")
@@ -141,6 +147,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		return cfg, nil
 
 	case *schema.AWSIAMAuthDatabaseConnector:
+		logger.Debugf("Resolving MySQL config AWSIAMAuthDatabaseConnector")
 		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "configuration error")

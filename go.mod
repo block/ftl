@@ -27,7 +27,7 @@ require (
 	github.com/aws/smithy-go v1.22.3
 	github.com/beevik/etree v1.5.1
 	github.com/block/ftl-golang-tools v0.5.0
-	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f
+	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250514012428-f17e23827cde
 	github.com/block/scaffolder v1.5.1
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/deckarep/golang-set/v2 v2.8.0
