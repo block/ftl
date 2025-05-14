@@ -19,7 +19,26 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Hash Hermit Packages
+        id: hermit-hash
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          hash="$(find ./bin ! -type d | sort | xargs openssl sha256 | openssl sha256 -r | cut -d' ' -f1)"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          key="${{ runner.os }}-${{ runner.arch }}-hermit-cache-${hash}"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          exists="$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/repos/block/ftl/actions/caches?key=$key" | jq '.actions_caches | length')"
+          echo "exists=$exists" >> "$GITHUB_OUTPUT"
+      - name: Save Hermit Cache
+        if: ${{ steps.hermit-hash.outputs.exists == 0 }}
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/pkg' || '~/.cache/hermit/pkg' }}
+          key: ${{ steps.hermit-hash.outputs.key }}
       - name: Install Hermit Packages
+        if: ${{ steps.hermit-hash.outputs.exists == 0 }}
         run: hermit install
       - name: Rebuild All
         run: just build-all
@@ -32,16 +51,6 @@ jobs:
       - id: find-go-build-cache
         shell: bash
         run: echo "cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-      - id: bin-hash
-        shell: bash
-        run: |
-          hash="$(find ./bin ! -type d | sort | xargs openssl sha256 | openssl sha256 -r | cut -d' ' -f1)"
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
-      - name: Save Hermit Cache
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-        with:
-          path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/pkg' || '~/.cache/hermit/pkg' }}
-          key: ${{ runner.os }}-${{ runner.arch }}-hermit-cache-${{ steps.bin-hash.outputs.hash }}
       - name: Save pnpm Modules Cache
         id: cache-pnpm
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
@@ -74,7 +83,7 @@ jobs:
       - id: find-go-build-cache
         shell: bash
         run: echo "cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-      - id: bin-hash
+      - id: hermit-hash
         shell: bash
         run: |
           hash="$(find ./bin ! -type d | sort | xargs openssl sha256 | openssl sha256 -r | cut -d' ' -f1)"
