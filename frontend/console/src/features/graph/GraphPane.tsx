@@ -237,9 +237,14 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
       // Make child positions relative to the group
       for (const child of group.childNodes) {
+        const childX = typeof child.position.x === 'number' && !Number.isNaN(child.position.x) ? child.position.x : 0
+        const childY = typeof child.position.y === 'number' && !Number.isNaN(child.position.y) ? child.position.y : 0
+        const groupX = typeof group.x === 'number' && !Number.isNaN(group.x) ? group.x : 0
+        const groupY = typeof group.y === 'number' && !Number.isNaN(group.y) ? group.y : 0
+
         child.position = {
-          x: child.position.x - group.x,
-          y: child.position.y - group.y,
+          x: childX - groupX,
+          y: childY - groupY,
         }
       }
     }
