@@ -93,7 +93,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 
 	logger := log.FromContext(ctx).Attrs(map[string]string{"runner": runnerKey.String()})
 	ctx = log.ContextWithLogger(ctx, logger)
-	logger.Debugf("Starting FTL Runner")
+	logger.Debugf("Starting FTL Runner for %s", config.Deployment.String())
 
 	err = manageDeploymentDirectory(logger, config)
 	if err != nil {
