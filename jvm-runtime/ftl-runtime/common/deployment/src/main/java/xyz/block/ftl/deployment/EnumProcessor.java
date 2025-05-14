@@ -177,7 +177,7 @@ public class EnumProcessor {
         var variantClasses = new TreeMap<String, Class<?>>();
         for (var variant : variants) {
             Type variantType;
-            String variantName = ModuleBuilder.classToName(variant);
+            String variantName = variant.simpleName();
             if (variant.hasDeclaredAnnotation(VariantName.class)) {
                 AnnotationInstance variantNameAnnotation = variant.annotation(VariantName.class);
                 variantName = variantNameAnnotation.value().asString();
