@@ -43,7 +43,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
 
     final Iterable<TypeAliasMapper<?, ?>> instances;
 
-    private record TypeEnumDefn<T>(Class<T> type, List<Class<?>> variants) {
+    private record TypeEnumDefn<T>(Class<T> type, Map<String, Class<?>> variants) {
     }
 
     final List<Class> valueEnums = new ArrayList<>();
@@ -78,7 +78,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
 
         ObjectMapper cleanMapper = mapper.copy();
         for (var i : typeEnums) {
-            module.addSerializer(i.type, new TypeEnumSerializer<>(i.type, cleanMapper));
+            module.addSerializer(i.type, new TypeEnumSerializer<>(i.type, cleanMapper, i.variants));
             module.addDeserializer(i.type, new TypeEnumDeserializer<>(i.type, i.variants));
         }
         mapper.registerModule(module);
@@ -88,7 +88,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
         valueEnums.add(enumClass);
     }
 
-    public <T> void registerTypeEnum(Class<?> type, List<Class<?>> variants) {
+    public <T> void registerTypeEnum(Class<?> type, Map<String, Class<?>> variants) {
         typeEnums.add(new TypeEnumDefn<>(type, variants));
     }
 
@@ -238,16 +238,21 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
 
     public static class TypeEnumSerializer<T> extends StdSerializer<T> {
         private final ObjectMapper defaultMapper;
+        private final Map<String, String> classToName = new HashMap<>();
 
-        public TypeEnumSerializer(Class<T> type, ObjectMapper mapper) {
+        public TypeEnumSerializer(Class<T> type, ObjectMapper mapper, Map<String, Class<?>> variants) {
             super(type);
             defaultMapper = mapper;
+            for (var variant : variants.entrySet()) {
+                classToName.put(variant.getValue().getName(), variant.getKey());
+            }
         }
 
         @Override
         public void serialize(T value, JsonGenerator gen, SerializerProvider provider) throws IOException {
             gen.writeStartObject();
-            gen.writeStringField("name", value.getClass().getSimpleName());
+            gen.writeStringField("name",
+                    classToName.getOrDefault(value.getClass().getName(), value.getClass().getSimpleName()));
             gen.writeFieldName("value");
             // Avoid infinite recursion by using a mapper without this serializer registered
             defaultMapper.writeValue(gen, value);
@@ -258,10 +263,10 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
     public static class TypeEnumDeserializer<T> extends StdDeserializer<T> {
         private final Map<String, Class<?>> nameToVariant = new HashMap<>();
 
-        public TypeEnumDeserializer(Class<T> type, List<Class<?>> variants) {
+        public TypeEnumDeserializer(Class<T> type, Map<String, Class<?>> variants) {
             super(type);
-            for (var variant : variants) {
-                nameToVariant.put(variant.getSimpleName(), variant);
+            for (var variant : variants.entrySet()) {
+                nameToVariant.put(variant.getKey(), variant.getValue());
             }
         }
 

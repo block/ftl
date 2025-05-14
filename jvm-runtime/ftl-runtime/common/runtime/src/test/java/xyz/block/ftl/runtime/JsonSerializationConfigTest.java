@@ -1,6 +1,6 @@
 package xyz.block.ftl.runtime;
 
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -35,7 +35,7 @@ class JsonSerializationConfigTest {
     public void testTypeEnumSerialization() throws JsonProcessingException {
         JsonSerializationConfig config = new JsonSerializationConfig();
         ObjectMapper mapper = new ObjectMapper();
-        config.registerTypeEnum(Animal.class, List.of(Dog.class, Cat.class));
+        config.registerTypeEnum(Animal.class, Map.of("Dog", Dog.class, "Katzen", Cat.class));
         config.customize(mapper);
 
         String serializedDog = mapper.writeValueAsString(new Dog());
@@ -45,7 +45,7 @@ class JsonSerializationConfigTest {
         Assertions.assertTrue(animal instanceof Dog);
 
         String serializedCat = mapper.writeValueAsString(new Cat("Siamese", 10, "Fluffy"));
-        Assertions.assertEquals("{\"name\":\"Cat\",\"value\":{\"name\":\"Fluffy\",\"breed\":\"Siamese\",\"furLength\":10}}",
+        Assertions.assertEquals("{\"name\":\"Katzen\",\"value\":{\"name\":\"Fluffy\",\"breed\":\"Siamese\",\"furLength\":10}}",
                 serializedCat);
 
         Animal cat = mapper.readValue(serializedCat, Animal.class);

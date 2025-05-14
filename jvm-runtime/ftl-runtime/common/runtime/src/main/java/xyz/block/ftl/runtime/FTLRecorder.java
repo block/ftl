@@ -3,6 +3,7 @@ package xyz.block.ftl.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Map;
 
 import org.jboss.resteasy.reactive.server.core.ResteasyReactiveRequestContext;
 import org.jboss.resteasy.reactive.server.core.parameters.ParameterExtractor;
@@ -93,7 +94,7 @@ public class FTLRecorder {
         }
     }
 
-    public void registerEnum(Class<?> ennum, List<Class<?>> variants) {
+    public void registerEnum(Class<?> ennum, Map<String, Class<?>> variants) {
         try {
             Arc.container().instance(JsonSerializationConfig.class).get().registerTypeEnum(ennum, variants);
         } catch (Exception e) {
