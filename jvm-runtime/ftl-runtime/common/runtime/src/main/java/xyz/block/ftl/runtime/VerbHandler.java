@@ -2,6 +2,8 @@ package xyz.block.ftl.runtime;
 
 import jakarta.inject.Singleton;
 
+import org.jboss.logging.Logger;
+
 import io.grpc.stub.StreamObserver;
 import io.quarkus.grpc.GrpcService;
 import xyz.block.ftl.v1.*;
@@ -9,6 +11,8 @@ import xyz.block.ftl.v1.*;
 @Singleton
 @GrpcService
 public class VerbHandler extends VerbServiceGrpc.VerbServiceImplBase {
+
+    private static final Logger log = Logger.getLogger(VerbHandler.class);
 
     final VerbRegistry registry;
 
@@ -23,6 +27,7 @@ public class VerbHandler extends VerbServiceGrpc.VerbServiceImplBase {
             responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (Exception e) {
+            log.errorf(e, "Verb invocation failed: %s.%s", request.getVerb().getModule(), request.getVerb().getName());
             responseObserver.onError(e);
         }
     }

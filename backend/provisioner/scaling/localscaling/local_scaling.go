@@ -302,6 +302,10 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		}
 		info.runner = optional.None[runnerInfo]()
 	}()
+	if devEndpoint != nil {
+		// We know this is already running
+		return nil
+	}
 	client := rpc.Dial(ftlv1connect.NewVerbServiceClient, bindURL.String(), log.Error)
 	timeout := time.After(1 * time.Minute)
 	for {
