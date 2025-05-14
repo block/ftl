@@ -115,6 +115,8 @@ github.com/block/ftl-golang-tools v0.5.0 h1:SmOpSQW/yXrB8DPGoNp4UFEIFpzSdEjgNpe4
 github.com/block/ftl-golang-tools v0.5.0/go.mod h1:KExwyA2/O+lY2t/26hr3Lc7Z2Q99HuCrPFUresJLEJk=
 github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f h1:sxtpCkw9g8jWTdex+r80NspsWwxSU2JuB+L647fnLlY=
 github.com/block/ftl-mysql-auth-proxy v0.0.0-20250226012434-b90030aa165f/go.mod h1:h5p2p8WGPrwRk3CzvbbIN+uL0LJomz6mZwE97f6UaZw=
+github.com/block/ftl-mysql-auth-proxy v0.0.0-20250514012428-f17e23827cde h1:SaMJzof20Np6OX0JIyB32CYxkkOWlkvI6QOqlY/dru0=
+github.com/block/ftl-mysql-auth-proxy v0.0.0-20250514012428-f17e23827cde/go.mod h1:h5p2p8WGPrwRk3CzvbbIN+uL0LJomz6mZwE97f6UaZw=
 github.com/block/scaffolder v1.5.1 h1:D0AQMqDAeNc1XPPXExBBCvjleKbe9bXMX+NwJYwemEM=
 github.com/block/scaffolder v1.5.1/go.mod h1:axzJvwxvZbfzirVENlVTDJXp5pJFuX82ddrhE3/pSY0=
 github.com/bmatcuk/doublestar/v4 v4.8.1 h1:54Bopc5c2cAvhLRAzqOGCYHYyhcDHsFF4wWIR5wKP38=
