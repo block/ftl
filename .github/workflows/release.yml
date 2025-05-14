@@ -56,7 +56,7 @@ jobs:
           password: ${{ secrets.FTL_DOCKER_PUSH_TOKEN }}
       - name: Push Docker Images
         run: |
-          version="$(git describe --tags --abbrev=0)"
+          version="${{ github.ref_name }}"
           for image in $(just list-docker-images); do
             docker tag "ftl0/ftl-${image}:latest" "ftl0/ftl-${image}:${GITHUB_SHA}"
             docker tag "ftl0/ftl-${image}:latest" "ftl0/ftl-${image}:${version}"
@@ -165,7 +165,7 @@ jobs:
       - name: Publish
         run: |
           set -euo pipefail
-          version="$(git describe --tags --abbrev=0 | sed 's/^v//')"
+          version="$(echo ${{ github.ref_name }} | sed s/v//)"
           echo "Publishing version $version"
           jq --arg version "$version" '.version = $version' frontend/vscode/package.json > frontend/vscode/package.json.tmp
           mv frontend/vscode/package.json.tmp frontend/vscode/package.json
@@ -199,7 +199,7 @@ jobs:
       - name: Sync Charts to Charts Repository
         run: |
           cd .ftl
-          version="$(git describe --tags --abbrev=0 | sed 's/v//')"
+          version="$(echo ${{ github.ref_name }} | sed s/v//)"
           just chart set-version "$version"
           cd ..
           rm -rf charts/
