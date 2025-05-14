@@ -162,7 +162,32 @@ export const getGraphData = (
     createChildren(module.topics, 'topic', (item: Topic) => item.topic?.name || '')
   }
 
-  // Second pass: Create edges
+  // check for publishers and subscribers in the verb metadata
+  for (const module of filteredModules) {
+    for (const verb of module.verbs) {
+      const verbName = verb.verb?.name || ''
+      const metadata = verb.verb?.metadata || []
+
+      for (const meta of metadata) {
+        if (meta.value.case === 'publisher') {
+          for (const topic of meta.value.value.topics) {
+            const edge = createEdge(module.name, verbName, topic.module, topic.name, isDarkMode, selectedNodeId)
+            if (edge) edges.push(edge)
+          }
+        }
+
+        if (meta.value.case === 'subscriber') {
+          const topic = meta.value.value.topic
+          if (topic) {
+            const edge = createEdge(topic.module, topic.name, module.name, verbName, isDarkMode, selectedNodeId)
+            if (edge) edges.push(edge)
+          }
+        }
+      }
+    }
+  }
+
+  // Process edges for other node types (configs, secrets, databases, topics)
   const processReferences = <T extends FTLNode & { edges?: { in: Array<{ module: string; name: string }>; out: Array<{ module: string; name: string }> } }>(
     module: Module,
     items: T[],
@@ -211,6 +236,8 @@ export const getGraphData = (
       }
 
       // Process outbound edges
+      // For verbs, skip outbound edges (handled above)
+      if (item instanceof Verb) continue
       for (const ref of item.edges.out) {
         // Skip if reference name is empty
         if (!ref.name || ref.name === '') continue
@@ -232,7 +259,6 @@ export const getGraphData = (
   }
 
   for (const module of filteredModules) {
-    processReferences(module, module.verbs, (item: Verb) => item.verb?.name || '')
     processReferences(module, module.configs, (item: Config) => item.config?.name || '')
     processReferences(module, module.secrets, (item: Secret) => item.secret?.name || '')
     processReferences(module, module.databases, (item: Database) => item.database?.name || '')
@@ -242,7 +268,7 @@ export const getGraphData = (
   // Deduplicate edges
   const uniqueEdges = new Map<string, Edge>()
   for (const edge of edges) {
-    const key = [edge.source, edge.target].sort().join('->')
+    const key = `${edge.source}->${edge.target}`
     uniqueEdges.set(key, edge)
   }
 
