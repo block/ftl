@@ -73,11 +73,14 @@ public class FTLHttpHandler {
             if (ret.getBody() == null) {
                 ret.setBody("{}");
             }
+            ret.setHeaders(new HashMap<>(ret.getHeaders()));
             ret.getHeaders().remove("content-length");
             var mappedResponse = mapper.writer().writeValueAsBytes(ret);
             return CallResponse.newBuilder().setBody(ByteString.copyFrom(mappedResponse)).build();
         } catch (Exception e) {
-            return CallResponse.newBuilder().setError(CallResponse.Error.newBuilder().setMessage(e.getMessage()).build())
+            return CallResponse.newBuilder()
+                    .setError(CallResponse.Error.newBuilder().setMessage(e.getMessage() == null ? e.toString() : e.getMessage())
+                            .build())
                     .build();
         }
 
