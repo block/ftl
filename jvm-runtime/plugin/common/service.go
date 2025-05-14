@@ -278,9 +278,15 @@ func watchFiles(ctx context.Context, watcher *watch.Watcher, buildCtx buildConte
 		for e := range channels.IterContext(ctx, watchEvents) {
 			if change, ok := e.(watch.WatchEventModuleChanged); ok {
 				// Ignore changes to external protos. If a depenency was updated, the plugin will receive a new build context.
-				// Also ignore changes to
+				// Also ignore changes to queries and test files. This is a bit hacky ATM
 				change.Changes = islices.Filter(change.Changes, func(c watch.FileChange) bool {
-					return !strings.HasPrefix(c.Path, stubsDir) && !strings.HasSuffix(c.Path, "queries.sql")
+					if strings.HasPrefix(c.Path, stubsDir) {
+						return false
+					}
+					if strings.HasSuffix(c.Path, ".sql") && strings.Contains(c.Path, "queries") {
+						return false
+					}
+					return !strings.Contains(c.Path, "src/test")
 				})
 				if len(change.Changes) == 0 {
 					continue
