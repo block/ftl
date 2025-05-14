@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -18,10 +19,11 @@ var _ io.Writer = &errorDetector{}
 // errorDetector is a writer that forwards output to stdout, while capturing output until a safe state is reached.
 // When safe state is reached, the output is then parsed for errors.
 type errorDetector struct {
-	logger *log.Logger
-	output string
-	ended  atomic.Value[bool]
-	errors []builderrors.Error
+	logger     *log.Logger
+	output     string
+	ended      atomic.Value[bool]
+	errors     []builderrors.Error
+	jsonBuffer string
 }
 
 func (o *errorDetector) Write(p []byte) (n int, err error) {
@@ -29,23 +31,36 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 	var last = func(format string, args ...interface{}) {
 		o.logger.Debugf(format, args...)
 	}
-	for _, line := range strings.Split(string(p), "\n") {
+	val := string(p)
+	if o.jsonBuffer != "" {
+		val = o.jsonBuffer + val
+		o.jsonBuffer = ""
+	}
+	for _, line := range strings.Split(val, "\n") {
 		skip := false
 		if len(line) == 0 {
 			continue
 		}
+
 		if line[0] == '{' {
 			record := JvmLogRecord{}
-			if err := json.Unmarshal([]byte(line), &record); err == nil {
+			err := json.Unmarshal([]byte(line), &record)
+			if err == nil {
 				// We do not want to dump any raw json output
 				skip = true
 				entry := record.ToEntry()
-				o.logger.Log(entry)
-				last = func(format string, args ...interface{}) {
-					o.logger.Logf(entry.Level, format, args...)
+				// Huge hack, Quarkus can currently NPE when being pinged at startup, due to a race generating the 404 page before it has started
+				// this should be fixed in a later version of Quarkus
+				if !strings.Contains(entry.Message, "Request to /xyz.block.ftl.v1.VerbService/Ping failed") {
+					o.logger.Log(entry)
+					last = func(format string, args ...interface{}) {
+						o.logger.Logf(entry.Level, format, args...)
+					}
 				}
+			} else if strings.Contains(err.Error(), "unexpected end of JSON input") {
+				o.jsonBuffer = line
 			} else {
-				o.logger.Infof("Log Parse Failure: %s", line) //nolint
+				o.logger.Errorf(err, "Log Parse Failure: %s", line) //nolint
 			}
 		} else if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
 			o.logger.Logf(log.Error, "%s", cleanLine)
@@ -141,19 +156,34 @@ func (o *errorDetector) FinalizeCapture(dump bool) []builderrors.Error {
 }
 
 type JvmLogRecord struct {
-	Timestamp       time.Time `json:"timestamp"`
-	Sequence        int       `json:"sequence"`
-	LoggerClassName string    `json:"loggerClassName"`
-	LoggerName      string    `json:"loggerName"`
-	Level           string    `json:"level"`
-	Message         string    `json:"message"`
-	ThreadName      string    `json:"threadName"`
-	ThreadID        int       `json:"threadId"`
-	Mdc             any       `json:"mdc"`
-	Ndc             string    `json:"ndc"`
-	HostName        string    `json:"hostName"`
-	ProcessName     string    `json:"processName"`
-	ProcessID       int       `json:"processId"`
+	Timestamp       time.Time        `json:"timestamp"`
+	Sequence        int              `json:"sequence"`
+	LoggerClassName string           `json:"loggerClassName"`
+	LoggerName      string           `json:"loggerName"`
+	Level           string           `json:"level"`
+	Message         string           `json:"message"`
+	ThreadName      string           `json:"threadName"`
+	ThreadID        int              `json:"threadId"`
+	Mdc             any              `json:"mdc"`
+	Ndc             string           `json:"ndc"`
+	HostName        string           `json:"hostName"`
+	ProcessName     string           `json:"processName"`
+	ProcessID       int              `json:"processId"`
+	Exception       *ExceptionRecord `json:"exception"`
+}
+
+type ExceptionRecord struct {
+	RefID         int              `json:"refId"`
+	ExceptionType string           `json:"exceptionType"`
+	Message       string           `json:"message"`
+	Frames        []FrameRecord    `json:"frames"`
+	CausedBy      *ExceptionRecord `json:"causedBy"`
+}
+
+type FrameRecord struct {
+	Class  string `json:"class"`
+	Method string `json:"method"`
+	Line   int    `json:"line"`
 }
 
 func (r *JvmLogRecord) ToEntry() log.Entry {
@@ -173,6 +203,12 @@ func (r *JvmLogRecord) ToEntry() log.Entry {
 		level = log.Trace
 	default:
 		r.Message = r.Level + ": " + r.Message
+	}
+	if r.Exception != nil {
+		r.Message += r.Exception.ExceptionType + " " + r.Exception.Message
+		for _, f := range r.Exception.Frames {
+			r.Message += fmt.Sprintf("\n\t%s#%s:%d", f.Class, f.Method, f.Line)
+		}
 	}
 
 	ret := log.Entry{
