@@ -11,7 +11,9 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ClassInfo;
@@ -150,7 +152,7 @@ public class EnumProcessor {
         return Decl.newBuilder().setEnum(enumBuilder).build();
     }
 
-    private record TypeEnum(Decl decl, List<Class<?>> variantClasses) {
+    private record TypeEnum(Decl decl, Map<String, Class<?>> variantClasses) {
     }
 
     /**
@@ -172,10 +174,14 @@ public class EnumProcessor {
         if (variants.isEmpty()) {
             throw new RuntimeException("No variants found for enum: " + enumBuilder.getName());
         }
-        var variantClasses = new ArrayList<Class<?>>();
+        var variantClasses = new TreeMap<String, Class<?>>();
         for (var variant : variants) {
             Type variantType;
             String variantName = ModuleBuilder.classToName(variant);
+            if (variant.hasDeclaredAnnotation(VariantName.class)) {
+                AnnotationInstance variantNameAnnotation = variant.annotation(VariantName.class);
+                variantName = variantNameAnnotation.value().asString();
+            }
             if (variant.hasAnnotation(ENUM_HOLDER)) {
                 // Enum value holder class
                 FieldInfo valueField = variant.field("value");
@@ -189,11 +195,7 @@ public class EnumProcessor {
                 variantType = ClassType.builder(variant.name()).build();
                 Class<?> variantClazz = Class.forName(variantType.name().toString(), false,
                         Thread.currentThread().getContextClassLoader());
-                variantClasses.add(variantClazz);
-            }
-            if (variant.hasDeclaredAnnotation(VariantName.class)) {
-                AnnotationInstance variantNameAnnotation = variant.annotation(VariantName.class);
-                variantName = variantNameAnnotation.value().asString();
+                variantClasses.put(variantName, variantClazz);
             }
             xyz.block.ftl.schema.v1.Type declType = moduleBuilder.buildType(variantType, visibility,
                     Nullability.NOT_NULL);
