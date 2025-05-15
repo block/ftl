@@ -117,7 +117,7 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 			var responseHeaders http.Header
 			responseBody, responseHeaders, err = ResponseForVerb(sch, verb, response)
 			if err != nil {
-				logger.Errorf(err, "could not create response for verb %s", verb)
+				logger.Errorf(err, "could not create response for verb %s", verb.Name)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not create response for verb"))
 				s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
