@@ -1,5 +1,7 @@
 package xyz.block.ftl.runtime.http;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import xyz.block.ftl.runtime.VerbInvoker;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
@@ -18,7 +20,7 @@ public class HTTPVerbInvoker implements VerbInvoker {
     }
 
     @Override
-    public CallResponse handle(CallRequest in) {
+    public CallResponse handle(CallRequest in, ObjectMapper mapper) {
         return ftlHttpHandler.handle(in, base64Encoded);
     }
 }
