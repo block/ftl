@@ -134,7 +134,8 @@ public class ModuleBuilder {
     }
 
     public static @NotNull String methodToName(MethodInfo method) {
-        return method.name();
+        String simple = method.name();
+        return simple.substring(0, 1).toLowerCase() + simple.substring(1);
     }
 
     public static @NotNull String classToName(ClassInfo clazz) {
