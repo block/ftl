@@ -117,6 +117,16 @@
                                 </goals>
                                 <phase>none</phase>
                             </execution>
+                            <execution>
+                                <id>test-compile</id>
+                                <phase>test-compile</phase>
+                                <goals>
+                                    <goal>test-compile</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
