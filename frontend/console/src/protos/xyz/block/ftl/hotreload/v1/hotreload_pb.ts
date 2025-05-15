@@ -18,16 +18,9 @@ export class ReloadRequest extends Message<ReloadRequest> {
   forceNewRunner = false;
 
   /**
-   * If the reload results in a new runner, this will be the new deployment key
-   *
-   * @generated from field: string new_deployment_key = 2;
-   */
-  newDeploymentKey = "";
-
-  /**
    * If the schema has changed on the plugin side, this will be true
    *
-   * @generated from field: bool schema_changed = 3;
+   * @generated from field: bool schema_changed = 2;
    */
   schemaChanged = false;
 
@@ -40,8 +33,7 @@ export class ReloadRequest extends Message<ReloadRequest> {
   static readonly typeName = "xyz.block.ftl.hotreload.v1.ReloadRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "force_new_runner", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 2, name: "new_deployment_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "schema_changed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "schema_changed", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReloadRequest {
@@ -187,7 +179,17 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
   deployment = "";
 
   /**
-   * @generated from field: repeated xyz.block.ftl.hotreload.v1.Database databases = 3;
+   * @generated from field: int64 schema_version = 3;
+   */
+  schemaVersion = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 runner_version = 4;
+   */
+  runnerVersion = protoInt64.zero;
+
+  /**
+   * @generated from field: repeated xyz.block.ftl.hotreload.v1.Database databases = 5;
    */
   databases: Database[] = [];
 
@@ -201,7 +203,9 @@ export class RunnerInfoRequest extends Message<RunnerInfoRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "databases", kind: "message", T: Database, repeated: true },
+    { no: 3, name: "schema_version", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "runner_version", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: "databases", kind: "message", T: Database, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunnerInfoRequest {

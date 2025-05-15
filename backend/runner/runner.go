@@ -74,6 +74,8 @@ type Config struct {
 	DevEndpoint           optional.Option[string] `help:"An existing endpoint to connect to in development mode" hidden:""`
 	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
 	LocalRunners          bool                    `help:"Set to true if we are running with local runners" hidden:""`
+	DevModeSchemaSequence int64                   `help:"Schema sequence number for dev mode runner. " hidden:""`
+	DevModeRunnerSequence int64                   `help:"Runner sequence number  for dev mode runner. " hidden:""`
 }
 
 func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
@@ -437,9 +439,11 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 						return
 					case <-time.After(time.Millisecond * 50):
 						info, err := hotReloadClient.RunnerInfo(pingCtx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
-							Deployment: s.config.Deployment.String(),
-							Address:    s.proxyBindAddress.String(),
-							Databases:  databases,
+							Deployment:    s.config.Deployment.String(),
+							Address:       s.proxyBindAddress.String(),
+							SchemaVersion: s.config.DevModeSchemaSequence,
+							RunnerVersion: s.config.DevModeRunnerSequence,
+							Databases:     databases,
 						}))
 						if err == nil {
 							if info.Msg.Outdated {

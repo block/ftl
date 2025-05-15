@@ -1,40 +1,47 @@
 package xyz.block.ftl.hotreload;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RunnerNotification {
 
     private static volatile RunnerCallback callback;
     private static volatile RunnerInfo info;
-    private static final AtomicReference<String> currentDeploymentKey = new AtomicReference<>();
+    private static final AtomicLong requiredSchemaNumber = new AtomicLong(0);
 
-    public static String getDeploymentKey() {
-        return currentDeploymentKey.get();
+    public static long getRequiredSchemaNumber() {
+        return requiredSchemaNumber.get();
     }
 
-    public static void newDeploymentKey(String key) {
+    public static long schemaVersion(boolean newRunnerRequired) {
+        if (newRunnerRequired) {
+            return newRunnerRequired();
+        }
+        return requiredSchemaNumber.get();
+    }
 
-        currentDeploymentKey.set(key);
+    public static long newRunnerRequired() {
+        var ret = requiredSchemaNumber.incrementAndGet();
         RunnerCallback callback;
         synchronized (RunnerNotification.class) {
             callback = RunnerNotification.callback;
         }
         if (callback != null) {
-            callback.newRunnerDeployment(key);
+            callback.newSchemaNumber(ret);
         }
+        return ret;
     }
 
     public static void setCallback(RunnerCallback callback) {
         RunnerInfo info;
-        String runnerVersion;
+        long schemaVersion;
         synchronized (RunnerNotification.class) {
             RunnerNotification.callback = callback;
             info = RunnerNotification.info;
             RunnerNotification.info = null;
-            runnerVersion = RunnerNotification.currentDeploymentKey.get();
+            schemaVersion = RunnerNotification.requiredSchemaNumber.get();
         }
-        if (runnerVersion != null) {
-            callback.newRunnerDeployment(runnerVersion);
+        if (schemaVersion > 0) {
+            callback.newSchemaNumber(schemaVersion);
         }
         if (info != null) {
             callback.runnerDetails(info);
@@ -53,25 +60,24 @@ public class RunnerNotification {
 
     public static boolean setRunnerInfo(RunnerInfo info) {
         RunnerCallback callback;
-        boolean outdated;
+        boolean outdated = false;
         synchronized (RunnerNotification.class) {
-            outdated = !info.deployment().equals(currentDeploymentKey.get()) && currentDeploymentKey.get() != null;
             callback = RunnerNotification.callback;
             if (callback == null) {
                 RunnerNotification.info = info;
             }
         }
         if (callback != null) {
-            callback.runnerDetails(info);
+            outdated = callback.runnerDetails(info);
         }
         return outdated;
     }
 
     public interface RunnerCallback {
-        void runnerDetails(RunnerInfo info);
+        boolean runnerDetails(RunnerInfo info);
 
         void reloadStarted();
 
-        void newRunnerDeployment(String deploymentKey);
+        void newSchemaNumber(long seq);
     }
 }

@@ -11,10 +11,8 @@ option java_multiple_files = true;
 
 message ReloadRequest {
   bool force_new_runner = 1;
-  // If the reload results in a new runner, this will be the new deployment key
-  string new_deployment_key = 2;
   // If the schema has changed on the plugin side, this will be true
-  bool schema_changed = 3;
+  bool schema_changed = 2;
 }
 
 message ReloadResponse {
@@ -31,7 +29,9 @@ message WatchResponse {
 message RunnerInfoRequest {
   string address = 1;
   string deployment = 2;
-  repeated Database databases = 3;
+  int64 schema_version = 3;
+  int64 runner_version = 4;
+  repeated Database databases = 5;
 }
 
 message Database {

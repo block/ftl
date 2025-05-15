@@ -40,6 +40,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.util.HashUtil;
 import io.quarkus.vertx.http.deployment.RequireSocketHttpBuildItem;
 import io.quarkus.vertx.http.deployment.RequireVirtualHttpBuildItem;
+import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
@@ -193,6 +194,7 @@ public class ModuleProcessor {
             if (fatal) {
                 HotReloadHandler.getInstance()
                         .setResults(SchemaState.newBuilder().setErrors(errRef.get())
+                                .setVersion(RunnerNotification.schemaVersion(true))
                                 .setNewRunnerRequired(true).build());
                 var message = "Schema validation failed: \n";
                 for (var i : errRef.get().getErrorsList()) {
@@ -203,11 +205,13 @@ public class ModuleProcessor {
                 HotReloadHandler.getInstance()
                         .setResults(SchemaState.newBuilder()
                                 .setModule(schRef.get())
+                                .setVersion(RunnerNotification.schemaVersion(newRunnerRequired))
                                 .setNewRunnerRequired(newRunnerRequired).build());
             }
         } else if (launchModeBuildItem.getLaunchMode() == LaunchMode.TEST) {
             HotReloadHandler.getInstance()
                     .setResults(SchemaState.newBuilder()
+                            .setVersion(RunnerNotification.schemaVersion(false))
                             .setModule(schRef.get()).build());
         } else {
             var launch = outputTargetBuildItem.getOutputDirectory().resolve("launch");

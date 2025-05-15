@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,7 +33,8 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     private volatile RunnerDetails runnerDetails;
 
     private final Map<String, GetDeploymentContextResponse.DbType> databases = new ConcurrentHashMap<>();
-    private String runnerDeploymentKey;
+    private long requiredSchemaNumber = -1;
+    private long runnerNumber = -1;
 
     public static FTLController instance() {
         if (controller == null) {
@@ -169,13 +169,16 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     }
 
     @Override
-    public synchronized void runnerDetails(RunnerInfo info) {
-        if (runnerDeploymentKey != null && !Objects.equals(info.deployment(), runnerDeploymentKey)) {
-            return;
+    public synchronized boolean runnerDetails(RunnerInfo info) {
+        if (info.runnerSeq() < this.runnerNumber || info.schemaSeq() < this.requiredSchemaNumber) {
+            // Runner is outdated
+            return true;
         }
-        if (runnerDetails != null && Objects.equals(runnerDetails.getDeploymentKey(), info.deployment())) {
-            return;
+        if (info.runnerSeq() == this.runnerNumber) {
+            // Not outdated, but we already have these details
+            return false;
         }
+        this.runnerNumber = info.runnerSeq();
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;
@@ -186,6 +189,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         }
         waiters.clear();
         notifyAll();
+        return false;
     }
 
     @Override
@@ -198,11 +202,13 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
     }
 
     @Override
-    public synchronized void newRunnerDeployment(String version) {
-        if (Objects.equals(this.runnerDeploymentKey, version)) {
+    public synchronized void newSchemaNumber(long seq) {
+        if (seq <= requiredSchemaNumber) {
+            log.debugf("Received outdated required runner number %s", seq);
             return;
         }
-        this.runnerDeploymentKey = version;
+        log.debugf("Expecting new schema seq %s", seq);
+        this.requiredSchemaNumber = seq;
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;

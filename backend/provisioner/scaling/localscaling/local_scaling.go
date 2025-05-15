@@ -39,7 +39,9 @@ type localScaling struct {
 	// Deployments -> info
 	runners map[string]*deploymentInfo
 	// Module -> Port
-	debugPorts        map[string]*localdebug.DebugInfo
+	debugPorts map[string]*localdebug.DebugInfo
+	// Module -> runner sequence
+	runnerCounts      map[string]int64
 	controllerAddress *url.URL
 	leaseAddress      *url.URL
 	schemaAddress     *url.URL
@@ -117,6 +119,7 @@ type devModeRunner struct {
 	// The deployment key of the deployment that is currently running
 	deploymentKey optional.Option[key.Deployment]
 	debugPort     int
+	scehamVersion int64
 }
 
 func (l *localScaling) Start(ctx context.Context) error {
@@ -134,9 +137,10 @@ func (l *localScaling) Start(ctx context.Context) error {
 // Must be called under lock
 func (l *localScaling) updateDevModeEndpoint(ctx context.Context, devEndpoints dev.LocalEndpoint) {
 	l.devModeEndpoints[devEndpoints.Module] = &devModeRunner{
-		uri:          devEndpoints.Endpoint,
-		debugPort:    devEndpoints.DebugPort,
-		hotReloadURI: devEndpoints.HotReloadEndpoint,
+		uri:           devEndpoints.Endpoint,
+		debugPort:     devEndpoints.DebugPort,
+		hotReloadURI:  devEndpoints.HotReloadEndpoint,
+		scehamVersion: devEndpoints.Version,
 	}
 	if ide, ok := l.ideSupport.Get(); ok {
 		if devEndpoints.DebugPort != 0 {
@@ -202,6 +206,7 @@ func NewLocalScaling(
 		enableOtel:              enableOtel,
 		devModeEndpointsUpdates: devModeEndpoints,
 		devModeEndpoints:        map[string]*devModeRunner{},
+		runnerCounts:            map[string]int64{},
 	}
 	if configPath != "" {
 		local.ideSupport = optional.Ptr(localdebug.NewIDEIntegration(configPath, enableVSCodeIntegration, enableIntellijIntegration))
@@ -224,6 +229,8 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	devURI := optional.None[string]()
 	devHotReloadURI := optional.None[string]()
 	debugPort := 0
+	var runnerSeq int64
+	var schemaSeq int64
 	if devEndpoint != nil {
 		devURI = optional.Some(devEndpoint.uri)
 		devHotReloadURI = optional.Some(devEndpoint.hotReloadURI)
@@ -233,6 +240,9 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		}
 		devEndpoint.deploymentKey = optional.Some(deploymentKey)
 		debugPort = devEndpoint.debugPort
+		runnerSeq = l.runnerCounts[deploymentKey.Payload.Module]
+		l.runnerCounts[deploymentKey.Payload.Module] = runnerSeq + 1
+		schemaSeq = devEndpoint.scehamVersion
 	} else if ide, ok := l.ideSupport.Get(); ok {
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
@@ -263,16 +273,18 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		return errors.Wrap(err, "failed to start runner")
 	}
 	config := runner.Config{
-		Bind:                 bindURL,
-		ControllerEndpoint:   controllerEndpoint,
-		SchemaEndpoint:       l.schemaAddress,
-		LeaseEndpoint:        l.leaseAddress,
-		Key:                  key.NewLocalRunnerKey(keySuffix),
-		Deployment:           deploymentKey,
-		DebugPort:            debugPort,
-		DevEndpoint:          devURI,
-		DevHotReloadEndpoint: devHotReloadURI,
-		LocalRunners:         true,
+		Bind:                  bindURL,
+		ControllerEndpoint:    controllerEndpoint,
+		SchemaEndpoint:        l.schemaAddress,
+		LeaseEndpoint:         l.leaseAddress,
+		Key:                   key.NewLocalRunnerKey(keySuffix),
+		Deployment:            deploymentKey,
+		DebugPort:             debugPort,
+		DevEndpoint:           devURI,
+		DevHotReloadEndpoint:  devHotReloadURI,
+		LocalRunners:          true,
+		DevModeSchemaSequence: schemaSeq,
+		DevModeRunnerSequence: runnerSeq,
 	}
 
 	simpleName := fmt.Sprintf("runner%d", keySuffix)

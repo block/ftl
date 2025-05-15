@@ -6,4 +6,5 @@ type LocalEndpoint struct {
 	DebugPort         int
 	Language          string
 	HotReloadEndpoint string
+	Version           int64
 }

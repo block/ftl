@@ -102,8 +102,12 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 
 	if endpoint, ok := result.DevEndpoint.Get(); ok {
+		var version int64
+		if v, ok := result.HotReloadVersion.Get(); ok {
+			version = v
+		}
 		if devModeEndpoints != nil {
-			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default("")}
+			devModeEndpoints <- dev.LocalEndpoint{Module: config.Module, Endpoint: endpoint, DebugPort: result.DebugPort, Language: config.Language, HotReloadEndpoint: result.HotReloadEndpoint.Default(""), Version: version}
 		}
 	}
 	// write schema proto to deploy directory
