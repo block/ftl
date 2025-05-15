@@ -409,7 +409,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			logger.Debugf("Build context updated")
 			_ = output.FinalizeCapture(false)
 			go func() {
-				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: bc.schemaChanged}, reloadEvents, true, newKey)
+				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{SchemaChanged: bc.schemaChanged}, reloadEvents, true, newKey)
 				if err != nil {
 					errs <- err
 				}
@@ -437,7 +437,7 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			}
 
 			go func() {
-				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}, reloadEvents, false, newKey)
+				err = s.doReload(ctx, client, &hotreloadpb.ReloadRequest{}, reloadEvents, false, newKey)
 				if err != nil {
 					errs <- err
 				}
@@ -464,7 +464,7 @@ func (s *Service) doReload(ctx context.Context, client hotreloadpbconnect.HotRel
 			logger.Debugf("Reconnect failed, unable to connect to client")
 			return err
 		}
-		result, err = client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String()}))
+		result, err = client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{}))
 	}
 	if err != nil {
 		logger.Debugf("Unable to invoke reload on the JVM") //TODO: restart
@@ -493,7 +493,7 @@ func (s *Service) watchReloadEvents(ctx context.Context, reloadEvents chan *buil
 	for event := range channels.IterContext(ctx, reloadEvents) {
 		changed := event.state.GetNewRunnerRequired()
 		errorList := event.state.GetErrors()
-		logger.Debugf("Checking for schema changes: changed: %v failed: %v buildContextUpdated: %v newRunnerRequired: %v", changed, event.failed, event.buildContextUpdated, event.state.NewRunnerRequired)
+		logger.Debugf("Checking for schema changes: changed: %v failed: %v buildContextUpdated: %v newRunnerRequired: %v schemaVersion %v", changed, event.failed, event.buildContextUpdated, event.state.NewRunnerRequired, event.state.Version)
 
 		if changed || event.buildContextUpdated || event.failed || lastFailed {
 			lastFailed = false

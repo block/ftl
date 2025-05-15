@@ -27,10 +27,8 @@ const (
 type ReloadRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ForceNewRunner bool                   `protobuf:"varint,1,opt,name=force_new_runner,json=forceNewRunner,proto3" json:"force_new_runner,omitempty"`
-	// If the reload results in a new runner, this will be the new deployment key
-	NewDeploymentKey string `protobuf:"bytes,2,opt,name=new_deployment_key,json=newDeploymentKey,proto3" json:"new_deployment_key,omitempty"`
 	// If the schema has changed on the plugin side, this will be true
-	SchemaChanged bool `protobuf:"varint,3,opt,name=schema_changed,json=schemaChanged,proto3" json:"schema_changed,omitempty"`
+	SchemaChanged bool `protobuf:"varint,2,opt,name=schema_changed,json=schemaChanged,proto3" json:"schema_changed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -70,13 +68,6 @@ func (x *ReloadRequest) GetForceNewRunner() bool {
 		return x.ForceNewRunner
 	}
 	return false
-}
-
-func (x *ReloadRequest) GetNewDeploymentKey() string {
-	if x != nil {
-		return x.NewDeploymentKey
-	}
-	return ""
 }
 
 func (x *ReloadRequest) GetSchemaChanged() bool {
@@ -222,7 +213,9 @@ type RunnerInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 	Deployment    string                 `protobuf:"bytes,2,opt,name=deployment,proto3" json:"deployment,omitempty"`
-	Databases     []*Database            `protobuf:"bytes,3,rep,name=databases,proto3" json:"databases,omitempty"`
+	SchemaVersion int64                  `protobuf:"varint,3,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	RunnerVersion int64                  `protobuf:"varint,4,opt,name=runner_version,json=runnerVersion,proto3" json:"runner_version,omitempty"`
+	Databases     []*Database            `protobuf:"bytes,5,rep,name=databases,proto3" json:"databases,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -269,6 +262,20 @@ func (x *RunnerInfoRequest) GetDeployment() string {
 		return x.Deployment
 	}
 	return ""
+}
+
+func (x *RunnerInfoRequest) GetSchemaVersion() int64 {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return 0
+}
+
+func (x *RunnerInfoRequest) GetRunnerVersion() int64 {
+	if x != nil {
+		return x.RunnerVersion
+	}
+	return 0
 }
 
 func (x *RunnerInfoRequest) GetDatabases() []*Database {
@@ -571,23 +578,24 @@ var File_xyz_block_ftl_hotreload_v1_hotreload_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc = "" +
 	"\n" +
-	"*xyz/block/ftl/hotreload/v1/hotreload.proto\x12\x1axyz.block.ftl.hotreload.v1\x1a'xyz/block/ftl/language/v1/service.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x8e\x01\n" +
+	"*xyz/block/ftl/hotreload/v1/hotreload.proto\x12\x1axyz.block.ftl.hotreload.v1\x1a'xyz/block/ftl/language/v1/service.proto\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"`\n" +
 	"\rReloadRequest\x12(\n" +
-	"\x10force_new_runner\x18\x01 \x01(\bR\x0eforceNewRunner\x12,\n" +
-	"\x12new_deployment_key\x18\x02 \x01(\tR\x10newDeploymentKey\x12%\n" +
-	"\x0eschema_changed\x18\x03 \x01(\bR\rschemaChanged\"g\n" +
+	"\x10force_new_runner\x18\x01 \x01(\bR\x0eforceNewRunner\x12%\n" +
+	"\x0eschema_changed\x18\x02 \x01(\bR\rschemaChanged\"g\n" +
 	"\x0eReloadResponse\x12=\n" +
 	"\x05state\x18\x01 \x01(\v2'.xyz.block.ftl.hotreload.v1.SchemaStateR\x05state\x12\x16\n" +
 	"\x06failed\x18\x02 \x01(\bR\x06failed\"\x0e\n" +
 	"\fWatchRequest\"N\n" +
 	"\rWatchResponse\x12=\n" +
-	"\x05state\x18\x01 \x01(\v2'.xyz.block.ftl.hotreload.v1.SchemaStateR\x05state\"\x91\x01\n" +
+	"\x05state\x18\x01 \x01(\v2'.xyz.block.ftl.hotreload.v1.SchemaStateR\x05state\"\xdf\x01\n" +
 	"\x11RunnerInfoRequest\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x1e\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\tR\n" +
-	"deployment\x12B\n" +
-	"\tdatabases\x18\x03 \x03(\v2$.xyz.block.ftl.hotreload.v1.DatabaseR\tdatabases\"8\n" +
+	"deployment\x12%\n" +
+	"\x0eschema_version\x18\x03 \x01(\x03R\rschemaVersion\x12%\n" +
+	"\x0erunner_version\x18\x04 \x01(\x03R\rrunnerVersion\x12B\n" +
+	"\tdatabases\x18\x05 \x03(\v2$.xyz.block.ftl.hotreload.v1.DatabaseR\tdatabases\"8\n" +
 	"\bDatabase\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\"0\n" +

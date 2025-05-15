@@ -2,7 +2,6 @@ package xyz.block.ftl.deployment;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
@@ -39,11 +38,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
     private volatile Consumer<SchemaState> runningReload;
     private volatile boolean starting;
     private volatile boolean nextRequiresNewRunner;
-    // Ordered list of the possible deployment keys
-    // If we get a runner when we are not expecting one, we need to check if it is in this list
-    // This allows us to only move forward with the new runner
-    // So we can't accidentally accept a connection from an old runner
-    private final Deque<String> possibleNewDeploymentKeys = new LinkedBlockingDeque<>();
     private final List<StreamObserver<WatchResponse>> watches = Collections.synchronizedList(new ArrayList<>());
 
     public static HotReloadHandler getInstance() {
@@ -56,10 +50,6 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
         if (runningReload != null) {
             runningReload.accept(state);
         } else {
-            if (state.getNewRunnerRequired()) {
-                // We are going to need a new runner, but we don't know what it is yet
-                RunnerNotification.newDeploymentKey(null);
-            }
             List<StreamObserver<WatchResponse>> watches;
             synchronized (this.watches) {
                 watches = new ArrayList<>(this.watches);
@@ -84,9 +74,8 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void reload(ReloadRequest request, StreamObserver<ReloadResponse> responseObserver) {
-        LOG.debugf("Reload request: %s", request.getNewDeploymentKey());
+        LOG.debugf("Reload request");
         CodeGenNotification.waitForCodeGen(request.getSchemaChanged());
-        possibleNewDeploymentKeys.add(request.getNewDeploymentKey());
         var forceNewRunner = request.getForceNewRunner() || nextRequiresNewRunner;
         this.nextRequiresNewRunner = false;
         // This is complex, as the restart can't happen until the runner is up
@@ -126,19 +115,17 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
                         }
                         var errors = builder.build();
                         responseObserver.onNext(ReloadResponse.newBuilder()
-                                .setState(SchemaState.newBuilder().setNewRunnerRequired(true).setErrors(errors)).build());
+                                .setState(SchemaState.newBuilder().setNewRunnerRequired(true)
+                                        .setVersion(RunnerNotification.schemaVersion(true)).setErrors(errors))
+                                .build());
                         nextRequiresNewRunner = true;
-                        LOG.debugf("Reload %s failed with compile/deployment errors", request.getNewDeploymentKey());
+                        LOG.debugf("Reloadfailed with compile/deployment errors");
                     } else {
                         if (forceNewRunner) {
-                            state = state.toBuilder().setNewRunnerRequired(true).build();
+                            state = state.toBuilder().setNewRunnerRequired(true)
+                                    .setVersion(RunnerNotification.schemaVersion(true)).build();
                         }
-                        if (state.getNewRunnerRequired()) {
-                            LOG.debugf("Update required deployment key: %s", request.getNewDeploymentKey());
-                            RunnerNotification.newDeploymentKey(request.getNewDeploymentKey());
-                        }
-                        LOG.debugf("Reload %s completed successfully, new runner required %s", request.getNewDeploymentKey(),
-                                state.getNewRunnerRequired());
+                        LOG.debugf("Reload completed successfully, new runner required %s", state.getNewRunnerRequired());
                         responseObserver.onNext(ReloadResponse.newBuilder().setState(state).build());
                     }
                     responseObserver.onCompleted();
@@ -174,32 +161,17 @@ public class HotReloadHandler extends HotReloadServiceGrpc.HotReloadServiceImplB
 
     @Override
     public void runnerInfo(RunnerInfoRequest request, StreamObserver<RunnerInfoResponse> responseObserver) {
-        if (!Objects.equals(request.getDeployment(), RunnerNotification.getDeploymentKey())) {
-            // This might be a stale request
-            // We need to check if key is in the possible new deployment keys
-            if (possibleNewDeploymentKeys.contains(request.getDeployment())) {
-                // We ended up getting a new runner, even though we did not explicitly request one
-                // This can happen when validation fails in the build engine
-                // Set the new key
-                RunnerNotification.newDeploymentKey(request.getDeployment());
-            }
-        }
-        while (!possibleNewDeploymentKeys.isEmpty()) {
-            var queueKey = possibleNewDeploymentKeys.poll();
-            if (queueKey == null || Objects.equals(queueKey, request.getDeployment())) {
-                break;
-            }
-        }
-        LOG.debugf("Received runner info for: %s", request.getDeployment());
+
+        LOG.tracef("Received runner info for: %s", request.getDeployment());
         Map<String, String> databases = new HashMap<>();
         for (var db : request.getDatabasesList()) {
             databases.put(db.getName(), db.getAddress());
         }
         boolean outdated = RunnerNotification
-                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases));
+                .setRunnerInfo(new RunnerInfo(request.getAddress(), request.getDeployment(), databases,
+                        request.getRunnerVersion(), request.getSchemaVersion()));
         if (outdated) {
-            LOG.infof("Runner is outdated, a reload is required, runner version %s, current %s",
-                    request.getDeployment(), RunnerNotification.getDeploymentKey());
+            LOG.debugf("Runner is outdated, a reload is required");
         }
         responseObserver.onNext(RunnerInfoResponse.newBuilder().setOutdated(outdated).build());
         responseObserver.onCompleted();
