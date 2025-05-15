@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import * as dagre from 'dagre'
 import { Config, Data, Database, type Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { MetadataSubscriber } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import type { Metadata, Ref } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
 import { configPanels } from '../modules/decls/config/ConfigRightPanels'
 import { dataPanels } from '../modules/decls/data/DataRightPanels'
@@ -162,32 +162,8 @@ export const getGraphData = (
     createChildren(module.topics, 'topic', (item: Topic) => item.topic?.name || '')
   }
 
-  // check for publishers and subscribers in the verb metadata
-  for (const module of filteredModules) {
-    for (const verb of module.verbs) {
-      const verbName = verb.verb?.name || ''
-      const metadata = verb.verb?.metadata || []
-
-      for (const meta of metadata) {
-        if (meta.value.case === 'publisher') {
-          for (const topic of meta.value.value.topics) {
-            const edge = createEdge(module.name, verbName, topic.module, topic.name, isDarkMode, selectedNodeId)
-            if (edge) edges.push(edge)
-          }
-        }
-
-        if (meta.value.case === 'subscriber') {
-          const topic = meta.value.value.topic
-          if (topic) {
-            const edge = createEdge(topic.module, topic.name, module.name, verbName, isDarkMode, selectedNodeId)
-            if (edge) edges.push(edge)
-          }
-        }
-      }
-    }
-  }
-
-  // Process edges for other node types (configs, secrets, databases, topics)
+  // Remove metadata-based edge creation for publisher, subscriber, and calls
+  // Process edges for all node types (including verbs)
   const processReferences = <T extends FTLNode & { edges?: { in: Array<{ module: string; name: string }>; out: Array<{ module: string; name: string }> } }>(
     module: Module,
     items: T[],
@@ -195,63 +171,55 @@ export const getGraphData = (
   ) => {
     for (const item of items || []) {
       const itemName = getName(item)
-      // Skip if the item name is empty
-      if (!itemName || itemName === '') continue
-      if (!item.edges) continue
+      if (!itemName || !item.edges) continue
 
-      // Process inbound edges
+      // Process inbound edges (unchanged)
       for (const ref of item.edges.in) {
-        // Skip if reference name is empty
-        if (!ref.name || ref.name === '') continue
-        // Skip if reference module is empty
-        if (!ref.module || ref.module === '') continue
-
-        // Skip self-referential edges
+        if (!ref.name || !ref.module) continue
         if (ref.module === module.name && ref.name === itemName) continue
-
-        // Skip if source or target nodes don't exist
         const sourceId = nodeId(ref.module, ref.name)
         const targetId = nodeId(module.name, itemName)
         if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
 
-        // Special case: If this is a topic and the reference is a verb (subscriber),
-        // we'll reverse the edge direction in the visualization
+        // Special case: If this is a topic and the reference is a verb (subscriber), reverse the direction
         if (item instanceof Topic) {
-          // Check if the source is a verb (potential subscriber)
           const sourceModule = filteredModules.find((m) => m.name === ref.module)
           const sourceVerb = sourceModule?.verbs.find((v) => (v.verb?.name || '') === ref.name)
-
-          // Check if the verb has subscriber metadata
-          const subscriber = (sourceVerb?.verb?.metadata?.find((meta) => meta.value.case === 'subscriber')?.value?.value as MetadataSubscriber) || null
-          if (subscriber && subscriber.topic?.module === module.name && subscriber.topic?.name === itemName) {
-            // Reverse the direction for topic->subscriber
+          if (sourceVerb && isSubscriber(sourceVerb, module.name, itemName)) {
             const edge = createEdge(module.name, itemName, ref.module, ref.name, isDarkMode, selectedNodeId)
             if (edge) edges.push(edge)
             continue
           }
         }
-
         const edge = createEdge(ref.module, ref.name, module.name, itemName, isDarkMode, selectedNodeId)
         if (edge) edges.push(edge)
       }
 
-      // Process outbound edges
-      // For verbs, skip outbound edges (handled above)
-      if (item instanceof Verb) continue
+      // Unified outbound edge processing for all node types
       for (const ref of item.edges.out) {
-        // Skip if reference name is empty
-        if (!ref.name || ref.name === '') continue
-        // Skip if reference module is empty
-        if (!ref.module || ref.module === '') continue
-
-        // Skip self-referential edges
+        if (!ref.name || !ref.module) continue
         if (ref.module === module.name && ref.name === itemName) continue
-
-        // Skip if source or target nodes don't exist
         const sourceId = nodeId(module.name, itemName)
         const targetId = nodeId(ref.module, ref.name)
         if (!existingNodes.has(sourceId) || !existingNodes.has(targetId)) continue
 
+        const targetModule = filteredModules.find((m) => m.name === ref.module)
+        const targetTopic = targetModule?.topics.find((t) => (t.topic?.name || '') === ref.name)
+
+        // For verbs and topics, add both subscriber and publisher edges if both relationships exist
+        if (targetTopic && item instanceof Verb) {
+          if (isSubscriber(item, ref.module, ref.name)) {
+            const edge = createEdge(ref.module, ref.name, module.name, itemName, isDarkMode, selectedNodeId)
+            if (edge) edges.push(edge)
+          }
+          if (isPublisher(item, ref.module, ref.name)) {
+            const edge = createEdge(module.name, itemName, ref.module, ref.name, isDarkMode, selectedNodeId)
+            if (edge) edges.push(edge)
+          }
+          // Don't add the default edge for topic/verb relationships
+          continue
+        }
+        // Default edge for other types
         const edge = createEdge(module.name, itemName, ref.module, ref.name, isDarkMode, selectedNodeId)
         if (edge) edges.push(edge)
       }
@@ -259,6 +227,7 @@ export const getGraphData = (
   }
 
   for (const module of filteredModules) {
+    processReferences(module, module.verbs, (item: Verb) => item.verb?.name || '')
     processReferences(module, module.configs, (item: Config) => item.config?.name || '')
     processReferences(module, module.secrets, (item: Secret) => item.secret?.name || '')
     processReferences(module, module.databases, (item: Database) => item.database?.name || '')
@@ -350,4 +319,16 @@ export const panelsForNode = (node: FTLNode | null, ref: string | null) => {
     return verbPanels(ref, node, false)
   }
   return [] as ExpandablePanelProps[]
+}
+
+function isSubscriber(verb: Verb, module: string, name: string): boolean {
+  return (verb.verb?.metadata ?? []).some(
+    (meta: Metadata) => meta.value.case === 'subscriber' && meta.value.value.topic?.module === module && meta.value.value.topic?.name === name,
+  )
+}
+
+function isPublisher(verb: Verb, module: string, name: string): boolean {
+  return (verb.verb?.metadata ?? []).some(
+    (meta: Metadata) => meta.value.case === 'publisher' && (meta.value.value.topics ?? []).some((topic: Ref) => topic.module === module && topic.name === name),
+  )
 }
