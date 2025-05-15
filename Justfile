@@ -242,6 +242,10 @@ publish-extension: package-extension
 build-intellij-plugin:
   @cd frontend/intellij && gradle buildPlugin
 
+# Publish the IntelliJ plugin
+publish-intellij-plugin: build-intellij-plugin
+  @cd frontend/intellij && gradle publishPlugin
+
 # Format console code.
 format-frontend:
   cd {{CONSOLE_ROOT}} && pnpm run lint:fix

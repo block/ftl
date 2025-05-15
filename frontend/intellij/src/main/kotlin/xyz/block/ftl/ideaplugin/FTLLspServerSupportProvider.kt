@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij
+package xyz.block.ftl.ideaplugin
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -14,8 +14,7 @@ import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.lsWidget.LspServerWidgetItem
 import com.intellij.util.io.BaseOutputReader
 import com.intellij.util.messages.Topic
-import xyz.block.ftl.intellij.toolWindow.FTLMessagesToolWindowFactory.Util.displayMessageInToolWindow
-import java.util.regex.Pattern
+import xyz.block.ftl.ideaplugin.toolWindow.FTLMessagesToolWindowFactory.Util.displayMessageInToolWindow
 
 interface FTLLSPNotifier {
   fun lspServerStateChange(state: LspServerState)

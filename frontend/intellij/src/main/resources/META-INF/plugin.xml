@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
   <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-  <id>xyz.block.ftl.intellij</id>
+  <id>xyz.block.ftl.ideaplugin</id>
 
   <!-- Public plugin name should be written in Title Case.
        Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
@@ -30,18 +30,18 @@
        Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
     <toolWindow id="FTL" anchor="bottom"
-        factoryClass="xyz.block.ftl.intellij.toolWindow.FTLMessagesToolWindowFactory"/>
+        factoryClass="xyz.block.ftl.ideaplugin.toolWindow.FTLMessagesToolWindowFactory"/>
 
     <!-- LSP -->
     <platform.lsp.serverSupportProvider
-        implementation="xyz.block.ftl.intellij.FTLLspServerSupportProvider"/>
+        implementation="xyz.block.ftl.ideaplugin.FTLLspServerSupportProvider"/>
 
     <applicationService
-        serviceImplementation="xyz.block.ftl.intellij.FTLSettingsComponent"/>
+        serviceImplementation="xyz.block.ftl.ideaplugin.FTLSettingsComponent"/>
 
     <applicationConfigurable
         parentId="tools"
-        instance="xyz.block.ftl.intellij.FTLSettingsConfigurable"
+        instance="xyz.block.ftl.ideaplugin.FTLSettingsConfigurable"
         id="org.intellij.sdk.settings.AppSettingsConfigurable"
         displayName="FTL"/>
   </extensions>

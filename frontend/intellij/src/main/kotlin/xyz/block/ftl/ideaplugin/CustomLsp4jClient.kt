@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij
+package xyz.block.ftl.ideaplugin
 
 import com.intellij.platform.lsp.api.Lsp4jClient
 import com.intellij.platform.lsp.api.LspServerNotificationsHandler

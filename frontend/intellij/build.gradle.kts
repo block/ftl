@@ -1,3 +1,5 @@
+import com.github.javaparser.printer.concretesyntaxmodel.CsmElement.token
+
 plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "2.1.20"
@@ -5,7 +7,7 @@ plugins {
 }
 
 group = "xyz.block.ftl"
-version = "1.0-SNAPSHOT"
+version = System.getenv().getOrElse("PLUGIN_VERSION") { "1.0-SNAPSHOT" }
 
 repositories {
   mavenCentral()
@@ -32,7 +34,7 @@ tasks {
 
   patchPluginXml {
     sinceBuild.set("241")
-    untilBuild.set("243.*")
+    untilBuild.set("251.*")
   }
 
   signPlugin {

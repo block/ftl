@@ -20,6 +20,34 @@ jobs:
         run: just build-language-plugins
       - name: Test
         run: go-test-annotate
+
+  # HERE FOR TESTING, blocked on https://github.com/block/ftl/issues/5469
+  # THIS WILL END UP IN releas.yml
+
+  # intellij-release:
+  #   name: Release IntelliJ Plugin
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Init Hermit
+  #       uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+  #     - name: Build Cache
+  #       uses: ./.github/actions/build-cache
+  #     - name: Publish
+  #       env:
+  #         PUBLISH_TOKEN: "${{ secrets.JETBRAINS_MARKETPLACE_SQUARE_PLUGINS }}"
+  #         CERTIFICATE_CHAIN: "${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}"
+  #         PRIVATE_KEY: "${{ secrets.JETBRAINS_PRIVATE_KEY }}"
+  #         PRIVATE_KEY_PASSWORD: "${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}"
+  #       run: |
+  #         set -euo pipefail
+  #         PLUGIN_VERSION="$(git describe --tags --abbrev=0 | sed 's/^v//')"
+  #         export PLUGIN_VERSION
+  #         echo "Publishing version $PLUGIN_VERSION"
+  #         just publish-intellij-plugin
   test-readme:
     name: Test README
     runs-on: ubuntu-latest
