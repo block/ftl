@@ -395,7 +395,7 @@ func (r *terminalStatusManager) writeLine(s string, last bool) {
 		s += "\n"
 	}
 
-	if r.totalStatusLines == 0 {
+	if r.totalStatusLines == 0 && r.interactiveConsole.Ok() {
 		// In interactive mode, we need to preserve the command line
 		// by moving up one line before writing the output
 		r.underlyingWrite(ansiUpOneLine + ansiClearLine + s)
