@@ -171,9 +171,11 @@ public class FTLHttpHandler {
                             responseBuilder.setBody(baos.toString(StandardCharsets.UTF_8));
                         } else if (base64Encoded) {
                             responseBuilder.setBody(
-                                    mapper.get().writer().writeValueAsString(Base64.getEncoder().encodeToString(baos.toByteArray())));
+                                    mapper.get().writer()
+                                            .writeValueAsString(Base64.getEncoder().encodeToString(baos.toByteArray())));
                         } else {
-                            responseBuilder.setBody(mapper.get().writer().writeValueAsString(baos.toString(StandardCharsets.UTF_8)));
+                            responseBuilder
+                                    .setBody(mapper.get().writer().writeValueAsString(baos.toString(StandardCharsets.UTF_8)));
                         }
                         List<String> ct = responseBuilder.getHeaders().get(CONTENT_TYPE);
                         if (ct == null || ct.isEmpty()) {
