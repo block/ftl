@@ -63,7 +63,6 @@ public class TypeEnumSchemaExtractionTest {
         }
     }
 
-
     @Test
     public void testSerialization() throws Exception {
         var result = RestAssured.given().queryParam("cat", "true").get().asString();
