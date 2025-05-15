@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij
+package xyz.block.ftl.ideaplugin
 
 import com.intellij.openapi.options.Configurable
 import org.jetbrains.annotations.Nls

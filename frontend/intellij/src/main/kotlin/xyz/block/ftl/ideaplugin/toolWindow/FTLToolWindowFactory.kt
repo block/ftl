@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij.toolWindow
+package xyz.block.ftl.ideaplugin.toolWindow
 
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
@@ -25,9 +25,9 @@ import com.intellij.platform.lsp.api.LspServerState
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
-import xyz.block.ftl.intellij.FTLLSPNotifier
-import xyz.block.ftl.intellij.FTLLspServerService
-import xyz.block.ftl.intellij.FTLSettingsConfigurable
+import xyz.block.ftl.ideaplugin.FTLLSPNotifier
+import xyz.block.ftl.ideaplugin.FTLLspServerService
+import xyz.block.ftl.ideaplugin.FTLSettingsConfigurable
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 

@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij
+package xyz.block.ftl.ideaplugin
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project

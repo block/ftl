@@ -1,4 +1,4 @@
-package xyz.block.ftl.intellij
+package xyz.block.ftl.ideaplugin
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -12,9 +12,8 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.platform.lsp.api.LspServerNotificationsHandler
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.intellij.tools.ToolsCustomizer
-import xyz.block.ftl.intellij.toolWindow.FTLMessagesToolWindowFactory
+import xyz.block.ftl.ideaplugin.toolWindow.FTLMessagesToolWindowFactory
 import java.util.concurrent.CompletableFuture
-import java.util.regex.Pattern
 
 class FTLLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "FTL") {
   override fun isSupportedFile(file: VirtualFile) = file.extension == "go" || file.extension == "kt" || file.extension == "java"

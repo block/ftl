@@ -1,11 +1,11 @@
-package xyz.block.ftl.intellij.toolWindow
+package xyz.block.ftl.ideaplugin.toolWindow
 
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import xyz.block.ftl.intellij.runOnEDT
+import xyz.block.ftl.ideaplugin.runOnEDT
 import java.awt.BorderLayout
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
