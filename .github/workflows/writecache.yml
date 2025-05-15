@@ -6,7 +6,7 @@ on:
 concurrency:
   group: ${{ github.ref }}-writecache
   cancel-in-progress: true
-name: Write Hermit Cache
+name: Write Caches
 jobs:
   write-hermit-cache:
     strategy:
