@@ -168,6 +168,7 @@ build-backend:
 build-backend-tests:
   go test -run ^NONE -tags integration,infrastructure ./... > /dev/null
 
+# Build JVM runtime
 build-jvm *args:
   @mk {{JVM_RUNTIME_OUT}} : {{JVM_RUNTIME_IN}} -- mvn -f jvm-runtime/ftl-runtime clean install {{args}}
 
