@@ -487,6 +487,8 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 	return nil
 }
 
+var paramRe = regexp.MustCompile(`\?|/\*SLICE:[^*]*\*/\s*\?`)
+
 // getSQLAndParams returns the SQL and parameters for a query.
 // It handles SLICE patterns, which are used via SQLC to pass arrays to the database.
 func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
@@ -496,10 +498,9 @@ func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
 	}
 
 	sql := req.RawSql
-	re := regexp.MustCompile(`/\*SLICE:[^*]*\*/\s*\?`)
 
-	// If no SLICE patterns, return original
-	if !re.MatchString(sql) {
+	// If no SLICE patterns, we don't need to do anything.
+	if !strings.Contains(sql, "/*SLICE:") {
 		return sql, params, nil
 	}
 
@@ -508,7 +509,7 @@ func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
 	var newParams []any
 
 	// Replace each /*SLICE:xxx*/? with the right number of placeholders
-	newSQL := re.ReplaceAllStringFunc(sql, func(match string) string {
+	newSQL := paramRe.ReplaceAllStringFunc(sql, func(match string) string {
 		if paramIdx >= len(params) {
 			return match // Keep original if out of params
 		}
@@ -516,6 +517,11 @@ func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
 		// Get the parameter that corresponds to this ?
 		param := params[paramIdx]
 		paramIdx++
+
+		if match == "?" {
+			newParams = append(newParams, param)
+			return "?"
+		}
 
 		sliceVal := reflect.ValueOf(param)
 		if sliceVal.Kind() != reflect.Slice && sliceVal.Kind() != reflect.Array {
@@ -538,34 +544,6 @@ func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
 		placeholders := strings.TrimSuffix(strings.Repeat("?, ", sliceLen), ", ")
 		return placeholders
 	})
-
-	// Find all ? positions in the original SQL to count non-slice params
-	questionCount := 0
-	sliceMatches := re.FindAllStringIndex(sql, -1)
-
-	// Check each ? to see if it's within a SLICE pattern
-	for i, char := range sql {
-		if char != '?' {
-			continue
-		}
-
-		// Is this ? part of a SLICE pattern?
-		isSlicePattern := false
-		for _, match := range sliceMatches {
-			if i >= match[0] && i <= match[1] {
-				isSlicePattern = true
-				break
-			}
-		}
-
-		if !isSlicePattern && questionCount < len(params) {
-			// This is a regular parameter
-			newParams = append(newParams, params[questionCount])
-		}
-
-		questionCount++
-	}
-
 	return newSQL, newParams, nil
 }
 
