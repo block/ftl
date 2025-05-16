@@ -919,6 +919,7 @@ func extractKotlinFTLImports(self, dir string) ([]string, error) {
 // setPOMProperties updates the ftl.version properties in the
 // pom.xml file in the given base directory.
 func setPOMProperties(ctx context.Context, baseDir string) error {
+	changed := false
 	logger := log.FromContext(ctx)
 	ftlVersion := ftl.BaseVersion(ftl.Version)
 	if !ftl.IsRelease(ftlVersion) || ftlVersion != ftl.BaseVersion(ftl.Version) {
@@ -945,36 +946,43 @@ func setPOMProperties(ctx context.Context, baseDir string) error {
 		if group.Text() == "xyz.block.ftl" && (artifact.Text() == "ftl-build-parent-java" || artifact.Text() == "ftl-build-parent-kotlin") {
 			version := parent.SelectElement("version")
 			if version != nil {
-				version.SetText(ftlVersion)
+				if version.Text() != ftlVersion {
+					version.SetText(ftlVersion)
+					changed = true
+				}
 				versionSet = true
 			}
 		}
 	}
 
-	err := updatePomProperties(root, pomFile, ftlVersion)
+	propChanged, err := updatePomProperties(root, pomFile, ftlVersion)
 	if err != nil && !versionSet {
 		// This is only a failure if we also did not update the parent
 		return errors.WithStack(err)
 	}
-
-	err = tree.WriteToFile(pomFile)
-	if err != nil {
-		return errors.Wrapf(err, "unable to write %s", pomFile)
+	if propChanged || changed {
+		err = tree.WriteToFile(pomFile)
+		if err != nil {
+			return errors.Wrapf(err, "unable to write %s", pomFile)
+		}
 	}
 	return nil
 }
 
-func updatePomProperties(root *etree.Element, pomFile string, ftlVersion string) error {
+func updatePomProperties(root *etree.Element, pomFile string, ftlVersion string) (bool, error) {
 	properties := root.SelectElement("properties")
 	if properties == nil {
-		return errors.Errorf("unable to find <properties> in %s", pomFile)
+		return false, errors.Errorf("unable to find <properties> in %s", pomFile)
 	}
 	version := properties.SelectElement("ftl.version")
 	if version == nil {
-		return errors.Errorf("unable to find <properties>/<ftl.version> in %s", pomFile)
+		return false, errors.Errorf("unable to find <properties>/<ftl.version> in %s", pomFile)
+	}
+	if version.Text() == ftlVersion {
+		return false, nil
 	}
 	version.SetText(ftlVersion)
-	return nil
+	return true, nil
 }
 
 func loadProtoErrors(config moduleconfig.AbsModuleConfig) (*langpb.ErrorList, error) {
