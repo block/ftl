@@ -39,7 +39,7 @@ rules:
   {{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: {{ .Values.realmName }}-{{ include "ftl.fullname" . }}-provisioner
   labels:
