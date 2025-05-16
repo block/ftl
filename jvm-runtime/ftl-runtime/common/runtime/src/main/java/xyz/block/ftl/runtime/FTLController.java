@@ -178,6 +178,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
             // Not outdated, but we already have these details
             return false;
         }
+        log.debugf("Runner details: runner no: %s schema no: %s", info.runnerSeq(), info.schemaSeq());
         this.runnerNumber = info.runnerSeq();
         if (this.runnerConnection != null) {
             this.runnerConnection.close();

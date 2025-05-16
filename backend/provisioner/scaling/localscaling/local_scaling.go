@@ -216,6 +216,7 @@ func NewLocalScaling(
 }
 
 func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo) error {
+	logger := log.FromContext(ctx)
 	select {
 	case <-ctx.Done():
 		// In some cases this gets called with an expired context, generally after the lease is released
@@ -243,6 +244,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		runnerSeq = l.runnerCounts[deploymentKey.Payload.Module]
 		l.runnerCounts[deploymentKey.Payload.Module] = runnerSeq + 1
 		schemaSeq = devEndpoint.scehamVersion
+		logger.Debugf("Starting runner with schema version %d and runner sequence %d", schemaSeq, runnerSeq)
 	} else if ide, ok := l.ideSupport.Get(); ok {
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
@@ -258,7 +260,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		debugPort = debug.Port
 	}
 	controllerEndpoint := l.controllerAddress
-	logger := log.FromContext(ctx)
 
 	bind, err := plugin.AllocatePort()
 	if err != nil {
