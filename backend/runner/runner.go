@@ -447,6 +447,9 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
+							if !connected {
+								logger.Debugf("Runner connected to backend with schema version %d and runner no %d", s.config.DevModeSchemaSequence, s.config.DevModeRunnerSequence)
+							}
 							connected = true
 							if info.Msg.Outdated {
 								logger.Warnf("Runner is outdated, exiting")
