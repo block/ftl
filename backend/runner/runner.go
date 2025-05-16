@@ -433,13 +433,12 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}
 
 			go func() {
-				connected := false
 				for {
 					select {
 					case <-pingCtx.Done():
 						return
 					case <-time.After(time.Millisecond * 50):
-						info, err := hotReloadClient.RunnerInfo(pingCtx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
+						_, err := hotReloadClient.RunnerInfo(pingCtx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
 							Deployment:    s.config.Deployment.String(),
 							Address:       s.proxyBindAddress.String(),
 							SchemaVersion: s.config.DevModeSchemaSequence,
@@ -447,18 +446,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
-							if !connected {
-								logger.Debugf("Runner connected to backend with schema version %d and runner no %d", s.config.DevModeSchemaSequence, s.config.DevModeRunnerSequence)
-							}
-							connected = true
-							if info.Msg.Outdated {
-								logger.Warnf("Runner is outdated, exiting")
-								cancel(errors.Errorf("runner is outdated, exiting"))
-								return
-							}
-						} else if connected {
-							logger.Errorf(err, "Lost connection to running dev mode process")
-							connected = false
+							return
 						}
 					}
 				}

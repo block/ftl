@@ -15,7 +15,6 @@ import xyz.block.ftl.java.test.internal.FTLTestResource;
 @QuarkusTestResource(FTLTestResource.class)
 public class MySQLIntegrationTest {
 
-
     @Inject
     CreateRequestClient requestClient;
 

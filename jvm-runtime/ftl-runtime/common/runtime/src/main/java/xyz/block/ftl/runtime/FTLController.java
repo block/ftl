@@ -170,7 +170,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
 
     @Override
     public synchronized boolean runnerDetails(RunnerInfo info) {
-        if (info.runnerSeq() < this.runnerNumber || info.schemaSeq() < this.requiredSchemaNumber) {
+        if (info.runnerSeq() < this.runnerNumber) {
             // Runner is outdated
             return true;
         }
@@ -190,6 +190,7 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         }
         waiters.clear();
         notifyAll();
+        getRunnerConnection();
         return false;
     }
 
@@ -210,11 +211,6 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         }
         log.debugf("Expecting new schema seq %s", seq);
         this.requiredSchemaNumber = seq;
-        if (this.runnerConnection != null) {
-            this.runnerConnection.close();
-            this.runnerConnection = null;
-        }
-        this.runnerDetails = null;
     }
 
     private synchronized void waitForRunner() {
