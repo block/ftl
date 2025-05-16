@@ -125,7 +125,7 @@ jobs:
         run: |
           hash="${{ hashFiles('go.sum') }}"
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
-          key="${{ runner.os }}-${{ runner.arch }}-go-${hash}"
+          key="${{ runner.os }}-go-${hash}"
           echo "key=$key" >> "$GITHUB_OUTPUT"
           exists="$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/repos/block/ftl/actions/caches?key=$key" | jq '.actions_caches | length')"
           echo "exists=$exists" >> "$GITHUB_OUTPUT"

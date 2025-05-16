@@ -4,11 +4,11 @@ inputs:
   enable-pnpm:
     description: Enable pnpm cache
     required: false
-    default: 'false'
+    default: "false"
   enable-maven:
     description: Enable maven cache
     required: false
-    default: 'false'
+    default: "false"
 runs:
   using: "composite"
   # Make sure to keep these cache entries in sync with those in writecache.yml
@@ -39,9 +39,9 @@ runs:
         path: |
           ~/go/pkg/mod
           ${{ steps.find-go-build-cache.outputs.cache }}
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           ${{ runner.os }}-go-
     - name: Restore Maven Modules Cache
       if: ${{ inputs.enable-maven == 'true' }}
