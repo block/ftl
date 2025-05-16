@@ -3,6 +3,7 @@ package log
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -13,10 +14,23 @@ import (
 var _ Sink = (*jsonSink)(nil)
 
 type jsonEntry struct {
-	Entry
-	Level string `json:"level,omitempty"`
-	Time  string `json:"time,omitempty"`
-	Error string `json:"error,omitempty"`
+	Attributes      map[string]string `json:"attributes,omitempty"`
+	Level           string            `json:"level,omitempty"`
+	Time            string            `json:"time,omitempty"`
+	Error           string            `json:"error,omitempty"`
+	Timestamp       time.Time         `json:"timestamp,omitempty"`
+	Sequence        int               `json:"sequence,omitempty"`
+	LoggerClassName string            `json:"loggerClassName,omitempty"`
+	LoggerName      string            `json:"loggerName,omitempty"`
+	Message         string            `json:"message,omitempty"`
+	ThreadName      string            `json:"threadName,omitempty"`
+	ThreadID        int               `json:"threadId,omitempty"`
+	Mdc             any               `json:"mdc,omitempty"`
+	Ndc             string            `json:"ndc,omitempty"`
+	HostName        string            `json:"hostName,omitempty"`
+	ProcessName     string            `json:"processName,omitempty"`
+	ProcessID       int               `json:"processId,omitempty"`
+	Exception       *exceptionRecord  `json:"exception,omitempty"`
 }
 
 func newJSONSink(w io.Writer) *jsonSink {
@@ -37,10 +51,11 @@ func (j *jsonSink) Log(entry Entry) error {
 		errStr = entry.Error.Error()
 	}
 	jentry := jsonEntry{
-		Level: entry.Level.String(),
-		Time:  entry.Time.Format(time.RFC3339Nano),
-		Error: errStr,
-		Entry: entry,
+		Level:      entry.Level.String(),
+		Time:       entry.Time.Format(time.RFC3339Nano),
+		Error:      errStr,
+		Attributes: entry.Attributes,
+		Message:    entry.Message,
 	}
 	return errors.WithStack(j.enc.Encode(jentry))
 }
@@ -62,32 +77,7 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 			}
 			log.Log(Entry{Level: defaultLevel, Time: time.Now(), Message: string(line)})
 		} else {
-			if entry.Error != "" {
-				entry.Entry.Error = errors.New(entry.Error)
-			}
-			switch strings.ToLower(entry.Level) {
-			case "fine", "finer", "config":
-				entry.Entry.Level = Debug
-			case "finest":
-				entry.Entry.Level = Trace
-			case "severe", "error":
-				entry.Entry.Level = Error
-			case "warning", "warn":
-				entry.Entry.Level = Warn
-			case "":
-				entry.Entry.Level = Info
-			default:
-				entry.Entry.Level, err = ParseLevel(entry.Level)
-				if err != nil {
-					log.Warnf("Invalid log level: %s", err)
-					entry.Entry.Level = defaultLevel
-				}
-			}
-			entry.Entry.Time, err = time.Parse(time.RFC3339Nano, entry.Time)
-			if err != nil {
-				entry.Entry.Time = time.Now()
-			}
-			log.Log(entry.Entry)
+			log.Log(entry.ToEntry())
 		}
 	}
 	err := scan.Err()
@@ -95,4 +85,64 @@ func JSONStreamer(r io.Reader, log *Logger, defaultLevel Level) error {
 		return nil
 	}
 	return errors.WithStack(err)
+}
+
+type exceptionRecord struct {
+	RefID         int              `json:"refId"`
+	ExceptionType string           `json:"exceptionType"`
+	Message       string           `json:"message"`
+	Frames        []frameRecord    `json:"frames"`
+	CausedBy      *exceptionRecord `json:"causedBy"`
+}
+
+type frameRecord struct {
+	Class  string `json:"class"`
+	Method string `json:"method"`
+	Line   int    `json:"line"`
+}
+
+func (r *jsonEntry) ToEntry() Entry {
+	var level Level
+	var err error
+	switch strings.ToLower(r.Level) {
+	case "fine", "finer", "config", "debug":
+		level = Debug
+	case "finest", "trace":
+		level = Trace
+	case "severe", "error":
+		level = Error
+	case "warning", "warn":
+		level = Warn
+	case "", "info":
+		level = Info
+	default:
+		level, err = ParseLevel(r.Level)
+		if err != nil {
+			level = Warn
+		}
+	}
+
+	ret := Entry{
+		Time:    r.Timestamp,
+		Level:   level,
+		Message: r.Message,
+	}
+	if r.Exception != nil {
+		em := fmt.Sprintf("%s %s %d", r.Exception.ExceptionType, r.Exception.Message, len(r.Exception.Frames))
+		for _, f := range r.Exception.Frames {
+			em += fmt.Sprintf("\n\t%s#%s:%d", f.Class, f.Method, f.Line)
+		}
+		ret.Error = errors.New(em)
+	} else if r.Error != "" {
+		ret.Error = errors.New(r.Error)
+	}
+
+	// Go is time, JVM is timestamp
+	if r.Time != "" {
+		ret.Time, err = time.Parse(time.RFC3339Nano, r.Time)
+		if err != nil {
+			ret.Time = time.Now()
+		}
+	}
+	return ret
 }

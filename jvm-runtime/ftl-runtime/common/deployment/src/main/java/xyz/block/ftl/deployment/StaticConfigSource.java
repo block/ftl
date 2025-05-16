@@ -11,7 +11,7 @@ public class StaticConfigSource implements ConfigSource {
             "quarkus.banner.enabled", "false",
             "quarkus.otel.metrics.enabled", "true",
             "quarkus.devservices.enabled", "false",
-            "quarkus.log.console.format", "%p %m",
+            "quarkus.log.console.json.enabled", "true",
             "quarkus.live-reload.enabled", "false",
             "quarkus.console.enabled", "false");
 
