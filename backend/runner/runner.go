@@ -433,6 +433,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}
 
 			go func() {
+				connected := false
 				for {
 					select {
 					case <-pingCtx.Done():
@@ -446,10 +447,15 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
+							connected = true
 							if info.Msg.Outdated {
 								logger.Warnf("Runner is outdated, exiting")
 								cancel(errors.Errorf("runner is outdated, exiting"))
+								return
 							}
+						} else if connected {
+							logger.Errorf(err, "Lost connection to running dev mode process")
+							connected = false
 						}
 					}
 				}
