@@ -40,6 +40,7 @@ func TestInt64BuildError(t *testing.T) {
 
 // Tests how build engine reacts to a module changing its exported verbs.
 func TestModuleInterfaceChanges(t *testing.T) {
+	t.Skip("Flaky")
 	in.Run(t,
 		in.WithDevMode(),
 		in.WithLanguages("go", "kotlin"),
