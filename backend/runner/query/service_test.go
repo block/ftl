@@ -54,8 +54,31 @@ func TestQueryService(t *testing.T) {
 
 	ctx := context.Background()
 
+	t.Run("QuerySlice", func(t *testing.T) {
+		response := &responseCollector{}
+		err := svc.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
+			RawSql:         `SELECT id FROM test_table WHERE name IN (/*SLICE:names*/?) AND value = ? AND id IN (/*SLICE:ids*/?)`,
+			CommandType:    querypb.CommandType_COMMAND_TYPE_MANY,
+			ParametersJson: `[["test1", "test3"], 100, [1]]`,
+			ResultColumns:  []*querypb.ResultColumn{{TypeName: "INT", SqlName: "id"}},
+		}), response)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			[]*querypb.ExecuteQueryResponse{
+				{
+					Result: &querypb.ExecuteQueryResponse_RowResults{
+						RowResults: &querypb.RowResults{
+							JsonRows: "{\"int\":1}",
+							HasMore:  true,
+						},
+					},
+				},
+			},
+			response.responses,
+		)
+	})
+
 	t.Run("TransactionLifecycle", func(t *testing.T) {
-		t.Parallel()
 		beginResp, err := svc.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{}))
 		assert.NoError(t, err)
 		assert.NotZero(t, beginResp.Msg.TransactionId)
@@ -81,7 +104,6 @@ func TestQueryService(t *testing.T) {
 	})
 
 	t.Run("TransactionRollback", func(t *testing.T) {
-		t.Parallel()
 		beginResp, err := svc.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{}))
 		assert.NoError(t, err)
 		txID := beginResp.Msg.TransactionId
@@ -104,7 +126,6 @@ func TestQueryService(t *testing.T) {
 	})
 
 	t.Run("InvalidTransactionID", func(t *testing.T) {
-		t.Parallel()
 		_, err := svc.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
 			TransactionId: "invalid",
 		}))
@@ -128,4 +149,13 @@ func TestServiceConfig(t *testing.T) {
 		_, err := newQueryConn(t.Context(), "", "mysql")
 		assert.Error(t, err)
 	})
+}
+
+type responseCollector struct {
+	responses []*querypb.ExecuteQueryResponse
+}
+
+func (r *responseCollector) Send(resp *querypb.ExecuteQueryResponse) error {
+	r.responses = append(r.responses, resp)
+	return nil
 }
