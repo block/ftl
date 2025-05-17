@@ -130,11 +130,6 @@ func (o *errorDetector) FinalizeCapture(dump bool) []builderrors.Error {
 	// [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
 
 	lines := slices.Filter(strings.Split(o.output, "\n"), func(s string) bool {
-		if dump {
-			// If we are dumping it is because there was a failure
-			// So we want to display the full maven output
-			o.logger.Warnf("%s", s)
-		}
 		return strings.HasPrefix(s, "[ERROR]")
 	})
 	for _, line := range lines {
@@ -151,6 +146,12 @@ func (o *errorDetector) FinalizeCapture(dump bool) []builderrors.Error {
 			Type:  builderrors.COMPILER,
 			Level: builderrors.ERROR,
 		})
+	}
+	if dump && len(o.errors) == 0 {
+		// If we got no useful error output do a dump
+		for _, l := range strings.Split(o.output, "\n") {
+			o.logger.Warnf("%s", l)
+		}
 	}
 	return o.errors
 }
