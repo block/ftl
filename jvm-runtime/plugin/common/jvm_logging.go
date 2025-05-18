@@ -171,6 +171,7 @@ type JvmLogRecord struct {
 	ProcessName     string           `json:"processName"`
 	ProcessID       int              `json:"processId"`
 	Exception       *ExceptionRecord `json:"exception"`
+	StackTrace      string           `json:"stackTrace,omitempty"`
 }
 
 type ExceptionRecord struct {
@@ -210,6 +211,9 @@ func (r *JvmLogRecord) ToEntry() log.Entry {
 		for _, f := range r.Exception.Frames {
 			r.Message += fmt.Sprintf("\n\t%s#%s:%d", f.Class, f.Method, f.Line)
 		}
+	}
+	if r.StackTrace != "" {
+		r.Message += "\n" + r.StackTrace
 	}
 
 	ret := log.Entry{
