@@ -31,6 +31,7 @@ type jsonEntry struct {
 	ProcessName     string            `json:"processName,omitempty"`
 	ProcessID       int               `json:"processId,omitempty"`
 	Exception       *exceptionRecord  `json:"exception,omitempty"`
+	StackTrace      string            `json:"stackTrace,omitempty"`
 }
 
 func newJSONSink(w io.Writer) *jsonSink {
@@ -126,6 +127,9 @@ func (r *jsonEntry) ToEntry() Entry {
 		Time:    r.Timestamp,
 		Level:   level,
 		Message: r.Message,
+	}
+	if r.StackTrace != "" {
+		ret.Message += "\n" + r.StackTrace
 	}
 	if r.Exception != nil {
 		em := fmt.Sprintf("%s %s %d", r.Exception.ExceptionType, r.Exception.Message, len(r.Exception.Frames))
