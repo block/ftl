@@ -35,6 +35,7 @@ public class VerbHandler extends VerbServiceGrpc.VerbServiceImplBase {
             log.errorf(e, "Verb invocation failed: %s.%s", request.getVerb().getModule(), request.getVerb().getName());
             responseObserver.onError(e);
         }
+
     }
 
     @Override

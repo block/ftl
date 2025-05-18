@@ -749,6 +749,10 @@ public class ModuleBuilder {
                                 "Generated type " + clazz.name()
                                         + " cannot be implicitly exported as part of the signature of a verb as it is a generated type, define a new type instead"));
                     }
+                    if (info.isEnum() || info.hasAnnotation(ENUM)) {
+                        // We still need to fully process the enum for serialization
+                        handleEnum(info, VisibilityUtil.highest(visibility, VisibilityUtil.getVisibility(info)));
+                    }
                     return handleNullabilityAnnotations(Type.newBuilder()
                             .setRef(Ref.newBuilder().setName(ref.value("name").asString())
                                     .setModule(module))
