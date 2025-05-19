@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"math"
 	"reflect"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/types/result"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -25,25 +27,30 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/timelineclient"
 )
 
 var _ queryconnect.QueryServiceHandler = (*Service)(nil)
 
 // Service proxies query requests to multiple database instances
 type Service struct {
+	timelineClient *timelineclient.Client
 	// Maps database name to connection
 	conns *xsync.MapOf[string, *queryConn]
 	// Mutex for service operations
 	mu sync.Mutex
 }
 
-func New(ctx context.Context, module *schema.Module, addresses *xsync.MapOf[string, string]) (*Service, error) {
+func New(ctx context.Context, timelineClient *timelineclient.Client, module *schema.Module, addresses *xsync.MapOf[string, string]) (*Service, error) {
 	logger := log.FromContext(ctx)
 	logger.Debugf("Initializing query service for module %s", module.Name)
 
 	s := &Service{
-		conns: xsync.NewMapOf[string, *queryConn](),
+		timelineClient: timelineClient,
+		conns:          xsync.NewMapOf[string, *queryConn](),
 	}
 
 	// Initialize connections for all databases in the module
@@ -116,11 +123,57 @@ func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb
 }
 
 func (s *Service) ExecuteQueryInternal(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
-	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	start := time.Now()
+	requestKeyOptional, err := rpc.RequestKeyFromContext(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	return errors.WithStack(conn.ExecuteQuery(ctx, req, stream))
+	requestKey, ok := requestKeyOptional.Get()
+	if !ok {
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("request key not found")))
+	}
+	callers, ok := rpc.VerbsFromContext(ctx)
+	if !ok {
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("callers not found")))
+	}
+	// TODO: fill in
+	verb := &schema.Ref{
+		Module: "testmodule",
+		Name:   "testverb",
+	}
+	// TODO: fill in
+	deployment := key.NewDeploymentKey("testrealm", "testmodule")
+	callEvent := &timelineclient.Call{
+		DeploymentKey: deployment,
+		RequestKey:    requestKey,
+		StartTime:     start,
+		DestVerb:      verb,
+		Callers:       callers,
+		Request: &ftlv1.CallRequest{
+			Verb: verb.ToProto(),
+			Body: json.RawMessage(req.Msg.ParametersJson),
+		},
+	}
+
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
+		s.timelineClient.Publish(ctx, callEvent)
+		return errors.WithStack(err)
+	}
+	respData, err := conn.ExecuteQuery(ctx, req, stream)
+	if err != nil {
+		callEvent.Response = result.Err[*ftlv1.CallResponse](err)
+		s.timelineClient.Publish(ctx, callEvent)
+		return errors.WithStack(err)
+	}
+	callEvent.Response = result.Ok(&ftlv1.CallResponse{
+		Response: &ftlv1.CallResponse_Body{
+			Body: respData,
+		},
+	})
+	s.timelineClient.Publish(ctx, callEvent)
+	return nil
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
@@ -372,34 +425,34 @@ func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
-func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
+func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) ([]byte, error) {
 	if req.Msg.TransactionId != nil && *req.Msg.TransactionId != "" {
 		s.lock.RLock()
 		wrapper, ok := s.transactions[req.Msg.GetTransactionId()]
 		s.lock.RUnlock()
 		if !ok {
-			return errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("transaction %s not found", req.Msg.GetTransactionId())))
+			return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("transaction %s not found", req.Msg.GetTransactionId())))
 		}
-		return errors.WithStack(s.executeQuery(ctx, wrapper.tx, req.Msg, stream))
+		return errors.WithStack2(s.executeQuery(ctx, wrapper.tx, req.Msg, stream))
 	}
-	return errors.WithStack(s.executeQuery(ctx, s.db, req.Msg, stream))
+	return errors.WithStack2(s.executeQuery(ctx, s.db, req.Msg, stream))
 }
 
-func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream serverStream) error {
+func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest, stream serverStream) ([]byte, error) {
 	rawSQL, params, err := getSQLAndParams(req)
 	if err != nil {
-		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to parse parameters")))
+		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to parse parameters")))
 	}
 
 	switch req.CommandType {
 	case querypb.CommandType_COMMAND_TYPE_EXEC:
 		result, err := db.ExecContext(ctx, rawSQL, params...)
 		if err != nil {
-			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
 		}
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to get rows affected")))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to get rows affected")))
 		}
 
 		protoResp := &querypb.ExecuteQueryResponse{
@@ -412,23 +465,24 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 
 		err = stream.Send(protoResp)
 		if err != nil {
-			return errors.Wrap(err, "failed to send exec result")
+			return nil, errors.Wrap(err, "failed to send exec result")
 		}
+		return nil, nil
 
 	case querypb.CommandType_COMMAND_TYPE_ONE:
 		row := db.QueryRowContext(ctx, rawSQL, params...)
 		jsonRows, err := scanRowToMap(row, req.ResultColumns)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return errors.WithStack(handleNoRows(stream))
+				return nil, errors.WithStack(handleNoRows(stream))
 			}
-			return errors.Wrap(err, "failed to scan row")
+			return nil, errors.Wrap(err, "failed to scan row")
 		}
 
 		protoResp := &querypb.ExecuteQueryResponse{
 			Result: &querypb.ExecuteQueryResponse_RowResults{
 				RowResults: &querypb.RowResults{
-					JsonRows: jsonRows,
+					JsonRows: string(jsonRows),
 					HasMore:  false,
 				},
 			},
@@ -436,16 +490,17 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 
 		err = stream.Send(protoResp)
 		if err != nil {
-			return errors.Wrap(err, "failed to send row results")
+			return nil, errors.Wrap(err, "failed to send row results")
 		}
-
+		return []byte(jsonRows), nil
 	case querypb.CommandType_COMMAND_TYPE_MANY:
+		jsonRows := []json.RawMessage{}
 		rows, err := db.QueryContext(ctx, rawSQL, params...)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return errors.WithStack(handleNoRows(stream))
+				return nil, errors.WithStack(handleNoRows(stream))
 			}
-			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
+			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
 		}
 		defer rows.Close()
 
@@ -456,35 +511,37 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 		}
 
 		for rows.Next() {
-			jsonRows, err := scanRowToMap(rows, req.ResultColumns)
+			jsonRow, err := scanRowToMap(rows, req.ResultColumns)
 			if err != nil {
-				return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to scan row")))
+				return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to scan row")))
 			}
 
 			rowCount++
 			hasMore := rowCount < batchSize
+			jsonRows = append(jsonRows, jsonRow)
 
 			protoResp := &querypb.ExecuteQueryResponse{
 				Result: &querypb.ExecuteQueryResponse_RowResults{
 					RowResults: &querypb.RowResults{
-						JsonRows: jsonRows,
+						JsonRows: string(jsonRow),
 						HasMore:  hasMore,
 					},
 				},
 			}
 
 			if err := stream.Send(protoResp); err != nil {
-				return errors.Wrap(err, "failed to send row results")
+				return nil, errors.Wrap(err, "failed to send row results")
 			}
 
 			if !hasMore {
 				rowCount = 0
 			}
 		}
+		return encoding.Marshal(jsonRows)
 	case querypb.CommandType_COMMAND_TYPE_UNSPECIFIED:
-		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("unknown command type: %v", req.CommandType)))
+
 	}
-	return nil
+	return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("unknown command type: %v", req.CommandType)))
 }
 
 var paramRe = regexp.MustCompile(`\?|/\*SLICE:[^*]*\*/\s*\?`)
@@ -588,7 +645,7 @@ func parseTimeString(s string) (time.Time, error) {
 }
 
 // scanRowToMap scans a row and returns a JSON string representation
-func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error) {
+func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (json.RawMessage, error) {
 	if len(resultColumns) == 0 {
 		var rawValue any
 
@@ -600,28 +657,28 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 			var columns []string
 			columns, err = r.Columns()
 			if err != nil {
-				return "", errors.Wrap(err, "failed to get column names")
+				return nil, errors.Wrap(err, "failed to get column names")
 			}
 			if len(columns) != 1 {
-				return "", errors.Errorf("expected exactly one column for raw value query, got %d", len(columns))
+				return nil, errors.Errorf("expected exactly one column for raw value query, got %d", len(columns))
 			}
 			err = r.Scan(&rawValue)
 		default:
-			return "", errors.Errorf("unsupported row type: %T", row)
+			return nil, errors.Errorf("unsupported row type: %T", row)
 		}
 		if err != nil {
-			return "", errors.Wrap(err, "failed to scan raw value")
+			return nil, errors.Wrap(err, "failed to scan raw value")
 		}
 
 		if rawValue == nil {
-			return "", nil
+			return nil, nil
 		}
 
 		jsonBytes, err := encoding.Marshal(processFieldValue(rawValue))
 		if err != nil {
-			return "", errors.Wrap(err, "failed to marshal raw value")
+			return nil, errors.Wrap(err, "failed to marshal raw value")
 		}
-		return string(jsonBytes), nil
+		return json.RawMessage(jsonBytes), nil
 	}
 
 	typeNameBySQLName := make(map[string]string)
@@ -638,17 +695,17 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 		var err error
 		dbColumns, err = r.Columns()
 		if err != nil {
-			return "", errors.Wrap(err, "failed to get column names")
+			return nil, errors.Wrap(err, "failed to get column names")
 		}
 	case *sql.Row:
 		// For sql.Row we can't get column names, but we know they must match our query
 		dbColumns = sqlColumns
 	default:
-		return "", errors.Errorf("unsupported row type: %T", row)
+		return nil, errors.Errorf("unsupported row type: %T", row)
 	}
 
 	if len(dbColumns) != len(resultColumns) {
-		return "", errors.Errorf("column count mismatch: got %d columns from DB but expected %d columns", len(dbColumns), len(resultColumns))
+		return nil, errors.Errorf("column count mismatch: got %d columns from DB but expected %d columns", len(dbColumns), len(resultColumns))
 	}
 
 	values := make([]any, len(dbColumns))
@@ -665,7 +722,7 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 		err = r.Scan(valuePointers...)
 	}
 	if err != nil {
-		return "", errors.Wrap(err, "failed to scan row")
+		return nil, errors.Wrap(err, "failed to scan row")
 	}
 
 	exportName := func(name string) string {
@@ -698,10 +755,10 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 
 	jsonBytes, err := encoding.Marshal(structValue.Interface())
 	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal result")
+		return nil, errors.Wrap(err, "failed to marshal result")
 	}
 
-	return string(jsonBytes), nil
+	return json.RawMessage(jsonBytes), nil
 }
 
 func processFieldValue(val any) any {

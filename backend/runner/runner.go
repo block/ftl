@@ -166,7 +166,7 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
 		default:
-			svc.queryService, err = query.New(ctx, module, dbAddresses)
+			svc.queryService, err = query.New(ctx, svc.timelineClient, module, dbAddresses)
 			if err != nil {
 				return errors.Wrap(err, "failed to create query service")
 			}
