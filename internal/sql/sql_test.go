@@ -54,48 +54,31 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
 					Line:     10,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "id",
-						Type: &schema.Int{},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "id",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "id",
+					Type: &schema.Int{},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "id", Table: "authors"},
 					},
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "birthYear",
-						Type: &schema.Optional{Type: &schema.Int{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "birth_year",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "birthYear",
+					Type: &schema.Optional{Type: &schema.Int{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "birth_year", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -106,28 +89,19 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
 					Line:     13,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -138,28 +112,19 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
 					Line:     13,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -170,28 +135,19 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
 					Line:     16,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -202,28 +158,19 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
 					Line:     16,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -234,48 +181,31 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
 					Line:     10,
 				},
-				Fields: []*schema.Field{
-					{
-						Name: "id",
-						Type: &schema.Int{},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "id",
-								Table: "authors",
-							},
-						},
+				Fields: []*schema.Field{{
+					Name: "id",
+					Type: &schema.Int{},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "id", Table: "authors"},
 					},
-					{
-						Name: "bio",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "bio",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "bio",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
 					},
-					{
-						Name: "birthYear",
-						Type: &schema.Optional{Type: &schema.Int{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "birth_year",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "birthYear",
+					Type: &schema.Optional{Type: &schema.Int{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "birth_year", Table: "authors"},
 					},
-					{
-						Name: "hometown",
-						Type: &schema.Optional{Type: &schema.String{}},
-						Metadata: []schema.Metadata{
-							&schema.MetadataSQLColumn{
-								Name:  "hometown",
-								Table: "authors",
-							},
-						},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
 					},
-				},
+				}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataGenerated{},
 				},
@@ -290,12 +220,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "INSERT INTO requests (data) VALUES (?)",
@@ -314,12 +239,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Unit{},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "INSERT INTO requests (data) VALUES ($1)",
@@ -338,12 +258,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "Author"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT id, bio, birth_year, hometown FROM authors",
@@ -362,12 +277,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "PsqldbAuthor"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT id, bio, birth_year, hometown FROM authors",
@@ -386,12 +296,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Ref{Module: "test", Name: "Author"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT id, bio, birth_year, hometown FROM authors WHERE id = ?",
@@ -410,12 +315,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Ref{Module: "test", Name: "PsqldbAuthor"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT id, bio, birth_year, hometown FROM authors WHERE id = $1",
@@ -434,12 +334,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Ref{Module: "test", Name: "GetAuthorInfoMySqlRow"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT bio, hometown FROM authors WHERE id = ?",
@@ -458,12 +353,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Ref{Module: "test", Name: "GetAuthorInfoPsqlRow"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT bio, hometown FROM authors WHERE id = $1",
@@ -482,12 +372,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "GetManyAuthorsInfoMySqlRow"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT bio, hometown FROM authors",
@@ -506,12 +391,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "GetManyAuthorsInfoPsqlRow"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT bio, hometown FROM authors",
@@ -530,12 +410,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.String{}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "mysqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT data FROM requests",
@@ -554,12 +429,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				Response: &schema.Array{Element: &schema.String{}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
-						Uses: []*schema.Ref{
-							{
-								Module: "test",
-								Name:   "psqldb",
-							},
-						},
+						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT data FROM requests",
