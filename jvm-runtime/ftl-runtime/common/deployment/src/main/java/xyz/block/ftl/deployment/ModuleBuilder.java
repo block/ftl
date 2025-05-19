@@ -1266,6 +1266,9 @@ public class ModuleBuilder {
             } else {
                 var typeEnum = extractTypeEnum(classInfo, visibility);
                 recorder.registerEnum(clazz, typeEnum.variantClasses);
+                for (var variant : typeEnum.holders) {
+                    recorder.registerEnumHolder(variant);
+                }
                 if (isLocalToModule) {
                     if (!setDeclExport(typeEnum.decl.getEnum().getName(), visibility)) {
                         addDecls(typeEnum.decl);
@@ -1326,7 +1329,7 @@ public class ModuleBuilder {
         return Decl.newBuilder().setEnum(enumBuilder).build();
     }
 
-    private record TypeEnum(Decl decl, Map<String, Class<?>> variantClasses) {
+    private record TypeEnum(Decl decl, Map<String, Class<?>> variantClasses, List<Class<?>> holders) {
     }
 
     /**
@@ -1345,6 +1348,7 @@ public class ModuleBuilder {
         if (variants.isEmpty()) {
             throw new RuntimeException("No variants found for enum: " + enumBuilder.getName());
         }
+        List<Class<?>> holders = new ArrayList<>();
         var variantClasses = new TreeMap<String, Class<?>>();
         for (var variant : variants) {
             String variantName = variant.simpleName();
@@ -1353,6 +1357,8 @@ public class ModuleBuilder {
                 AnnotationInstance variantNameAnnotation = variant.annotation(VariantName.class);
                 variantName = variantNameAnnotation.value().asString();
             }
+            Class<?> variantClazz = Class.forName(variant.name().toString(), false,
+                    Thread.currentThread().getContextClassLoader());
             if (variant.hasAnnotation(ENUM_HOLDER)) {
                 // Enum value holder class
                 FieldInfo valueField = variant.field("value");
@@ -1360,14 +1366,15 @@ public class ModuleBuilder {
                     throw new RuntimeException("Enum variant must have a 'value' field: " + variant.name());
                 }
                 variantType = valueField.type();
-                // TODO add to variantClasses; write serialization code for holder classes
+                Class<?> value = Class.forName(variantType.name().toString(), false,
+                        Thread.currentThread().getContextClassLoader());
+                variantClasses.put(variantName, value);
+                holders.add(variantClazz);
             } else {
                 // Class is the enum variant type
                 variantType = ClassType.builder(variant.name()).build();
-                Class<?> variantClazz = Class.forName(variantType.name().toString(), false,
-                        Thread.currentThread().getContextClassLoader());
-                variantClasses.put(variantName, variantClazz);
             }
+            variantClasses.put(variantName, variantClazz);
             xyz.block.ftl.schema.v1.Type declType = buildType(variantType, visibility,
                     Nullability.NOT_NULL);
             TypeValue typeValue = TypeValue.newBuilder().setValue(declType).build();
@@ -1377,7 +1384,7 @@ public class ModuleBuilder {
                     .setValue(Value.newBuilder().setTypeValue(typeValue).build());
             enumBuilder.addVariants(variantBuilder.build());
         }
-        return new TypeEnum(Decl.newBuilder().setEnum(enumBuilder).build(), variantClasses);
+        return new TypeEnum(Decl.newBuilder().setEnum(enumBuilder).build(), variantClasses, holders);
     }
 
     private boolean isInt(org.jboss.jandex.Type type) {
