@@ -15,3 +15,6 @@ SELECT bio, hometown FROM authors WHERE id = ?;
 
 -- name: GetManyAuthorsInfoMySQL :many
 SELECT bio, hometown FROM authors;
+
+-- name: GetNamedParamMySQL :many
+SELECT * FROM authors WHERE id = CAST(sqlc.arg('named_id') AS UNSIGNED) AND hometown = ?;
