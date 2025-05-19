@@ -2,6 +2,8 @@ import { Background, BackgroundVariant, Controls, type Edge, ReactFlow as Flow, 
 import dagre from 'dagre'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type React from 'react'
+import { Multiselect } from '../../shared/components/Multiselect'
+import type { MultiselectOpt } from '../../shared/components/Multiselect'
 import { useUserPreferences } from '../../shared/providers/user-preferences-provider'
 import { hashString } from '../../shared/utils/string.utils'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
@@ -15,6 +17,30 @@ const NODE_TYPES = {
   groupNode: GroupNode,
   declNode: DeclNode,
 }
+
+// Define the filter options for the graph
+const graphFilterOpts: MultiselectOpt[] = [
+  {
+    key: 'verb',
+    displayName: 'Verbs',
+  },
+  {
+    key: 'config',
+    displayName: 'Configs',
+  },
+  {
+    key: 'secret',
+    displayName: 'Secrets',
+  },
+  {
+    key: 'database',
+    displayName: 'Databases',
+  },
+  {
+    key: 'topic',
+    displayName: 'Topics',
+  },
+]
 
 interface GraphPaneProps {
   modules?: StreamModulesResult
@@ -257,6 +283,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   const { isDarkMode } = useUserPreferences()
   const [nodePositions] = useState<Record<string, { x: number; y: number }>>({})
   const [moduleKey, setModuleKey] = useState<string>('empty')
+  const [selectedNodeTypes, setSelectedNodeTypes] = useState<MultiselectOpt[]>(graphFilterOpts)
 
   useEffect(() => {
     const updateKey = async () => {
@@ -272,8 +299,20 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   }, [modules])
 
   const { nodes, edges } = useMemo(() => {
-    return getGraphData(modules, isDarkMode, nodePositions, selectedNodeId)
-  }, [modules, isDarkMode, nodePositions, selectedNodeId])
+    const graphData = getGraphData(modules, isDarkMode, nodePositions, selectedNodeId)
+
+    // Filter nodes based on selected types
+    const filteredNodes = graphData.nodes.filter((node) => {
+      if (node.type === 'groupNode') return true // Always show group nodes
+      return selectedNodeTypes.some((type) => type.key === node.data?.nodeType)
+    })
+
+    // Filter edges to only include connections between visible nodes
+    const visibleNodeIds = new Set(filteredNodes.map((n) => n.id))
+    const filteredEdges = graphData.edges.filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
+
+    return { nodes: filteredNodes, edges: filteredEdges }
+  }, [modules, isDarkMode, nodePositions, selectedNodeId, selectedNodeTypes])
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     if (!nodes.length) return { nodes: [], edges: [] }
@@ -308,6 +347,9 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   return (
     <ReactFlowProvider>
       <div className={isDarkMode ? 'dark' : 'light'} style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className='absolute top-2 left-2 z-10 w-48'>
+          <Multiselect allOpts={graphFilterOpts} selectedOpts={selectedNodeTypes} onChange={setSelectedNodeTypes} />
+        </div>
         <Flow
           key={moduleKey}
           nodes={layoutedNodes}
