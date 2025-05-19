@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
 
@@ -66,7 +67,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
 
     FTLRunnerConnectionImpl(final String endpoint, final String deploymentName, final String moduleName,
-            final Runnable closeHandler) {
+            final Consumer<FTLRunnerConnection> closeHandler) {
         var uri = URI.create(endpoint);
         this.moduleName = moduleName;
         var channelBuilder = ManagedChannelBuilder.forAddress(uri.getHost(), uri.getPort());
@@ -79,7 +80,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                 if (closed.compareAndSet(false, true)) {
                     log.debug("Channel state changed to SHUTDOWN, closing connection");
                     this.channel.shutdown();
-                    closeHandler.run();
+                    closeHandler.accept(this);
                 }
             }
         });

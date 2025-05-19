@@ -7,6 +7,7 @@ import xyz.block.ftl.Verb;
 
 public class Mysql {
 
+
     @Verb
     public static class Insert implements FunctionVerb<InsertRequest, InsertResponse> {
 
