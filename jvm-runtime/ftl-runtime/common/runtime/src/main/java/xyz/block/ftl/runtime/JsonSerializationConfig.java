@@ -1,7 +1,9 @@
 package xyz.block.ftl.runtime;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -47,6 +49,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
     }
 
     final List<Class> valueEnums = new ArrayList<>();
+    final List<Class> holderTypes = new ArrayList<>();
     final List<TypeEnumDefn> typeEnums = new ArrayList<>();
     private volatile boolean initialized = false;
 
@@ -64,6 +67,7 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
         initialized = true;
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         SimpleModule module = new SimpleModule("ByteArraySerializer", new Version(1, 0, 0, ""));
+        SimpleModule variantModule = new SimpleModule("VariantModule", new Version(1, 0, 0, ""));
         module.addSerializer(byte[].class, new ByteArraySerializer());
         module.addDeserializer(byte[].class, new ByteArrayDeserializer());
         mapper.disable(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE);
@@ -79,11 +83,16 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
         }
 
         ObjectMapper cleanMapper = mapper.copy();
+        for (var i : holderTypes) {
+            module.addDeserializer(i, new HolderEnumDeserializer(i));
+            variantModule.addSerializer(i, new ValueEnumSerializer<>(i));
+        }
         for (var i : typeEnums) {
             module.addSerializer(i.type, new TypeEnumSerializer<>(i.type, cleanMapper, i.variants));
             module.addDeserializer(i.type, new TypeEnumDeserializer<>(i.type, i.variants));
         }
         mapper.registerModule(module);
+        cleanMapper.registerModule(variantModule);
     }
 
     public <T extends Enum<T>> void registerValueEnum(Class enumClass) {
@@ -98,6 +107,13 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
             throw new RuntimeException("Cannot register type enum after mapper is created");
         }
         typeEnums.add(new TypeEnumDefn<>(type, variants));
+    }
+
+    public <T> void registerEnumHolder(Class<?> type) {
+        if (initialized) {
+            throw new RuntimeException("Cannot register type enum after mapper is created");
+        }
+        holderTypes.add(type);
     }
 
     static Class<?> extractTypeAliasParam(Class<?> target, int no) {
@@ -241,6 +257,48 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
         public T deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
             Object wireVal = ctxt.readValue(p, valueClass);
             return wireToEnum.get(wireVal);
+        }
+    }
+
+    public static class HolderEnumDeserializer<T> extends StdDeserializer<T> {
+        private final Class<?> valueClass;
+        private final Constructor<?> ctor;
+        private final Field valueField;
+
+        public HolderEnumDeserializer(Class<T> type) {
+            super(type);
+            try {
+                valueField = type.getDeclaredField("value");
+                valueField.setAccessible(true);
+                valueClass = valueField.getType();
+                Constructor<?> ctor;
+                try {
+                    ctor = type.getDeclaredConstructor(valueClass);
+                } catch (NoSuchMethodException e) {
+                    // Fallback to default constructor
+                    ctor = type.getDeclaredConstructor();
+                }
+                ctor.setAccessible(true);
+                this.ctor = ctor;
+            } catch (NoSuchFieldException | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public T deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            Object wireVal = ctxt.readValue(p, valueClass);
+            try {
+                if (ctor.getParameterCount() == 0) {
+                    Object ret = ctor.newInstance();
+                    valueField.set(ret, wireVal);
+                    return (T) ret;
+                } else {
+                    return (T) ctor.newInstance(wireVal);
+                }
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

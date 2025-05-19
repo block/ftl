@@ -94,6 +94,14 @@ public class FTLRecorder {
         }
     }
 
+    public void registerEnumHolder(Class<?> ennum) {
+        try {
+            Arc.container().instance(JsonSerializationConfig.class).get().registerEnumHolder(ennum);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void registerEnum(Class<?> ennum, Map<String, Class<?>> variants) {
         try {
             Arc.container().instance(JsonSerializationConfig.class).get().registerTypeEnum(ennum, variants);

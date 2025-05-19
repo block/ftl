@@ -15,6 +15,7 @@ import io.quarkus.test.QuarkusUnitTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import xyz.block.ftl.Enum;
+import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.VariantName;
 import xyz.block.ftl.kotlin.deployment.test.SchemaUtil;
 import xyz.block.ftl.schema.v1.Decl;
@@ -34,18 +35,21 @@ public class TypeEnumSchemaExtractionTest {
     @Test
     public void testSchemaExtraction() throws Exception {
         var module = SchemaUtil.getSchema();
-        Assertions.assertEquals(5, module.getDeclsCount());
+        Assertions.assertEquals(6, module.getDeclsCount());
         var e = module.getDeclsList().stream().filter(Decl::hasEnum).findFirst().orElseThrow();
         for (var d : module.getDeclsList()) {
             switch (DeclUtil.name(d)) {
                 case "Animal" -> {
-                    Assertions.assertEquals(2, d.getEnum().getVariantsCount());
+                    Assertions.assertEquals(3, d.getEnum().getVariantsCount());
                     for (var i : d.getEnum().getVariantsList()) {
                         if (i.getName().equals("Katzen")) {
                             Assertions.assertEquals("Cat", i.getValue().getTypeValue().getValue().getRef().getName());
-                        } else {
+                        } else if (i.getName().equals("Dog")) {
                             Assertions.assertEquals("Dog", i.getName());
                             Assertions.assertEquals("Dog", i.getValue().getTypeValue().getValue().getRef().getName());
+                        } else {
+                            Assertions.assertEquals("error", i.getName());
+                            Assertions.assertTrue(i.getValue().getTypeValue().getValue().hasString());
                         }
                     }
                 }
@@ -55,7 +59,7 @@ public class TypeEnumSchemaExtractionTest {
                 case "Cat" -> {
                     Assertions.assertTrue(d.hasData());
                 }
-                case "get", "post" -> {
+                case "get", "post", "error" -> {
                     Assertions.assertTrue(d.hasVerb());
                 }
                 default -> Assertions.fail("unknown decl");
@@ -73,6 +77,10 @@ public class TypeEnumSchemaExtractionTest {
         Assertions.assertEquals("{\"name\":\"Dog\",\"value\":{\"name\":\"Rex\",\"barkLoudness\":100}}", result);
         result = RestAssured.given().body(result).contentType(ContentType.JSON).post().asString();
         Assertions.assertEquals("{\"name\":\"Dog\",\"value\":{\"name\":\"Rex\",\"barkLoudness\":100}}", result);
+        result = RestAssured.given().get("error").asString();
+        Assertions.assertEquals("{\"name\":\"error\",\"value\":\"problem\"}", result);
+        result = RestAssured.given().body(result).contentType(ContentType.JSON).post().asString();
+        Assertions.assertEquals("{\"name\":\"error\",\"value\":\"problem\"}", result);
 
     }
 
@@ -123,6 +131,20 @@ public class TypeEnumSchemaExtractionTest {
         }
     }
 
+    @EnumHolder
+    @VariantName("error")
+    public static class Error implements Animal {
+        private String value;
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+    }
+
     @GET
     public Animal get(@QueryParam("cat") boolean cat) {
         if (cat) {
@@ -140,6 +162,14 @@ public class TypeEnumSchemaExtractionTest {
     @POST
     public Animal post(Animal cat) {
         return cat;
+    }
+
+    @GET
+    @Path("error")
+    public Animal error() {
+        Error d = new Error();
+        d.setValue("problem");
+        return d;
     }
 
 }
