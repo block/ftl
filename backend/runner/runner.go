@@ -431,13 +431,13 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}
 
 			go func() {
-				var delay time.Duration = 50
+				delay := 50 * time.Millisecond
 				connected := false
 				for {
 					select {
 					case <-ctx.Done():
 						return
-					case <-time.After(time.Millisecond * delay):
+					case <-time.After(delay):
 						info, err := hotReloadClient.RunnerInfo(ctx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
 							Deployment:    s.config.Deployment.String(),
 							Address:       s.proxyBindAddress.String(),
@@ -446,7 +446,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
-							delay = 300
+							delay = 300 * time.Millisecond
 							if !connected {
 								logger.Debugf("Runner connected to backend with schema version %d and runner no %d", s.config.DevModeSchemaSequence, s.config.DevModeRunnerSequence)
 							}

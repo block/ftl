@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -84,11 +85,14 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
                     }
                 }
                 runnerConnection = new FTLRunnerConnectionImpl(runnerDetails.getProxyAddress(),
-                        runnerDetails.getDeploymentKey(), moduleName, new Runnable() {
+                        runnerDetails.getDeploymentKey(), moduleName, new Consumer<FTLRunnerConnection>() {
                             @Override
-                            public void run() {
+                            public void accept(FTLRunnerConnection c) {
                                 synchronized (FTLController.this) {
-                                    runnerConnection = null;
+                                    if (FTLController.this.runnerConnection == c) {
+                                        runnerConnection = null;
+                                        c.close();
+                                    }
                                 }
                             }
                         });

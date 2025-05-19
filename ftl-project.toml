@@ -15,6 +15,13 @@ disable-vscode-integration = true
   [modules.test]
     [modules.test.secrets]
 
+  [modules.kgoose]
+    [modules.kgoose.configuration]
+      databricksHost = "inline://Imh0dHBzOi8vYmxvY2stbGFrZWhvdXNlLXByb2R1Y3Rpb24uY2xvdWQuZGF0YWJyaWNrcy5jb20i"
+      databricksModel = "inline://ImNsYXVkZS0zLTctc29ubmV0Ig"
+      gooseMcpURL = "inline://Imh0dHBzOi8vZ29vc2VtY3Auc3RhZ2Uuc3Fwcm9kLmNvIg"
+    [modules.kgoose.secrets]
+      databricksSecret = "inline://ImRhcGkzNGJkOTk0ZTE0NTdkOGM5YmU3Y2M1MDU1M2IxYTI2MiI"
 [commands]
   startup = ["echo 'FTL startup command ⚡️'"]
 
