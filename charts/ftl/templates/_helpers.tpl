@@ -143,3 +143,11 @@ resources:
     cpu: "{{ .resources.requests.cpu }}"
     memory: "{{ .resources.requests.memory }}"
 {{- end -}}
+{{- define "ftl.commonEnv" -}}
+- name: MY_POD_IP
+  valueFrom:
+    fieldRef:
+      fieldPath: status.podIP
+- name: FTL_BIND
+  value: {{ if .istio.enabled -}}"unix://@istio-proxy.sock"{{- else -}}"http://0.0.0.0:8892"{{- end }}
+{{- end -}}

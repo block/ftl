@@ -164,7 +164,14 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 
 // Serve runs the server, updating .Bind with the actual bind address.
 func (s *Server) Serve(ctx context.Context) error {
-	listener, err := net.Listen("tcp", s.listen.Host)
+	var nw = "tcp"
+	if s.listen.Scheme == "unix" {
+		nw = "unix"
+		if !strings.HasPrefix(s.listen.Host, "/") {
+			s.listen.Host = "@" + s.listen.Host
+		}
+	}
+	listener, err := net.Listen(nw, s.listen.Host)
 	if err != nil {
 		return errors.WithStack(err)
 	}
