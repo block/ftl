@@ -12,7 +12,7 @@ import (
 
 func TestSQLVerbsInKube(t *testing.T) {
 	in.Run(t,
-		in.WithKubernetes("--set", "ftl.provisioner.modulePerNamespace=true"),
+		in.WithKubernetes("--set", "ftl.provisioner.modulePerNamespace=true", "--set", "ftl.provisioner.userNamespace=null"),
 		in.WithLanguages("kotlin"),
 		in.CopyModule("mysql"),
 		in.Deploy("mysql"),

@@ -29,6 +29,7 @@ type serverOptions struct {
 	startHooks      []func(ctx context.Context) error
 	shutdownHooks   []func(ctx context.Context) error
 	services        []Service
+	healthCheckBind *url.URL
 }
 
 type Option func(*serverOptions)
@@ -110,12 +111,20 @@ func Options(options ...Option) Option {
 	}
 }
 
+func WithHealthCheckBind(bind *url.URL) Option {
+	return func(so *serverOptions) {
+		so.healthCheckBind = bind
+	}
+}
+
 type Server struct {
-	listen        *url.URL
-	shutdownHooks []func(ctx context.Context) error
-	startHooks    []func(ctx context.Context) error
-	Bind          *pubsub.Topic[*url.URL] // Will be updated with the actual bind address.
-	Server        *http.Server
+	listen            *url.URL
+	shutdownHooks     []func(ctx context.Context) error
+	startHooks        []func(ctx context.Context) error
+	Bind              *pubsub.Topic[*url.URL] // Will be updated with the actual bind address.
+	Server            *http.Server
+	healthCheckServer *http.Server
+	healthCheckBind   *url.URL
 }
 
 func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server, error) {
@@ -138,8 +147,18 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 			opt(opts)
 		}
 	}
-
-	opts.mux.Handle("/healthz", opts.healthCheck)
+	var hcServer *http.Server
+	if opts.healthCheckBind != nil {
+		mux := http.NewServeMux()
+		mux.Handle("/healthz", opts.healthCheck)
+		hcServer = &http.Server{
+			Handler:           h2c.NewHandler(ContextValuesMiddleware(ctx, mux), &http2.Server{}),
+			ReadHeaderTimeout: time.Second * 30,
+			BaseContext:       func(net.Listener) context.Context { return ctx },
+		}
+	} else {
+		opts.mux.Handle("/healthz", opts.healthCheck)
+	}
 
 	// Register reflection services.
 	reflector := grpcreflect.NewStaticReflector(opts.reflectionPaths...)
@@ -154,17 +173,27 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 	}
 
 	return &Server{
-		listen:        listen,
-		shutdownHooks: opts.shutdownHooks,
-		startHooks:    opts.startHooks,
-		Bind:          pubsub.New[*url.URL](),
-		Server:        http1Server,
+		listen:            listen,
+		shutdownHooks:     opts.shutdownHooks,
+		startHooks:        opts.startHooks,
+		Bind:              pubsub.New[*url.URL](),
+		Server:            http1Server,
+		healthCheckServer: hcServer,
+		healthCheckBind:   opts.healthCheckBind,
 	}, nil
 }
 
 // Serve runs the server, updating .Bind with the actual bind address.
 func (s *Server) Serve(ctx context.Context) error {
-	listener, err := net.Listen("tcp", s.listen.Host)
+	logger := log.FromContext(ctx)
+	var nw = "tcp"
+	if s.listen.Scheme == "unix" {
+		nw = "unix"
+		if !strings.HasPrefix(s.listen.Host, "/") {
+			s.listen.Host = "@" + s.listen.Host
+		}
+	}
+	listener, err := net.Listen(nw, s.listen.Host)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -174,10 +203,27 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.Bind.Publish(s.listen)
 
 	tree, _ := concurrency.New(ctx)
+	if s.healthCheckBind != nil {
+
+		// Start health check server
+		tree.Go(func(ctx context.Context) error {
+			logger.Debugf("Starting health check on %s", s.healthCheckBind.Host)
+
+			hl, err := net.Listen("tcp", s.healthCheckBind.Host)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			err = s.healthCheckServer.Serve(hl)
+			if errors.Is(err, http.ErrServerClosed) {
+				return nil
+			}
+			return errors.WithStack(err)
+		})
+	}
 
 	// Shutdown server on context cancellation.
 	tree.Go(func(ctx context.Context) error {
-		logger := log.FromContext(ctx)
 
 		<-ctx.Done()
 

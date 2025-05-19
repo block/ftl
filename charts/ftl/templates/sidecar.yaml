@@ -1,0 +1,17 @@
+{{- if and .Values.istio.enabled .Values.provisioner.userNamespace }}
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: {{ include "ftl.fullname" . }}-sidecar-config
+  namespace: {{ .Values.provisioner.userNamespace }}
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+spec:
+  ingress:
+    - port:
+        number: 8892
+        protocol: http2
+        name: http2
+      defaultEndpoint: unix://@istio-proxy.sock
+      captureMode: IPTABLES
+{{- end }}
