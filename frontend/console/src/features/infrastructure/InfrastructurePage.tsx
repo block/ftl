@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Tabs } from '../../shared/components/Tabs'
+import { useInfo } from '../../shared/providers/info-provider'
 import { useStreamEngineEvents } from '../engine/hooks/use-stream-engine-events'
 import { useStreamModules } from '../modules/hooks/use-stream-modules'
 import { BuildEngineEvents } from './BuildEngineEvents'
@@ -17,11 +18,12 @@ export const InfrastructurePage = () => {
   const location = useLocation()
   const { data: modulesData } = useStreamModules()
   const { data } = useStreamEngineEvents()
+  const { isLocalDev } = useInfo()
   const events = useMemo(() => (data?.pages ?? []).flatMap((page) => (Array.isArray(page) ? page : [])), [data?.pages])
 
   const [tabs, setTabs] = useState<Tab[]>([
     { name: 'Deployments', id: 'deployments' },
-    { name: 'Build Engine Events', id: 'build-engine-events' },
+    ...(isLocalDev ? [{ name: 'Build Engine Events', id: 'build-engine-events' }] : []),
   ])
 
   const currentTab = location.pathname.split('/').pop()
@@ -51,7 +53,7 @@ export const InfrastructurePage = () => {
       case 'deployments':
         return <DeploymentsList modules={modules} />
       case 'build-engine-events':
-        return <BuildEngineEvents events={events} />
+        return isLocalDev ? <BuildEngineEvents events={events} /> : <></>
       default:
         return <></>
     }

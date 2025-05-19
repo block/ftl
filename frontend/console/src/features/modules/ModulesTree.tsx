@@ -5,6 +5,7 @@ import { Button } from '../../shared/components/Button'
 import { HoverPopup } from '../../shared/components/HoverPopup'
 import { Multiselect, sortMultiselectOpts } from '../../shared/components/Multiselect'
 import type { MultiselectOpt } from '../../shared/components/Multiselect'
+import { useInfo } from '../../shared/providers/info-provider'
 import { classNames } from '../../shared/utils'
 import { BuildStatusIndicator } from '../engine/BuildStatusIndicator'
 import { getEventText } from '../engine/engine.utils'
@@ -48,6 +49,7 @@ const ModuleSection = ({
   const { moduleName, declName } = useParams()
   const isSelected = useMemo(() => moduleName === module.name, [moduleName, module.name])
   const moduleRef = useRef<HTMLDivElement>(null)
+  const { isLocalDev } = useInfo()
 
   // Scroll to the selected module on page load
   useEffect(() => {
@@ -119,7 +121,7 @@ const ModuleSection = ({
       >
         <ArrowRight01Icon aria-hidden='true' className={`size-4 shrink-0 ${isExpanded ? 'rotate-90 text-gray-500' : ''}`} />
         <HoverPopup popupContent={getEventText(moduleEvent)}>
-          <BuildStatusIndicator eventCase={moduleEvent?.event?.case} />
+          <BuildStatusIndicator eventCase={isLocalDev ? moduleEvent?.event?.case : 'moduleDeploySuccess'} />
         </HoverPopup>
         {module.name}
         <Link
