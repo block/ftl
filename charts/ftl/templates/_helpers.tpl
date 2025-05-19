@@ -143,3 +143,21 @@ resources:
     cpu: "{{ .resources.requests.cpu }}"
     memory: "{{ .resources.requests.memory }}"
 {{- end -}}
+{{- define "ftl-service.environment-variables" -}}
+- name: MY_POD_CPU_REQUEST
+  valueFrom:
+    resourceFieldRef:
+      resource: requests.cpu
+- name: MY_POD_CPU_LIMIT
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.cpu
+- name: MY_POD_MEM_REQUEST
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.memory
+- name: MY_POD_MEM_LIMIT
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.memory
+{{- end -}}
