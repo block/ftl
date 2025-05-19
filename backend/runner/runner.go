@@ -411,8 +411,6 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	}
 	var dep *deployment
 	if ep, ok := s.devEndpoint.Get(); ok {
-		pingCtx, cancel := context.WithCancelCause(ctx)
-		defer cancel(errors.Errorf("complete"))
 		if hotRelaodEp, ok := s.devHotReloadEndpoint.Get(); ok {
 			hotReloadClient := rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, hotRelaodEp, log.Error)
 			err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, hotReloadClient)
@@ -433,12 +431,14 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}
 
 			go func() {
+				var delay time.Duration = 50
+				connected := false
 				for {
 					select {
-					case <-pingCtx.Done():
+					case <-ctx.Done():
 						return
-					case <-time.After(time.Millisecond * 50):
-						_, err := hotReloadClient.RunnerInfo(pingCtx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
+					case <-time.After(time.Millisecond * delay):
+						info, err := hotReloadClient.RunnerInfo(ctx, connect.NewRequest(&hotreloadpb.RunnerInfoRequest{
 							Deployment:    s.config.Deployment.String(),
 							Address:       s.proxyBindAddress.String(),
 							SchemaVersion: s.config.DevModeSchemaSequence,
@@ -446,7 +446,18 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
-							return
+							delay = 300
+							if !connected {
+								logger.Debugf("Runner connected to backend with schema version %d and runner no %d", s.config.DevModeSchemaSequence, s.config.DevModeRunnerSequence)
+							}
+							connected = true
+							if info.Msg.Outdated {
+								logger.Debugf("Runner is outdated, exiting")
+								return
+							}
+						} else if connected {
+							logger.Debugf("Lost connection to running dev mode process")
+							connected = false
 						}
 					}
 				}
@@ -454,7 +465,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 		}
 		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep, log.Error)
-		err = rpc.Wait(pingCtx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
+		err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
 		dep = &deployment{
 			ctx:      ctx,
 			key:      key,
