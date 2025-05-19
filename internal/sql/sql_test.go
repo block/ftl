@@ -176,6 +176,27 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Data{
+				Name: "GetNamedParamMySqlQuery",
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     19,
+				},
+				Metadata: []schema.Metadata{&schema.MetadataGenerated{}},
+				Fields: []*schema.Field{{
+					Name: "namedId",
+					Type: &schema.Int{},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "named_id", Table: "authors"},
+					},
+				}, {
+					Name: "hometown",
+					Type: &schema.Optional{Type: &schema.String{}},
+					Metadata: []schema.Metadata{
+						&schema.MetadataSQLColumn{Name: "hometown", Table: "authors"},
+					},
+				}},
+			},
+			&schema.Data{
 				Name: "PsqldbAuthor",
 				Pos: schema.Position{
 					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
@@ -395,6 +416,25 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					},
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT bio, hometown FROM authors",
+						Command: "many",
+					},
+					&schema.MetadataGenerated{},
+				},
+			},
+			&schema.Verb{
+				Pos: schema.Position{
+					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Line:     19,
+				},
+				Name:     "getNamedParamMySql",
+				Request:  &schema.Ref{Module: "test", Name: "GetNamedParamMySqlQuery"},
+				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "Author"}},
+				Metadata: []schema.Metadata{
+					&schema.MetadataDatabases{
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
+					},
+					&schema.MetadataSQLQuery{
+						Query:   "SELECT id, bio, birth_year, hometown FROM authors WHERE id = CAST(? AS UNSIGNED) AND hometown = ?",
 						Command: "many",
 					},
 					&schema.MetadataGenerated{},
