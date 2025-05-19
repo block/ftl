@@ -60,6 +60,7 @@ data:
                 {{- toYaml .Values.runner.envFrom | nindent 16 }}
               {{- end }}
               env:
+                {{ include "ftl-service.environment-variables" . | nindent 16 }}
                 {{- if .Values.runner.env }}
                 {{- toYaml .Values.runner.env | nindent 16 }}
                 {{- end }}
