@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>xyz.block.ftl</groupId>
     <artifactId>ftl-jvm-parent</artifactId>
@@ -400,41 +401,22 @@
                 </plugins>
             </build>
         </profile>
-        <!-- used to deploy artifacts to Maven Central via OSSRH (OSS Repository Hosting).
-             It configures the nexus-staging-maven-plugin for automated deployment and release,
-             and sets up the distribution management for both snapshot and release repositories.
-             Activate this profile when deploying open-source projects to Maven Central. -->
         <profile>
-            <!-- https://central.sonatype.org/publish/publish-maven/#deployment -->
-            <id>ossrh</id>
+            <id>central</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.7.0</version>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh-releases</serverId>
-                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
                     </plugin>
                 </plugins>
             </build>
-            <!-- specifies where the project artifacts should be distributed or deployed. -->
-            <!-- tells Maven where to deploy your project's artifacts when you run mvn deploy -->
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh-snapshots</id>
-                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
-                <!-- Sonatype's OSSRH - replicates to Maven Central within 30min of publish -->
-                <repository>
-                    <id>ossrh-releases</id>
-                    <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-                </repository>
-            </distributionManagement>
         </profile>
     </profiles>
 
