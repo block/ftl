@@ -52,6 +52,18 @@ export default defineConfig({
           if (id.includes('/protos/xyz/block/ftl/')) {
             return 'vendor-protos'
           }
+          if (id.includes('node_modules/dagre')) {
+            return 'vendor-dagre'
+          }
+          if (id.includes('node_modules/@xyflow')) {
+            return 'vendor-xyflow'
+          }
+          if (id.includes('node_modules/markdown-it')) {
+            return 'vendor-markdown-it'
+          }
+          if (id.includes('node_modules/hugeicons-react')) {
+            return 'vendor-hugeicons-react'
+          }
         },
       },
     },
