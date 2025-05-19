@@ -41,18 +41,6 @@ controller:
   serviceAccountName: ftl
 
   env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-    - name: FTL_BIND
-      value: "http://$(MY_POD_IP):8892"
-    - name: FTL_ADVERTISE
-      value: "http://$(MY_POD_IP):8892"
-    - name: HOST_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.hostIP
 
   port: 8892
 

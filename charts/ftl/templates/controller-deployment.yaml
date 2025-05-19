@@ -43,6 +43,7 @@ spec:
             {{- if .Values.controller.env }}
             {{- toYaml .Values.controller.env | nindent 12 }}
             {{- end }}
+            {{ include "ftl.commonEnv" .Values | nindent 12 }}
             - name: FTL_LEASE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-lease:{{ .Values.lease.port }}"
             - name: FTL_ENDPOINT

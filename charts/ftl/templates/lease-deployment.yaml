@@ -39,12 +39,7 @@ spec:
             {{- if .Values.lease.env }}
             {{- toYaml .Values.lease.env | nindent 12 }}
             {{- end }}
-            - name: MY_POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            - name: FTL_BIND
-              value: "http://0.0.0.0:8892"
+            {{ include "ftl.commonEnv" .Values | nindent 12 }}
             - name: LOG_LEVEL
               value: "{{ .Values.lease.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON

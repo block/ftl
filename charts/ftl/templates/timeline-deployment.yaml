@@ -35,8 +35,7 @@ spec:
             {{- toYaml .Values.timeline.envFrom | nindent 12 }}
           {{- end }}
           env:
-            - name: FTL_BIND
-              value: "http://0.0.0.0:8892"
+            {{ include "ftl.commonEnv" .Values | nindent 12 }}
             - name: LOG_LEVEL
               value: "{{ .Values.timeline.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON

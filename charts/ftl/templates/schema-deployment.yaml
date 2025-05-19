@@ -56,8 +56,7 @@ spec:
             {{- if .Values.schema.env }}
             {{- toYaml .Values.schema.env | nindent 12 }}
             {{- end }}
-            - name: FTL_BIND
-              value: "http://0.0.0.0:{{ .Values.schema.services.schema.port }}"
+            {{ include "ftl.commonEnv" .Values | nindent 12 }}
             - name: LOG_LEVEL
               value: "{{ .Values.schema.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
