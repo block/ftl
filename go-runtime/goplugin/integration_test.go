@@ -71,7 +71,7 @@ func TestGoSQLInterfaces(t *testing.T) {
 		func(t testing.TB, ic in.TestContext) {
 			expected := map[string]string{
 				"CreateDemoRowClient": `type CreateDemoRowClient func(context.Context, CreateDemoRowQuery) error`,
-				"ListDemoRowsClient":  `type ListDemoRowsClient func(context.Context) ([]Demo, error)`,
+				"ListDemoRowsClient":  `type ListDemoRowsClient func(context.Context) ([]DemoRow, error)`,
 				"CreateDemoRowQuery": `type CreateDemoRowQuery struct {
 	RequiredString string
 	OptionalString ftl.Option[string]
@@ -79,7 +79,7 @@ func TestGoSQLInterfaces(t *testing.T) {
 	TimestampValue stdtime.Time
 	FloatValue     float64
 }`,
-				"Demo": `type Demo struct {
+				"DemoRow": `type DemoRow struct {
 	Id             int
 	RequiredString string
 	OptionalString ftl.Option[string]

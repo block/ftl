@@ -144,7 +144,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
         decls: vec![
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "AllType".to_string(),
+                    name: "AllTypeRow".to_string(),
                     visibility: schemapb::Visibility::ScopeNone.into(),
                     type_parameters: vec![],
                     fields: {
@@ -258,7 +258,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                     response: Some(schemapb::Type {
                         value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
                             module: "echo".to_string(),
-                            name: "AllType".to_string(),
+                            name: "AllTypeRow".to_string(),
                             pos: None,
                             type_parameters: vec![],
                         }))
@@ -412,7 +412,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                             element: Some(Box::new(schemapb::Type {
                                 value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
                                     module: "echo".to_string(),
-                                    name: "AllType".to_string(),
+                                    name: "AllTypeRow".to_string(),
                                     pos: None,
                                     type_parameters: vec![],
                                 }))
@@ -515,7 +515,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
             },
             schemapb::Decl {
                 value: Some(schemapb::decl::Value::Data(schemapb::Data {
-                    name: "Request".to_string(),
+                    name: "RequestRow".to_string(),
                     visibility: schemapb::Visibility::ScopeNone.into(),
                     type_parameters: vec![],
                     fields: vec![
@@ -576,7 +576,7 @@ fn expected_module_schema(engine: &str) -> schemapb::Module {
                             element: Some(Box::new(schemapb::Type {
                                 value: Some(schemapb::r#type::Value::Ref(schemapb::Ref {
                                     module: "echo".to_string(),
-                                    name: "Request".to_string(),
+                                    name: "RequestRow".to_string(),
                                     pos: None,
                                     type_parameters: vec![],
                                 }))
