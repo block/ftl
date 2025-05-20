@@ -7,6 +7,7 @@ import type { MultiselectOpt } from '../../shared/components/Multiselect'
 import { useUserPreferences } from '../../shared/providers/user-preferences-provider'
 import { hashString } from '../../shared/utils/string.utils'
 import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
+import { declTypeMultiselectOpts } from '../modules/schema/schema.utils'
 import { DeclNode } from './DeclNode'
 import { GroupNode } from './GroupNode'
 import { type FTLNode, getGraphData } from './graph-utils'
@@ -18,29 +19,8 @@ const NODE_TYPES = {
   declNode: DeclNode,
 }
 
-// Define the filter options for the graph
-const graphFilterOpts: MultiselectOpt[] = [
-  {
-    key: 'verb',
-    displayName: 'Verbs',
-  },
-  {
-    key: 'config',
-    displayName: 'Configs',
-  },
-  {
-    key: 'secret',
-    displayName: 'Secrets',
-  },
-  {
-    key: 'database',
-    displayName: 'Databases',
-  },
-  {
-    key: 'topic',
-    displayName: 'Topics',
-  },
-]
+// Filter out unwanted items from declTypeMultiselectOpts
+const graphFilterOpts = declTypeMultiselectOpts.filter((opt) => !['data', 'enum', 'typealias'].includes(opt.key))
 
 interface GraphPaneProps {
   modules?: StreamModulesResult
