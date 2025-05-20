@@ -493,8 +493,13 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         @Override
         public void onError(Throwable throwable) {
             log.debug("GRPC connection error", throwable);
+            currentError = throwable;
+            onCompleted();
+        }
+
+        @Override
+        public void onCompleted() {
             synchronized (this) {
-                currentError = throwable;
                 if (waiters) {
                     this.notifyAll();
                     waiters = false;
@@ -505,11 +510,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                         GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                         moduleObserver);
             }
-        }
-
-        @Override
-        public void onCompleted() {
-            onError(new RuntimeException("connection closed"));
         }
     }
 
