@@ -314,33 +314,6 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 	output := &errorDetector{
 		logger: logger,
 	}
-	go func() {
-		<-ctx.Done()
-		// If the parent context is done we just return
-		select {
-		case <-parentCtx.Done():
-			return
-		default:
-
-		}
-		// the context is done before we notified the build engine
-		// we need to send a build failure event
-
-		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
-		ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
-		auto := firstResponseSent.Load()
-		firstResponseSent.Store(true)
-		err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
-			BuildFailure: &langpb.BuildFailure{
-				IsAutomaticRebuild: auto,
-				ContextId:          s.buildContext.Load().ID,
-				Errors:             ers,
-			}}})
-		if err != nil {
-			logger.Errorf(err, "could not send build event")
-			parentCancel(err)
-		}
-	}()
 
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
@@ -445,6 +418,23 @@ func (s *Service) runQuarkusDev(parentCtx context.Context, projectConfig project
 			}()
 		case <-ctx.Done():
 			_ = output.FinalizeCapture(true)
+
+			// the context is done, which means Quarkus has exited
+			// we need to send a build failure event
+			ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
+			ers.Errors = append(ers.Errors, &langpb.Error{Msg: "The dev mode process exited", Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
+			auto := firstResponseSent.Load()
+			firstResponseSent.Store(true)
+			err := stream.Send(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+				BuildFailure: &langpb.BuildFailure{
+					IsAutomaticRebuild: auto,
+					ContextId:          s.buildContext.Load().ID,
+					Errors:             ers,
+				}}})
+			if err != nil {
+				logger.Errorf(err, "could not send build event")
+				parentCancel(err)
+			}
 			return errors.Wrap(ctx.Err(), "context cancelled")
 		}
 	}

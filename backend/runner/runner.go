@@ -446,7 +446,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 							Databases:     databases,
 						}))
 						if err == nil {
-							delay = 300 * time.Millisecond
+							delay = 300 * time.Second
 							if !connected {
 								logger.Debugf("Runner connected to backend with schema version %d and runner no %d", s.config.DevModeSchemaSequence, s.config.DevModeRunnerSequence)
 							}

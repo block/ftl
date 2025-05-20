@@ -217,9 +217,17 @@ func (r *JvmLogRecord) ToEntry() log.Entry {
 	}
 
 	ret := log.Entry{
-		Time:    r.Timestamp,
-		Level:   level,
-		Message: r.Message,
+		Time:       r.Timestamp,
+		Level:      level,
+		Message:    r.Message,
+		Attributes: map[string]string{},
 	}
+	if r.LoggerName != "" {
+		ret.Attributes["logger"] = r.LoggerName
+	}
+	if r.LoggerClassName != "" {
+		ret.Attributes["loggerClassName"] = r.LoggerClassName
+	}
+
 	return ret
 }
