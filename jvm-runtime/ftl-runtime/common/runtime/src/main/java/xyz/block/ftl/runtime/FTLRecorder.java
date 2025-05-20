@@ -46,12 +46,26 @@ public class FTLRecorder {
         try {
             var method = verbHandlerClass.getDeclaredMethod(methodName, parameterTypes.toArray(new Class[0]));
             method.setAccessible(true);
-            var obj = Arc.container().instance(ObjectMapper.class).get();
-            var ctor = verbHandlerClass.getDeclaredConstructor(ctorTypes.toArray(new Class[0]));
-            var instance = ctor.newInstance(ctorParamMappers.stream().map(s -> s.apply(obj, null)).toArray());
             Arc.container().instance(VerbRegistry.class).get().register(module, verbName, new InstanceHandle<Object>() {
+
+                private volatile Object instance;
+
                 @Override
                 public Object get() {
+                    if (instance == null) {
+                        synchronized (this) {
+                            if (instance == null) {
+                                try {
+                                    var obj = Arc.container().instance(ObjectMapper.class).get();
+                                    var ctor = verbHandlerClass.getDeclaredConstructor(ctorTypes.toArray(new Class[0]));
+                                    instance = ctor
+                                            .newInstance(ctorParamMappers.stream().map(s -> s.apply(obj, null)).toArray());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }
+                    }
                     return instance;
                 }
             }, method,
