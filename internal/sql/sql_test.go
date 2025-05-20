@@ -49,7 +49,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Database{Name: "mysqldb", Type: schema.MySQLDatabaseType},
 			&schema.Database{Name: "psqldb", Type: schema.PostgresDatabaseType},
 			&schema.Data{
-				Name: "Author",
+				Name: "AuthorRow",
 				Pos: schema.Position{
 					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
 					Line:     10,
@@ -176,7 +176,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 			},
 			&schema.Data{
-				Name: "PsqldbAuthor",
+				Name: "PsqldbAuthorRow",
 				Pos: schema.Position{
 					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
 					Line:     10,
@@ -255,7 +255,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 				Name:     "getAllAuthorsMySql",
 				Request:  &schema.Unit{},
-				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "Author"}},
+				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "AuthorRow"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
 						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
@@ -274,7 +274,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 				Name:     "getAllAuthorsPsql",
 				Request:  &schema.Unit{},
-				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "PsqldbAuthor"}},
+				Response: &schema.Array{Element: &schema.Ref{Module: "test", Name: "PsqldbAuthorRow"}},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
 						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},
@@ -293,7 +293,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 				Name:     "getAuthorByIdMySql",
 				Request:  &schema.Int{},
-				Response: &schema.Ref{Module: "test", Name: "Author"},
+				Response: &schema.Ref{Module: "test", Name: "AuthorRow"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
 						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
@@ -312,7 +312,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 				},
 				Name:     "getAuthorByIdPsql",
 				Request:  &schema.Int{},
-				Response: &schema.Ref{Module: "test", Name: "PsqldbAuthor"},
+				Response: &schema.Ref{Module: "test", Name: "PsqldbAuthorRow"},
 				Metadata: []schema.Metadata{
 					&schema.MetadataDatabases{
 						Uses: []*schema.Ref{{Module: "test", Name: "psqldb"}},

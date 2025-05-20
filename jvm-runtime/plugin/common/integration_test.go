@@ -25,7 +25,7 @@ func TestJVMSQLInterfaces(t *testing.T) {
 			switch ic.Language {
 			case "kotlin":
 				expected = map[string]string{
-					"Demo": `public data class Demo(
+					"DemoRow": `public data class DemoRow(
   public val id: Long,
   public val requiredString: String,
   public val optionalString: String? = null,
@@ -41,24 +41,24 @@ func TestJVMSQLInterfaces(t *testing.T) {
   public val floatValue: Double,
 )`,
 					"CreateDemoRowClient": "public fun interface CreateDemoRowClient {\n  public fun createDemoRow(`value`: CreateDemoRowQuery)\n}",
-					"ListDemoRowsClient":  "public fun interface ListDemoRowsClient {\n  public fun listDemoRows(): List<Demo>\n}",
+					"ListDemoRowsClient":  "public fun interface ListDemoRowsClient {\n  public fun listDemoRows(): List<DemoRow>\n}",
 				}
 
 			case "java":
 				expected = map[string]string{
-					"Demo": `public class Demo {
-  public Demo();
-  public Demo setId(long id);
+					"DemoRow": `public class DemoRow {
+  public DemoRow();
+  public DemoRow setId(long id);
   public long getId();
-  public Demo setRequiredString(@NotNull String requiredString);
+  public DemoRow setRequiredString(@NotNull String requiredString);
   public @NotNull String getRequiredString();
-  public Demo setOptionalString(String optionalString);
+  public DemoRow setOptionalString(String optionalString);
   public String getOptionalString();
-  public Demo setNumberValue(long numberValue);
+  public DemoRow setNumberValue(long numberValue);
   public long getNumberValue();
-  public Demo setTimestampValue(@NotNull ZonedDateTime timestampValue);
+  public DemoRow setTimestampValue(@NotNull ZonedDateTime timestampValue);
   public @NotNull ZonedDateTime getTimestampValue();
-  public Demo setFloatValue(double floatValue);
+  public DemoRow setFloatValue(double floatValue);
   public double getFloatValue();
 }`,
 					"CreateDemoRowQuery": `public class CreateDemoRowQuery {
@@ -75,7 +75,7 @@ func TestJVMSQLInterfaces(t *testing.T) {
   public double getFloatValue();
 }`,
 					"CreateDemoRowClient": "public interface CreateDemoRowClient {\n  )\n  void createDemoRow(@NotNull CreateDemoRowQuery value);\n}",
-					"ListDemoRowsClient":  "public interface ListDemoRowsClient {\n  )\n  @NotNull List<Demo> listDemoRows();\n}",
+					"ListDemoRowsClient":  "public interface ListDemoRowsClient {\n  )\n  @NotNull List<DemoRow> listDemoRows();\n}",
 				}
 
 			default:

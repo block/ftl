@@ -42,13 +42,13 @@ fn generate_schema(request: &pluginpb::GenerateRequest) -> Result<schemapb::Modu
     let mut table_schemas = HashMap::new();
     for query in &request.queries {
         if let Some(table_name) = get_table(query) {
-            let pascal_singular = singularize_pascal(&table_name);
+            let table_row_name = table_row_name(&table_name);
             // Add if we haven't seen this table before and the query represents a full table schema
             // e.g. `SELECT * FROM users` will produce a table schema for `users` and ultimately a `User` schema type
-            if !table_schemas.contains_key(&pascal_singular) {
+            if !table_schemas.contains_key(&table_row_name) {
                 if is_full_table_schema(query, request) {
-                    let table_decl = create_table_schema(query, &pascal_singular, request);
-                    table_schemas.insert(pascal_singular.clone(), table_decl);
+                    let table_decl = create_table_schema(query, &table_row_name, request);
+                    table_schemas.insert(table_row_name.clone(), table_decl);
                 }
             }
         }
@@ -166,6 +166,11 @@ fn get_table(query: &pluginpb::Query) -> Option<String> {
     None
 }
 
+fn table_row_name(table_name: &str) -> String {
+    let pascal_singular = singularize_pascal(table_name);
+    format!("{}Row", pascal_singular)
+}
+
 fn create_table_schema(
     query: &pluginpb::Query, 
     name: &str, 
@@ -231,10 +236,9 @@ fn to_request_type(
     }
     
     if let Some(table_name) = get_table(query) {
-        let pascal_singular = singularize_pascal(&table_name);
         let table_schema_exists = decls.iter().any(|decl| {
             if let Some(schemapb::decl::Value::Data(data)) = &decl.value {
-                data.name == pascal_singular
+                data.name == table_row_name(&table_name)
             } else {
                 false
             }
@@ -292,10 +296,9 @@ fn to_response_type(
     }
     
     if let Some(table_name) = get_table(query) {
-        let pascal_singular = singularize_pascal(&table_name);
         let table_schema_exists = decls.iter().any(|decl| {
             if let Some(schemapb::decl::Value::Data(data)) = &decl.value {
-                data.name == pascal_singular
+                data.name == table_row_name(&table_name)
             } else {
                 false
             }
@@ -340,8 +343,7 @@ fn to_verb(
     let request_type = if query.params.is_empty() {
         if query.insert_into_table.is_some() {
             if let Some(table_name) = get_table(query) {
-                let pascal_singular = singularize_pascal(&table_name);
-                Some(to_schema_ref(&module_name, &pascal_singular))
+                Some(to_schema_ref(&module_name, &table_row_name(&table_name)))
             } else {
                 Some(to_schema_unit())
             }
@@ -351,17 +353,17 @@ fn to_verb(
     } else if query.params.len() == 1 {
         Some(get_parameter_type(&query.params[0], request))
     } else if let Some(table_name) = get_table(query) {
-        let pascal_singular = singularize_pascal(&table_name);
+        let table_row_name = table_row_name(&table_name);
         let table_schema_exists = decls.iter().any(|decl| {
             if let Some(schemapb::decl::Value::Data(data)) = &decl.value {
-                data.name == pascal_singular
+                data.name == table_row_name
             } else {
                 false
             }
         });
         
         if table_schema_exists && params_match_table(query, &table_name, request) {
-            Some(to_schema_ref(&module_name, &pascal_singular))
+            Some(to_schema_ref(&module_name, &table_row_name))
         } else {
             Some(to_schema_ref(&module_name, &format!("{}Query", upper_camel_name)))
         }
@@ -376,17 +378,17 @@ fn to_verb(
             if query.columns.len() == 1 {
                 Some(get_column_type(&query.columns[0], request))
             } else if let Some(table_name) = get_table(query) {
-                let pascal_singular = singularize_pascal(&table_name);
+                let table_row_name = table_row_name(&table_name);
                 let table_schema_exists = decls.iter().any(|decl| {
                     if let Some(schemapb::decl::Value::Data(data)) = &decl.value {
-                        data.name == pascal_singular
+                        data.name == table_row_name
                     } else {
                         false
                     }
                 });
                 
                 if table_schema_exists && is_full_table_schema(query, request) {
-                    Some(to_schema_ref(&module_name, &pascal_singular))
+                    Some(to_schema_ref(&module_name, &table_row_name))
                 } else {
                     Some(to_schema_ref(&module_name, &format!("{}Row", upper_camel_name)))
                 }
@@ -398,17 +400,17 @@ fn to_verb(
             let element_type = if query.columns.len() == 1 {
                 get_column_type(&query.columns[0], request)
             } else if let Some(table_name) = get_table(query) {
-                let pascal_singular = singularize_pascal(&table_name);
+                let table_row_name = table_row_name(&table_name);
                 let table_schema_exists = decls.iter().any(|decl| {
                     if let Some(schemapb::decl::Value::Data(data)) = &decl.value {
-                        data.name == pascal_singular
+                        data.name == table_row_name
                     } else {
                         false
                     }
                 });
                 
                 if table_schema_exists && is_full_table_schema(query, request) {
-                    to_schema_ref(&module_name, &pascal_singular)
+                    to_schema_ref(&module_name, &table_row_name)
                 } else {
                     to_schema_ref(&module_name, &format!("{}Row", upper_camel_name))
                 }
