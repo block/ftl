@@ -14,7 +14,8 @@ public class StaticConfigSource implements ConfigSource {
             "quarkus.log.console.json.enabled", "true",
             "quarkus.log.console.json.exception-output-type", "formatted",
             "quarkus.live-reload.enabled", "false",
-            "quarkus.console.enabled", "false");
+            "quarkus.console.enabled", "false",
+            "quarkus.grpc.server.max-inbound-message-size", "4194304");
 
     @Override
     public Set<String> getPropertyNames() {
