@@ -51,7 +51,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "AuthorRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     10,
 				},
 				Fields: []*schema.Field{{
@@ -86,7 +86,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "GetAuthorInfoMySqlRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     13,
 				},
 				Fields: []*schema.Field{{
@@ -109,7 +109,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "GetAuthorInfoPsqlRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     13,
 				},
 				Fields: []*schema.Field{{
@@ -132,7 +132,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "GetManyAuthorsInfoMySqlRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     16,
 				},
 				Fields: []*schema.Field{{
@@ -155,7 +155,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "GetManyAuthorsInfoPsqlRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     16,
 				},
 				Fields: []*schema.Field{{
@@ -178,7 +178,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			&schema.Data{
 				Name: "PsqldbAuthorRow",
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     10,
 				},
 				Fields: []*schema.Field{{
@@ -212,7 +212,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     4,
 				},
 				Name:     "createRequestMySql",
@@ -231,7 +231,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     4,
 				},
 				Name:     "createRequestPsql",
@@ -250,7 +250,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     7,
 				},
 				Name:     "getAllAuthorsMySql",
@@ -269,7 +269,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     7,
 				},
 				Name:     "getAllAuthorsPsql",
@@ -288,7 +288,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     10,
 				},
 				Name:     "getAuthorByIdMySql",
@@ -307,7 +307,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     10,
 				},
 				Name:     "getAuthorByIdPsql",
@@ -326,7 +326,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     13,
 				},
 				Name:     "getAuthorInfoMySql",
@@ -345,7 +345,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     13,
 				},
 				Name:     "getAuthorInfoPsql",
@@ -364,7 +364,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     16,
 				},
 				Name:     "getManyAuthorsInfoMySql",
@@ -383,7 +383,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     16,
 				},
 				Name:     "getManyAuthorsInfoPsql",
@@ -402,7 +402,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/mysql/mysqldb/queries/queries.sql"),
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
 					Line:     1,
 				},
 				Name:     "getRequestDataMySql",
@@ -421,7 +421,7 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 			},
 			&schema.Verb{
 				Pos: schema.Position{
-					Filename: filepath.Join(tmpDir, "db/postgres/psqldb/queries/queries.sql"),
+					Filename: "db/postgres/psqldb/queries/queries.sql",
 					Line:     1,
 				},
 				Name:     "getRequestDataPsql",

@@ -120,7 +120,7 @@ func AddDatabaseDeclsToSchema(ctx context.Context, projectRoot string, mc module
 				return errors.Wrap(err, "failed to parse generated schema")
 			}
 		}
-		if err = populatePositions(sch, cfg); err != nil {
+		if err = populatePositions(sch, cfg, projectRoot); err != nil {
 			return errors.Wrap(err, "failed to populate positions")
 		}
 		if err = updateSchema(out, sch, cfg, declUniqueness); err != nil {
@@ -288,22 +288,23 @@ func findSQLFiles(dir string, relativeToDir string) ([]string, error) {
 //
 // SQLC does not provide enough information to determine the position of a verb in the source sql file.
 // This is best effort.
-func populatePositions(m *schema.Module, cfg ConfigContext) error {
+func populatePositions(m *schema.Module, cfg ConfigContext, projectRoot string) error {
 	posMap := map[string]schema.Position{}
 	for _, sqlPath := range cfg.QueryPaths {
-		absPath, err := filepath.Abs(filepath.Join(cfg.OutDir, sqlPath))
+		relativePath := filepath.Join(cfg.OutDir, sqlPath)
+		sql, err := os.ReadFile(relativePath)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get absolute path for %s", sqlPath)
+			return errors.Wrapf(err, "failed to read %s", relativePath)
 		}
-		sql, err := os.ReadFile(absPath)
+		relToRoot, err := filepath.Rel(projectRoot, relativePath)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read %s", absPath)
+			return errors.Wrapf(err, "failed to make path relative to project root: %s", projectRoot)
 		}
 		lines := strings.Split(string(sql), "\n")
 		for i, line := range lines {
 			if match := queryNameRegex.FindStringSubmatch(line); len(match) > 1 {
 				posMap[strcase.ToLowerCamel(match[1])] = schema.Position{
-					Filename: absPath,
+					Filename: relToRoot,
 					Line:     i + 1,
 				}
 			}
