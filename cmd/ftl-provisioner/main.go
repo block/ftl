@@ -4,7 +4,9 @@ import (
 	"context"
 	"os"
 
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/artefacts"
@@ -30,11 +32,11 @@ var cli struct {
 	RegistryConfig        artefacts.RegistryConfig `prefix:"oci-" embed:""`
 	InstanceName          string                   `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
 	UserNamespace         string                   `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
-	ModulePerNamespace    bool                     `help:"If module per namespace mode is enabled" env:"FTL_MODULE_PER_NAMESPACE" default:"false"`
 	CronServiceAccount    string                   `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
 	ConsoleServiceAccount string                   `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
 	AdminServiceAccount   string                   `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
 	HTTPServiceAccount    string                   `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
+	PodNamespace          string                   `help:"The FTL system namespace" env:"FTL_SYSTEM_NAMESPACE"`
 }
 
 func main() {
@@ -54,20 +56,23 @@ func main() {
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
 	var mapper k8sscaling.NamespaceMapper
-	if cli.ModulePerNamespace {
-		mapper = func(module string, realm string, systemNamespace string) string {
-			return module + "-" + realm
-		}
-	} else if cli.UserNamespace != "" {
-		mapper = func(module string, realm string, systemNamespace string) string {
+	if cli.UserNamespace != "" {
+		mapper = func(module string, realm string) string {
 			return cli.UserNamespace
 		}
 	} else {
-		mapper = func(module string, realm string, systemNamespace string) string {
-			return systemNamespace
+		mapper = func(module string, realm string) string {
+			return module + "-" + realm
 		}
 	}
-	scaling := k8sscaling.NewK8sScaling(false, cli.ProvisionerConfig.ControllerEndpoint.String(), cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	clusterMapper := func(realm string) (*kubernetes.Clientset, error) {
+		val, err := k8sscaling.CreateClientSet()
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not create client")
+		}
+		return val, nil
+	}
+	scaling := k8sscaling.NewK8sScaling(clusterMapper, cli.PodNamespace, false, cli.ProvisionerConfig.ControllerEndpoint.String(), cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient)

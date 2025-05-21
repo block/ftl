@@ -19,12 +19,12 @@ import (
 func TestKubeScalingUserNamespace(t *testing.T) {
 	runTest(t, func(dep string) string {
 		return "demo"
-	})
+	}, "--set", "ftl.provisioner.userNamespace=demo")
 }
 func TestKubeScalingDeploymentPerNamespace(t *testing.T) {
 	runTest(t, func(dep string) string {
 		return dep + "-ftl"
-	}, "--set", "ftl.provisioner.modulePerNamespace=true")
+	})
 }
 
 func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string) {
