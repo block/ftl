@@ -1,15 +1,14 @@
-import { ArrowRight01Icon, ArrowShrink02Icon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
+import { ArrowRight01Icon } from 'hugeicons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Button } from '../../shared/components/Button'
+import { Link, useParams } from 'react-router-dom'
 import { HoverPopup } from '../../shared/components/HoverPopup'
-import { Multiselect, sortMultiselectOpts } from '../../shared/components/Multiselect'
 import type { MultiselectOpt } from '../../shared/components/Multiselect'
 import { useInfo } from '../../shared/providers/info-provider'
 import { classNames } from '../../shared/utils'
 import { BuildStatusIndicator } from '../engine/BuildStatusIndicator'
 import { getEventText } from '../engine/engine.utils'
 import { useEngineStatus } from '../engine/hooks/use-engine-status'
+import { ModuleTreeHeader } from './ModulesTreeHeader'
 import type { DeclInfo, ModuleTreeItem } from './module.utils'
 import {
   addModuleToLocalStorageIfMissing,
@@ -34,7 +33,7 @@ const ModuleSection = ({
   isExpanded,
   toggleExpansion,
   selectedDeclTypes,
-  hideUnexported,
+  showExported,
   expandedDeclTypes,
   toggleDeclType,
 }: {
@@ -42,7 +41,7 @@ const ModuleSection = ({
   isExpanded: boolean
   toggleExpansion: (m: string) => void
   selectedDeclTypes: MultiselectOpt[]
-  hideUnexported: boolean
+  showExported: boolean
   expandedDeclTypes: string[]
   toggleDeclType: (moduleName: string, declType: string) => void
 }) => {
@@ -66,8 +65,8 @@ const ModuleSection = ({
     () =>
       module.decls
         .filter((d) => !!selectedDeclTypes.find((o) => o.key === declTypeName(d.declType, d.value)))
-        .filter((d) => !hideUnexported || (isSelected && declName === d.value.name) || declSumTypeIsExported(d.value)),
-    [module.decls, selectedDeclTypes, hideUnexported, isSelected, declName],
+        .filter((d) => !showExported || (isSelected && declName === d.value.name) || declSumTypeIsExported(d.value)),
+    [module.decls, selectedDeclTypes, showExported, isSelected, declName],
   )
 
   // Group declarations by their type
@@ -192,13 +191,10 @@ const ModuleSection = ({
   )
 }
 
-const declTypesSearchParamKey = 'dt'
-
 export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
   const { moduleName, declName } = useParams()
 
-  const [searchParams, setSearchParams] = useSearchParams()
-  const declTypeKeysFromUrl = searchParams.getAll(declTypesSearchParamKey)
+  const declTypeKeysFromUrl: string[] = [] // No longer using URL params
   const declTypesFromUrl = declTypeMultiselectOpts.filter((o) => declTypeKeysFromUrl.includes(o.key))
   const [selectedDeclTypes, setSelectedDeclTypes] = useState(declTypesFromUrl.length === 0 ? declTypeMultiselectOpts : declTypesFromUrl)
 
@@ -212,16 +208,10 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     setExpandedModules(listExpandedModulesFromLocalStorage())
   }, [moduleName, declName])
 
-  const [hideUnexported, setHideUnexported] = useState(hasHideUnexportedInLocalStorage() ? getHideUnexportedFromLocalStorage() : true)
+  // Use localStorage for showExported state
+  const [showExported, setShowExported] = useState(hasHideUnexportedInLocalStorage() ? getHideUnexportedFromLocalStorage() : false)
 
   const msOnChange = (opts: MultiselectOpt[]) => {
-    const params = new URLSearchParams()
-    if (opts.length !== declTypeMultiselectOpts.length) {
-      for (const o of sortMultiselectOpts(opts)) {
-        params.append(declTypesSearchParamKey, o.key)
-      }
-    }
-    setSearchParams(params)
     setSelectedDeclTypes(opts)
   }
 
@@ -243,9 +233,9 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
     setExpandedDeclTypesInLocalStorage([])
   }
 
-  const setHideUnexportedState = (val: boolean) => {
+  const setShowExportedState = (val: boolean) => {
     setHideUnexportedFromLocalStorage(val)
-    setHideUnexported(val)
+    setShowExported(val)
   }
 
   const [expandedDeclTypes, setExpandedDeclTypes] = useState<string[]>(() => {
@@ -265,21 +255,13 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
 
   return (
     <div className='flex flex-col h-full border-r border-gray-300 dark:border-gray-700'>
-      <div className='border-b border-gray-120 dark:border-gray-700'>
-        <div className='flex items-center gap-1 p-2 bg-white dark:bg-gray-800 shadow-sm'>
-          <div className='flex-1 min-w-0 h-6'>
-            <Multiselect allOpts={declTypeMultiselectOpts} selectedOpts={selectedDeclTypes} onChange={msOnChange} />
-          </div>
-          <div className='flex gap-1'>
-            <Button id='hide-exported' variant='secondary' size='xs' onClick={() => setHideUnexportedState(!hideUnexported)} title='Show/hide unexported'>
-              {hideUnexported ? <ViewOffSlashIcon className='size-4 text-red-400' /> : <ViewIcon className='size-4' />}
-            </Button>
-            <Button variant='secondary' size='xs' onClick={collapseAll} title='Collapse all modules'>
-              <ArrowShrink02Icon className='size-4' />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ModuleTreeHeader
+        selectedDeclTypes={selectedDeclTypes}
+        showExported={showExported}
+        onDeclTypesChange={msOnChange}
+        onShowExportedChange={setShowExportedState}
+        onCollapseAll={collapseAll}
+      />
       <nav className='overflow-y-auto flex-1'>
         <ul id='module-tree-content' className='p-2'>
           {sortedModules.map((m) => (
@@ -289,7 +271,7 @@ export const ModulesTree = ({ modules }: { modules: ModuleTreeItem[] }) => {
               isExpanded={expandedModules.includes(m.name)}
               toggleExpansion={toggle}
               selectedDeclTypes={selectedDeclTypes}
-              hideUnexported={hideUnexported}
+              showExported={showExported}
               expandedDeclTypes={expandedDeclTypes}
               toggleDeclType={toggleDeclType}
             />

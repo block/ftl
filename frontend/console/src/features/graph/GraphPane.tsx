@@ -1,7 +1,9 @@
 import { Background, BackgroundVariant, Controls, type Edge, ReactFlow as Flow, type Node, ReactFlowProvider } from '@xyflow/react'
 import dagre from 'dagre'
+import { ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type React from 'react'
+import { Button } from '../../shared/components/Button'
 import { Multiselect } from '../../shared/components/Multiselect'
 import type { MultiselectOpt } from '../../shared/components/Multiselect'
 import { useUserPreferences } from '../../shared/providers/user-preferences-provider'
@@ -10,9 +12,10 @@ import type { StreamModulesResult } from '../modules/hooks/use-stream-modules'
 import { declTypeMultiselectOpts } from '../modules/schema/schema.utils'
 import { DeclNode } from './DeclNode'
 import { GroupNode } from './GroupNode'
-import { type FTLNode, getGraphData } from './graph-utils'
+import { type FTLNode, getGraphData, nodeIsExported } from './graph-utils'
 import '@xyflow/react/dist/style.css'
 import './graph.css'
+import { getHideUnexportedFromLocalStorage, hasHideUnexportedInLocalStorage, setHideUnexportedFromLocalStorage } from '../modules/module.utils'
 
 const NODE_TYPES = {
   groupNode: GroupNode,
@@ -265,6 +268,14 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   const [moduleKey, setModuleKey] = useState<string>('empty')
   const [selectedNodeTypes, setSelectedNodeTypes] = useState<MultiselectOpt[]>(graphFilterOpts)
 
+  // Use localStorage for showExported state
+  const [showExported, setShowExported] = useState(hasHideUnexportedInLocalStorage() ? getHideUnexportedFromLocalStorage() : false)
+
+  const setShowExportedState = (val: boolean) => {
+    setHideUnexportedFromLocalStorage(val)
+    setShowExported(val)
+  }
+
   useEffect(() => {
     const updateKey = async () => {
       if (!modules?.modules) {
@@ -281,10 +292,12 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   const { nodes, edges } = useMemo(() => {
     const graphData = getGraphData(modules, isDarkMode, nodePositions, selectedNodeId)
 
-    // Filter nodes based on selected types
+    // Filter nodes based on selected types and export status
     const filteredNodes = graphData.nodes.filter((node) => {
       if (node.type === 'groupNode') return true // Always show group nodes
-      return selectedNodeTypes.some((type) => type.key === node.data?.nodeType)
+      const matchesType = selectedNodeTypes.some((type) => type.key === node.data?.nodeType)
+      const isExported = nodeIsExported(node.data?.item as FTLNode | undefined)
+      return matchesType && (!showExported || isExported)
     })
 
     // Filter edges to only include connections between visible nodes
@@ -292,7 +305,7 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
     const filteredEdges = graphData.edges.filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
 
     return { nodes: filteredNodes, edges: filteredEdges }
-  }, [modules, isDarkMode, nodePositions, selectedNodeId, selectedNodeTypes])
+  }, [modules, isDarkMode, nodePositions, selectedNodeId, selectedNodeTypes, showExported])
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
     if (!nodes.length) return { nodes: [], edges: [] }
@@ -327,8 +340,23 @@ export const GraphPane: React.FC<GraphPaneProps> = ({ modules, onTapped, selecte
   return (
     <ReactFlowProvider>
       <div className={isDarkMode ? 'dark' : 'light'} style={{ width: '100%', height: '100%', position: 'relative' }}>
-        <div className='absolute top-2 left-2 z-10 w-48'>
-          <Multiselect allOpts={graphFilterOpts} selectedOpts={selectedNodeTypes} onChange={setSelectedNodeTypes} />
+        <div className='absolute top-1 left-1 z-10 w-60'>
+          <div className='flex items-center gap-1 p-2'>
+            <div className='flex-1 min-w-0 h-6'>
+              <Multiselect allOpts={graphFilterOpts} selectedOpts={selectedNodeTypes} onChange={setSelectedNodeTypes} />
+            </div>
+            <div className='flex gap-1'>
+              <Button
+                id='graph-show-exported'
+                variant='secondary'
+                size='xs'
+                onClick={() => setShowExportedState(!showExported)}
+                title={showExported ? 'Show all (exported and unexported)' : 'Show only exported'}
+              >
+                {showExported ? <ViewOffSlashIcon className='size-4 text-red-400' /> : <ViewIcon className='size-4' />}
+              </Button>
+            </div>
+          </div>
         </div>
         <Flow
           key={moduleKey}
