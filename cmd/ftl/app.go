@@ -84,6 +84,7 @@ type CLI struct {
 	Authenticators map[string]string `help:"Authenticators to use for FTL endpoints." mapsep:"," env:"FTL_AUTHENTICATORS" placeholder:"HOST=EXE,…"`
 	Insecure       bool              `help:"Skip TLS certificate verification. Caution: susceptible to machine-in-the-middle attacks."`
 	Plain          bool              `help:"Use a plain console with no color or status line." env:"FTL_PLAIN"`
+	ClientCert     string            `help:"Path to combined client certificate key pair in PEM format for use in mTLS environments." env:"FTL_CLIENT_CERT"`
 
 	Interactive interactiveCmd            `cmd:"" help:"Interactive mode." default:""`
 	Dev         devCmd                    `cmd:"" help:"Develop FTL modules. Will start the FTL cluster, build and deploy all modules found in the specified directories, and watch for changes."`
@@ -164,7 +165,11 @@ func (a *App) Run(ctx context.Context, args []string) error {
 		a.csm.statusManager = optional.Some(sm)
 		ctx = sm.IntoContext(ctx)
 	}
-	rpc.InitialiseClients(cli.Authenticators, cli.Insecure)
+	err = rpc.InitialiseClients(cli.Authenticators, cli.Insecure, optional.Zero(cli.ClientCert))
+	if err != nil {
+		cancel(err)
+		return errors.Wrap(err, "failed to initialise RPC clients")
+	}
 
 	// Set some envars for child processes.
 	os.Setenv("LOG_LEVEL", cli.LogConfig.Level.String())

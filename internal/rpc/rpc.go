@@ -6,13 +6,13 @@ import (
 	"iter"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"github.com/jpillora/backoff"
 	"golang.org/x/net/http2"
@@ -39,7 +39,7 @@ type Pingable[Req any, Resp any, RespPtr PingResponse[Resp]] interface {
 // value is the path to the authenticator executable.
 //
 // "allowInsecure" skips certificate verification, making TLS susceptible to machine-in-the-middle attacks.
-func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
+func InitialiseClients(authenticators map[string]string, allowInsecure bool, certPath optional.Option[string]) error {
 	// We can't have a client-wide timeout because it also applies to
 	// streaming RPCs, timing them out.
 	h2cClient = &http.Client{
@@ -54,11 +54,29 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 			},
 		}, authenticators),
 	}
+
+	if certPath.Ok() && allowInsecure {
+		return errors.New("cannot use insecure TLS with a certificate")
+	}
+
+	// Load certificate if provided.
+	var certs []tls.Certificate
+	if certPath, ok := certPath.Get(); ok {
+		cert, err := tls.LoadX509KeyPair(certPath, certPath)
+		if err != nil {
+			return errors.Wrapf(err, "%s: failed to load TLS certificate", certPath)
+		}
+		certs = append(certs, cert)
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates:       certs,
+		InsecureSkipVerify: allowInsecure, // #nosec G402
+	}
+
 	tlsClient = &http.Client{
 		Transport: authn.Transport(&http2.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: allowInsecure, // #nosec G402
-			},
+			TLSClientConfig: tlsConfig,
 			DialTLSContext: func(ctx context.Context, network, addr string, config *tls.Config) (net.Conn, error) {
 				tlsDialer := tls.Dialer{Config: config, NetDialer: dialer}
 				conn, err := tlsDialer.DialContext(ctx, network, addr)
@@ -66,13 +84,10 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 			},
 		}, authenticators),
 	}
-
 	// Use a separate client for HTTP/1.1 with TLS.
 	http1TLSClient = &http.Client{
 		Transport: authn.Transport(&http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: allowInsecure, // #nosec G402
-			},
+			TLSClientConfig: tlsConfig,
 			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 				logger := log.FromContext(ctx)
 				logger.Debugf("HTTP/1.1 connecting to %s %s", network, addr)
@@ -83,10 +98,14 @@ func InitialiseClients(authenticators map[string]string, allowInsecure bool) {
 			},
 		}, authenticators),
 	}
+	return nil
 }
 
 func init() {
-	InitialiseClients(map[string]string{}, false)
+	err := InitialiseClients(map[string]string{}, false, optional.None[string]())
+	if err != nil {
+		panic(err)
+	}
 }
 
 var (
@@ -103,11 +122,6 @@ var (
 func GetHTTPClient(url string) *http.Client {
 	if h2cClient == nil {
 		panic("rpc.InitialiseClients() must be called before GetHTTPClient()")
-	}
-
-	// TEMP_GRPC_HTTP1_ONLY set to non blank will use http1TLSClient
-	if os.Getenv("TEMP_GRPC_HTTP1_ONLY") != "" {
-		return http1TLSClient
 	}
 
 	if strings.HasPrefix(url, "http://") {
