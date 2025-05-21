@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import * as dagre from 'dagre'
 import { Config, Data, Database, type Enum, Module, Secret, Topic, Verb } from '../../protos/xyz/block/ftl/console/v1/console_pb'
-import type { Metadata, Ref } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
+import { type Metadata, type Ref, Visibility } from '../../protos/xyz/block/ftl/schema/v1/schema_pb'
 import type { ExpandablePanelProps } from '../../shared/components/ExpandablePanel'
 import { configPanels } from '../modules/decls/config/ConfigRightPanels'
 import { dataPanels } from '../modules/decls/data/DataRightPanels'
@@ -331,4 +331,30 @@ function isPublisher(verb: Verb, module: string, name: string): boolean {
   return (verb.verb?.metadata ?? []).some(
     (meta: Metadata) => meta.value.case === 'publisher' && (meta.value.value.topics ?? []).some((topic: Ref) => topic.module === module && topic.name === name),
   )
+}
+
+type WithVisibility = { visibility?: Visibility }
+export const nodeIsExported = (node: FTLNode | undefined) => {
+  if (!node) return false
+  console.log(node)
+  let visibility: Visibility | undefined
+  if (node instanceof Config) {
+    visibility = (node.config as WithVisibility).visibility
+  }
+  if (node instanceof Secret) {
+    visibility = (node.secret as WithVisibility).visibility
+  }
+  if (node instanceof Database) {
+    visibility = (node.database as WithVisibility).visibility
+  }
+  if (node instanceof Data) {
+    visibility = (node.data as WithVisibility).visibility
+  }
+  if (node instanceof Topic) {
+    visibility = (node.topic as WithVisibility).visibility
+  }
+  if (node instanceof Verb) {
+    visibility = (node.verb as WithVisibility).visibility
+  }
+  return visibility === Visibility.SCOPE_MODULE || visibility === Visibility.SCOPE_REALM
 }
