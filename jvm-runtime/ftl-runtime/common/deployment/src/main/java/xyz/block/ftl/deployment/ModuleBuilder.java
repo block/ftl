@@ -781,7 +781,7 @@ public class ModuleBuilder {
                     if (ref.getModule().equals(moduleName) && visibility != Visibility.VISIBILITY_SCOPE_NONE) {
                         setDeclExport(name, visibility);
                     }
-                    return Type.newBuilder().setRef(ref).build();
+                    return handleNullabilityAnnotations(Type.newBuilder().setRef(ref).build(), nullability);
                 }
                 var ref = Type.newBuilder().setRef(
                         Ref.newBuilder().setName(name).setModule(moduleName).build()).build();
