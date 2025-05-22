@@ -11,7 +11,6 @@ import (
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/backend/controller/artefacts"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
@@ -19,6 +18,8 @@ import (
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/internal/artefacts"
+	"github.com/block/ftl/common/key"
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.

@@ -7,7 +7,6 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
@@ -15,6 +14,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"

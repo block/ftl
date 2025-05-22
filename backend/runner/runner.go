@@ -28,7 +28,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
-	"github.com/block/ftl/backend/controller/artefacts"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -45,6 +44,7 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"

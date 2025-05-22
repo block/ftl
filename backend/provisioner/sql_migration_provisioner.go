@@ -17,12 +17,12 @@ import (
 	_ "github.com/go-sql-driver/mysql" // SQL driver
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/dsn"
 )
 
