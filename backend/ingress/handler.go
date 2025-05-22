@@ -17,12 +17,15 @@ import (
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/routing"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/timelineclient"
 )
 
 // handleHTTP HTTP ingress routes.
 func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey key.Request, routesForMethod []ingressRoute, w http.ResponseWriter, r *http.Request, client routing.CallClient) {
-	logger := log.FromContext(r.Context()).Scope(fmt.Sprintf("ingress:%s:%s", r.Method, r.URL.Path))
+	ctx := rpc.WithRequestKey(r.Context(), requestKey)
+	logger := log.FromContext(ctx).Scope(fmt.Sprintf("ingress:%s:%s", r.Method, r.URL.Path))
 	logger.Debugf("Start ingress request")
 
 	if ServeOpenAPI(sch, w, r) {
@@ -34,7 +37,7 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 	var ok bool
 	if route, ok = routeOpt.Get(); !ok {
 		http.NotFound(w, r)
-		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.None[*schemapb.Ref](), startTime, optional.Some("route not found"))
+		metrics.Request(ctx, r.Method, r.URL.Path, optional.None[*schemapb.Ref](), startTime, optional.Some("route not found"))
 		return
 	}
 	logger = logger.Module(route.module)
@@ -44,7 +47,7 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 	deploymentKey, ok := s.routeTable.Current().GetDeployment(route.module).Get()
 	if !ok {
 		http.Error(w, "deployment not found", http.StatusInternalServerError)
-		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("deployment not found"))
+		metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("deployment not found"))
 		return
 	}
 
@@ -64,8 +67,8 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 		// Only log at debug, as this is a client side error
 		logger.Debugf("bad request: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("bad request"))
-		s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusBadRequest, err.Error())
+		metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("bad request"))
+		s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusBadRequest, err.Error())
 		return
 	}
 	ingressEvent.RequestBody = body
@@ -75,19 +78,20 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 		Verb:     verbRef,
 		Body:     body,
 	})
+	headers.SetRequestKey(creq.Header(), requestKey)
 
-	resp, err := client.Call(r.Context(), creq)
+	resp, err := client.Call(ctx, creq)
 	if err != nil {
 		logger.Errorf(err, "failed to call verb")
 		if connectErr := new(connect.Error); errors.As(err, &connectErr) {
 			httpCode := connectCodeToHTTP(connectErr.Code())
 			http.Error(w, http.StatusText(httpCode), httpCode)
-			metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("failed to call verb: connect error"))
-			s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, connectErr.Error())
+			metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("failed to call verb: connect error"))
+			s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, connectErr.Error())
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("failed to call verb: internal server error"))
-			s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
+			metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("failed to call verb: internal server error"))
+			s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -98,8 +102,8 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 		if err != nil {
 			logger.Errorf(err, "could not resolve schema type for verb %s", route.verb)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not resolve schema type for verb"))
-			s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
+			metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not resolve schema type for verb"))
+			s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, err.Error())
 			return
 		}
 		var responseBody []byte
@@ -109,8 +113,8 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 			if err := json.Unmarshal(msg.Body, &response); err != nil {
 				logger.Errorf(err, "could not unmarhal response for verb %s", verb)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not unmarhal response for verb"))
-				s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
+				metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not unmarhal response for verb"))
+				s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, err.Error())
 				return
 			}
 			rawBody = response.Body
@@ -119,8 +123,8 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 			if err != nil {
 				logger.Errorf(err, "could not create response for verb %s", verb.Name)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not create response for verb"))
-				s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
+				metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not create response for verb"))
+				s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, err.Error())
 				return
 			}
 
@@ -149,18 +153,18 @@ func (s *service) handleHTTP(startTime time.Time, sch *schema.Schema, requestKey
 		ingressEvent.ResponseBody = rawBody
 		_, err = w.Write(responseBody)
 		if err == nil {
-			metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.None[string]())
-			s.timelineClient.Publish(r.Context(), ingressEvent)
+			metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.None[string]())
+			s.timelineClient.Publish(ctx, ingressEvent)
 		} else {
 			logger.Errorf(err, "could not write response body")
-			metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not write response body"))
-			s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, err.Error())
+			metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("could not write response body"))
+			s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, err.Error())
 		}
 
 	case *ftlv1.CallResponse_Error_:
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		metrics.Request(r.Context(), r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("call response: internal server error"))
-		s.recordIngressErrorEvent(r.Context(), ingressEvent, http.StatusInternalServerError, msg.Error.Message)
+		metrics.Request(ctx, r.Method, r.URL.Path, optional.Some(verbRef), startTime, optional.Some("call response: internal server error"))
+		s.recordIngressErrorEvent(ctx, ingressEvent, http.StatusInternalServerError, msg.Error.Message)
 	}
 }
 
