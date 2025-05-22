@@ -29,7 +29,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	mysql "github.com/block/ftl-mysql-auth-proxy"
-	"github.com/block/ftl/backend/controller/artefacts"
 	hotreloadpb "github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1/hotreloadpbconnect"
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
@@ -44,6 +43,7 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
@@ -59,6 +59,7 @@ import (
 type Config struct {
 	Config                []string                `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
 	ControllerEndpoint    *url.URL                `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8892"`
 	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
@@ -190,6 +191,15 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 	go func() {
 		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
 	}()
+	if s.config.HealthBind != nil {
+
+		go func() {
+			err := rpc.Serve(ctx, s.config.HealthBind)
+			if err != nil {
+				log.FromContext(ctx).Errorf(err, "Health check failed")
+			}
+		}()
+	}
 	return errors.Wrap(rpc.Serve(ctx, s.config.Bind,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),

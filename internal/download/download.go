@@ -11,12 +11,12 @@ import (
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/backend/controller/artefacts"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 )

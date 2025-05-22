@@ -80,12 +80,9 @@ public class VerbProcessor {
                     if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
                         var returnType = i.asParameterizedType().arguments().get(1);
                         var paramType = i.asParameterizedType().arguments().get(0);
-                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_ftl_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
                             signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
                             signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
@@ -123,12 +120,8 @@ public class VerbProcessor {
                 } else if (i.name().equals(VERB_CLIENT_SINK)) {
                     if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
                         var paramType = i.asParameterizedType().arguments().get(0);
-                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_ftl_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(paramType.name().toString());
                             signatures.add(Object.class.getName());
@@ -161,12 +154,8 @@ public class VerbProcessor {
                 } else if (i.name().equals(VERB_CLIENT_SOURCE)) {
                     if (i.kind() == Type.Kind.PARAMETERIZED_TYPE) {
                         var returnType = i.asParameterizedType().arguments().get(0);
-                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                        try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_ftl_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(returnType.name().toString());
                             signatures.add(Object.class.getName());
@@ -199,12 +188,8 @@ public class VerbProcessor {
                                         + iface.name() + " does not have concrete type parameters");
                     }
                 } else if (i.name().equals(VERB_CLIENT_EMPTY)) {
-                    try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
+                    try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_ftl_verbclient", null,
                             Object.class.getName(), iface.name().toString())) {
-                        if (launchModeBuildItem.isTest()) {
-                            cc.addAnnotation(TEST_ANNOTATION);
-                            cc.addAnnotation(Singleton.class);
-                        }
                         var publish = cc.getMethodCreator("call", void.class);
                         var helper = publish.invokeStaticMethod(
                                 MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
@@ -308,7 +293,7 @@ public class VerbProcessor {
             var callMethod = info.method();
             Type returnType = callMethod.returnType();
             Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
-            try (ClassCreator cc = new ClassCreator(classOutput, verbClass.name().toString() + "_fit_verbclient", null,
+            try (ClassCreator cc = new ClassCreator(classOutput, verbClass.name().toString() + "_ftl_verbclient", null,
                     verbClass.name().toString())) {
                 cc.addAnnotation(RequestScoped.class);
                 switch (VerbType.of(callMethod)) {
@@ -444,7 +429,7 @@ public class VerbProcessor {
                 actualReturnType = returnType.asParameterizedType().arguments().get(0).name().toString();
             }
 
-            String className = iface.name().toString() + "_fit_sqlqueryclient";
+            String className = iface.name().toString() + "_ftl_sqlqueryclient";
             Type paramType = callMethod.parametersCount() > 0 ? callMethod.parameterType(0) : null;
             try (ClassCreator cc = new ClassCreator(classOutput, className, null,
                     Object.class.getName(), iface.name().toString())) {

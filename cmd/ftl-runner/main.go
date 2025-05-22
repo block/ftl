@@ -8,8 +8,8 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/runner"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"

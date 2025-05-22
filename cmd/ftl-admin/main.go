@@ -11,8 +11,8 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/internal/artefacts"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
