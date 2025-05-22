@@ -170,7 +170,7 @@ public class AnnotationProcessor implements Processor {
             }
             return doc.substring(startIdx + variableName.length() + 8, endIndex);
         }
-        return null;
+        return "";
     }
 
 }
