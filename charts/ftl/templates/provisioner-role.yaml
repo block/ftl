@@ -32,7 +32,7 @@ rules:
   - apiGroups: [ "security.istio.io" ]
     resources: [ "authorizationpolicies" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
-  {{ if .Values.provisioner.modulePerNamespace }}
+  {{ if not .Values.provisioner.userNamespace }}
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: [ "get", "list", "watch", "create" ]

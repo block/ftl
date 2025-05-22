@@ -40,6 +40,10 @@ spec:
                 name: {{ include "ftl.fullname" . }}-secrets
           {{- end }}
           env:
+            - name: FTL_SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: FTL_WORKING_DIR
               value: "/working"
             - name: TMPDIR
@@ -63,10 +67,6 @@ spec:
             {{- if .Values.provisioner.userNamespace}}
             - name: FTL_USER_NAMESPACE
               value: "{{ .Values.provisioner.userNamespace }}"
-            {{- end }}
-            {{- if .Values.provisioner.modulePerNamespace}}
-            - name: FTL_MODULE_PER_NAMESPACE
-              value: "{{ .Values.provisioner.modulePerNamespace }}"
             {{- end }}
             - name: FTL_ARTEFACT_REGISTRY_USERNAME
               valueFrom:
