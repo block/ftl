@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"math"
 	"reflect"
 	"regexp"
@@ -28,6 +29,54 @@ import (
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/log"
 )
+
+type ExecuteQueryRequest struct {
+	DatabaseName   string         // Name of the database to query
+	RawSQL         string         // SQL query to execute
+	CommandType    CommandType    // Type of command to execute
+	ParametersJSON string         // JSON array of parameter values in order
+	ResultColumns  []ResultColumn // Column names to scan for the result type
+	TransactionID  string         // Transaction ID to use for the query
+}
+
+type ExecResult struct {
+	// For EXEC commands
+	RowsAffected int64
+}
+
+type RowResults struct {
+	// For ONE/MANY commands
+	JSONRows string
+}
+
+type ResultColumn struct {
+	TypeName string // The name in the FTL-generated type
+	SQLName  string // The database column name
+}
+
+type CommandType int
+
+const (
+	Exec CommandType = iota
+	One
+	Many
+)
+
+func (c CommandType) String() string {
+	return []string{"exec", "one", "many"}[c]
+}
+
+func commandTypeFromString(s string) (CommandType, error) {
+	switch s {
+	case "exec":
+		return Exec, nil
+	case "one":
+		return One, nil
+	case "many":
+		return Many, nil
+	}
+	return 0, errors.Errorf("unknown command type: %s", s)
+}
 
 var _ queryconnect.QueryServiceHandler = (*Service)(nil)
 
@@ -90,6 +139,15 @@ func (s *Service) Close() error {
 	return errors.WithStack(lastErr)
 }
 
+func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+}
+
+// ExecuteQuery implements querypbconnect.QueryServiceHandler.
+func (s *Service) ExecuteQuery(context.Context, *connect.Request[querypb.ExecuteQueryRequest], *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
+	panic("unimplemented")
+}
+
 func (s *Service) BeginTransaction(ctx context.Context, req *connect.Request[querypb.BeginTransactionRequest]) (*connect.Response[querypb.BeginTransactionResponse], error) {
 	// TODO: this should be called by runner not languauge runtime
 	conn, err := s.getConnOrError(req.Msg.DatabaseName)
@@ -108,9 +166,17 @@ func (s *Service) CommitTransaction(ctx context.Context, req *connect.Request[qu
 	return errors.WithStack2(conn.CommitTransaction(ctx, req))
 }
 
-func (s *Service) Call(ctx context.Context, module *schema.Module, verb *schema.Verb, body []byte) (any, error) {
-	request := getQueryRequestResponseData(verb.Request)
-	response := getQueryRequestResponseData(verb.Response)
+func (s *Service) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
+	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return errors.WithStack2(conn.RollbackTransaction(ctx, req))
+}
+
+func (s *Service) Call(ctx context.Context, module *schema.Module, verb *schema.Verb, reqBody []byte) ([]byte, error) {
+	request := getQueryRequestResponseData(module, verb.Request)
+	response := getQueryRequestResponseData(module, verb.Response)
 
 	var dbRef *schema.Ref
 	for _, md := range verb.Metadata {
@@ -119,125 +185,123 @@ func (s *Service) Call(ctx context.Context, module *schema.Module, verb *schema.
 		}
 	}
 	if dbRef == nil || dbRef.Name == "" {
-		// return queryVerb{}, errors.Errorf("missing database call for query verb %s", verb.Name)
+		return nil, errors.Errorf("missing database call for query verb %s", verb.Name)
 	}
-
 	mdecl := module.Resolve(*dbRef)
 	if mdecl == nil {
-		// return queryVerb{}, errors.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
+		return nil, errors.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
 	}
-	db, ok := decl.(*schema.Database)
+	db, ok := mdecl.Symbol.(*schema.Database)
 	if !ok {
-		// return queryVerb{}, errors.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
+		return nil, errors.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
 	}
 
-	var params []string
-	if request != nil {
-		for _, field := range request.Fields {
-			if _, ok := slices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
-				params = append(params, field.Name)
-			}
-		}
+	sqlQuery, found := verb.GetQuery()
+	if !found {
+		return nil, errors.Errorf("missing query for verb %s", verb.Name)
 	}
 
-	// TODO: this needs to be ordered, so make it a array of tuples?
-	resultColumns := []*querypb.ResultColumn{}
+	commandType, err := commandTypeFromString(sqlQuery.Command)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	paramValues, err := getQueryParamValues(&schema.Ref{Module: module.Name, Name: verb.Name}, request, reqBody)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	paramsJSON, err := encoding.Marshal(paramValues)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	resultColumns := []ResultColumn{}
 	if response != nil {
 		for _, field := range response.Fields {
 			if md, ok := slices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
-				resultColumns = append(resultColumns, &querypb.ResultColumn{
-					SqlName:  md.Name,
+				resultColumns = append(resultColumns, ResultColumn{
+					SQLName:  md.Name,
 					TypeName: field.Name,
 				})
 			}
 		}
 	}
 
-	sqlQuery, _ := verb.GetQuery()
-	// return queryVerb{
-	// 	Verb:           verb,
-	// 	CommandType:    strcase.ToUpperCamel(strings.TrimPrefix(sqlQuery.Command, ":")),
-	// 	RawSQL:         sqlQuery.Query,
-	// 	ParamFields:    fmt.Sprintf("[]string{%s}", strings.Join(islices.Map(params, strconv.Quote), ",")),
-	// 	ColToFieldName: fmt.Sprintf("[]tuple.Pair[string,string]{%s}", strings.Join(pairs, ",")),
-	// 	DBName:         db.Name,
-	// 	DBType:         db.Type,
-	// }, nil
-
-	var commandType querypb.CommandType
-	switch strings.ToLower(strings.TrimPrefix(sqlQuery.Command, ":")) {
-	case "exec":
-		commandType = querypb.CommandType_COMMAND_TYPE_EXEC
-	case "one":
-		commandType = querypb.CommandType_COMMAND_TYPE_ONE
-	case "many":
-		commandType = querypb.CommandType_COMMAND_TYPE_MANY
-	default:
-		return nil, errors.Errorf("unknown command type: %s", sqlQuery.Command)
-	}
-
-	paramsJson, err := encoding.Marshal(params)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	_ = &querypb.ExecuteQueryRequest{
+	req := ExecuteQueryRequest{
 		DatabaseName:   db.Name,
-		RawSql:         sqlQuery.Query,
+		RawSQL:         sqlQuery.Query,
 		CommandType:    commandType,
-		ParametersJson: string(paramsJson),
+		ParametersJSON: string(paramsJSON),
 		ResultColumns:  resultColumns,
 		// TODO: transaction id
-		// TransactionId  *string                `protobuf:"bytes,6,opt,name=transaction_id,json=transactionId,proto3,oneof" json:"transaction_id,omitempty"`
-		// BatchSize      *int32
+		// TransactionId  string
 	}
-}
 
-func getQueryRequestResponseData(reqResp schema.Type) *schema.Data {
-	switch r := reqResp.(type) {
-	case *schema.Ref:
-		resolved, ok := b.sch.Resolve(r).Get()
-		if !ok {
-			return nil
-		}
-		return resolved.(*schema.Data) //nolint:forcetypeassert
-	case *schema.Array:
-		return b.getQueryRequestResponseData(r.Element)
-	default:
-		return nil
-	}
-}
-
-// serverStream is a stream of query responses implemented by *connect.ServerStream[querypb.ExecuteQueryResponse]
-// It's an interface for testing purposes.
-type serverStream interface {
-	Send(resp *querypb.ExecuteQueryResponse) error
-}
-
-func (s *Service) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream *connect.ServerStream[querypb.ExecuteQueryResponse]) error {
-	panic("not implemented") // TODO: Implement me
-	return errors.WithStack(s.ExecuteQueryInternal(ctx, req, stream))
-}
-
-func (s *Service) ExecuteQueryInternal(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest], stream serverStream) error {
-	panic("not implemented") // TODO: Implement me
-	conn, err := s.getConnOrError(req.Msg.DatabaseName)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	return errors.WithStack(conn.ExecuteQuery(ctx, req, stream))
-}
-
-func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
-}
-
-func (s *Service) RollbackTransaction(ctx context.Context, req *connect.Request[querypb.RollbackTransactionRequest]) (*connect.Response[querypb.RollbackTransactionResponse], error) {
-	conn, err := s.getConnOrError(req.Msg.DatabaseName)
+	conn, err := s.getConnOrError(db.Name)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return errors.WithStack2(conn.RollbackTransaction(ctx, req))
+	jsonRows, rowsAffected, err := errors.WithStack3(conn.ExecuteQuery(ctx, req))
+	if err != nil {
+		return nil, err
+	}
+	switch req.CommandType {
+	case Exec:
+		return []byte(fmt.Sprintf("\"rows affected\":%d", rowsAffected)), nil
+	case One:
+		encoded, err := encoding.Marshal(jsonRows[0])
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return encoded, nil
+	case Many:
+		encoded, err := encoding.Marshal(jsonRows)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return encoded, nil
+	default:
+		return nil, errors.Errorf("unsupported command type: %s", req.CommandType)
+	}
+}
+
+func getQueryParamValues(ref *schema.Ref, reqSchema *schema.Data, reqBody []byte) ([]any, error) {
+	if len(reqBody) == 0 || string(reqBody) == "{}" {
+		return []any{}, nil
+	}
+
+	if reqSchema == nil {
+		var req any
+		err := encoding.Unmarshal(reqBody, &req)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid SQL request body for verb %s", ref)
+		}
+		return []any{req}, nil
+	}
+
+	// Decode request to JSON map.
+	var req map[string]any
+	err := encoding.Unmarshal(reqBody, &req)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid SQL request body for verb %s", ref)
+	}
+
+	fields := []string{}
+	for _, field := range reqSchema.Fields {
+		if _, ok := slices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
+			fields = append(fields, field.Name)
+		}
+	}
+
+	params := make([]any, 0, len(fields))
+	for _, field := range fields {
+		fieldValue, ok := req[field]
+		if !ok {
+			return nil, errors.Errorf("missing field %s in SQL request body for verb %s", field, ref)
+		}
+		params = append(params, fieldValue)
+	}
+	return params, nil
 }
 
 func (s *Service) getConn(name string) (*queryConn, bool) {
@@ -253,6 +317,21 @@ func (s *Service) getConnOrError(name string) (*queryConn, error) {
 		return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("database connection for %s not found", name)))
 	}
 	return conn, nil
+}
+
+func getQueryRequestResponseData(module *schema.Module, reqResp schema.Type) *schema.Data {
+	switch r := reqResp.(type) {
+	case *schema.Ref:
+		resolved, ok := module.Resolve(*r).Symbol.(*schema.Data)
+		if !ok {
+			return nil
+		}
+		return resolved
+	case *schema.Array:
+		return getQueryRequestResponseData(module, r.Element)
+	default:
+		return nil
+	}
 }
 
 // UpdateConnections updates the connections based on a new module and addresses during hot reloading.
@@ -477,124 +556,83 @@ func (s *queryConn) RollbackTransaction(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
-func (s *queryConn) ExecuteQuery(ctx context.Context, req *connect.Request[querypb.ExecuteQueryRequest]) ([]*querypb.ExecuteQueryResponse, error) {
-	if req.Msg.TransactionId != nil && *req.Msg.TransactionId != "" {
+func (s *queryConn) ExecuteQuery(ctx context.Context, req ExecuteQueryRequest) (jsonRows []string, rowsAffected int64, err error) {
+	if req.TransactionID != "" {
 		s.lock.RLock()
-		wrapper, ok := s.transactions[req.Msg.GetTransactionId()]
+		wrapper, ok := s.transactions[req.TransactionID]
 		s.lock.RUnlock()
 		if !ok {
-			return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("transaction %s not found", req.Msg.GetTransactionId())))
+			return nil, 0, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("transaction %s not found", req.TransactionID)))
 		}
-		return errors.WithStack2(s.executeQuery(ctx, wrapper.tx, req.Msg))
+		return errors.WithStack3(s.executeQuery(ctx, wrapper.tx, req))
 	}
-	return errors.WithStack2(s.executeQuery(ctx, s.db, req.Msg))
+	return errors.WithStack3(s.executeQuery(ctx, s.db, req))
 }
 
-func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.ExecuteQueryRequest) ([]*querypb.ExecuteQueryResponse, error) {
-	out := []*querypb.ExecuteQueryResponse{}
+func (s *queryConn) executeQuery(ctx context.Context, db DB, req ExecuteQueryRequest) (jsonRows []string, rowsAffected int64, err error) {
 	rawSQL, params, err := getSQLAndParams(req)
 	if err != nil {
-		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to parse parameters")))
+		return nil, 0, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to parse parameters")))
 	}
 
 	switch req.CommandType {
-	case querypb.CommandType_COMMAND_TYPE_EXEC:
+	case Exec:
 		result, err := db.ExecContext(ctx, rawSQL, params...)
 		if err != nil {
-			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
+			return nil, 0, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
 		}
-		rowsAffected, err := result.RowsAffected()
+		rowsAffected, err = result.RowsAffected()
 		if err != nil {
-			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to get rows affected")))
+			return nil, 0, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to get rows affected")))
 		}
+		return nil, rowsAffected, nil
 
-		protoResp := &querypb.ExecuteQueryResponse{
-			Result: &querypb.ExecuteQueryResponse_ExecResult{
-				ExecResult: &querypb.ExecResult{
-					RowsAffected: rowsAffected,
-				},
-			},
-		}
-
-		out = append(out, protoResp)
-
-	case querypb.CommandType_COMMAND_TYPE_ONE:
+	case One:
 		row := db.QueryRowContext(ctx, rawSQL, params...)
-		jsonRows, err := scanRowToMap(row, req.ResultColumns)
+		jsonRow, err := scanRowToMap(row, req.ResultColumns)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return noRowResult(stream), nil
+				return nil, 0, nil
 			}
-			return nil, errors.Wrap(err, "failed to scan row")
+			return nil, 0, errors.Wrap(err, "failed to scan row")
 		}
+		return []string{jsonRow}, 0, nil
 
-		protoResp := &querypb.ExecuteQueryResponse{
-			Result: &querypb.ExecuteQueryResponse_RowResults{
-				RowResults: &querypb.RowResults{
-					JsonRows: jsonRows,
-					HasMore:  false,
-				},
-			},
-		}
-
-		out = append(out, protoResp)
-
-	case querypb.CommandType_COMMAND_TYPE_MANY:
+	case Many:
 		rows, err := db.QueryContext(ctx, rawSQL, params...)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return nil, errors.WithStack(handleNoRows(stream))
+				return nil, 0, nil
 			}
-			return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
+			return nil, 0, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
 		}
 		defer rows.Close()
 
-		rowCount := int32(0)
-		batchSize := int32(100) // Default batch size
-		if req.BatchSize != nil {
-			batchSize = *req.BatchSize
-		}
-
+		jsonRows := []string{}
 		for rows.Next() {
-			jsonRows, err := scanRowToMap(rows, req.ResultColumns)
+			jsonRow, err := scanRowToMap(rows, req.ResultColumns)
 			if err != nil {
-				return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to scan row")))
+				return jsonRows, int64(len(jsonRows)), errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to scan row")))
 			}
-
-			rowCount++
-			hasMore := rowCount < batchSize
-
-			protoResp := &querypb.ExecuteQueryResponse{
-				Result: &querypb.ExecuteQueryResponse_RowResults{
-					RowResults: &querypb.RowResults{
-						JsonRows: jsonRows,
-						HasMore:  hasMore,
-					},
-				},
-			}
-
-			out = append(out, protoResp)
-			if !hasMore {
-				rowCount = 0
-			}
+			jsonRows = append(jsonRows, jsonRow)
 		}
-	case querypb.CommandType_COMMAND_TYPE_UNSPECIFIED:
-		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.Errorf("unknown command type: %v", req.CommandType)))
+		return jsonRows, int64(len(jsonRows)), nil
+	default:
+		return nil, 0, errors.Errorf("unsupported command type: %s", req.CommandType)
 	}
-	return out, nil
 }
 
 var paramRe = regexp.MustCompile(`\?|/\*SLICE:[^*]*\*/\s*\?`)
 
 // getSQLAndParams returns the SQL and parameters for a query.
 // It handles SLICE patterns, which are used via SQLC to pass arrays to the database.
-func getSQLAndParams(req *querypb.ExecuteQueryRequest) (string, []any, error) {
-	params, err := parseJSONParameters(req.GetParametersJson())
+func getSQLAndParams(req ExecuteQueryRequest) (string, []any, error) {
+	params, err := parseJSONParameters(req.ParametersJSON)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "failed to parse parameters")
 	}
 
-	sql := req.RawSql
+	sql := req.RawSQL
 
 	// If no SLICE patterns, we don't need to do anything.
 	if !strings.Contains(sql, "/*SLICE:") {
@@ -685,7 +723,7 @@ func parseTimeString(s string) (time.Time, error) {
 }
 
 // scanRowToMap scans a row and returns a JSON string representation
-func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error) {
+func scanRowToMap(row any, resultColumns []ResultColumn) (string, error) {
 	if len(resultColumns) == 0 {
 		var rawValue any
 
@@ -724,8 +762,8 @@ func scanRowToMap(row any, resultColumns []*querypb.ResultColumn) (string, error
 	typeNameBySQLName := make(map[string]string)
 	sqlColumns := make([]string, 0, len(resultColumns))
 	for _, col := range resultColumns {
-		sqlColumns = append(sqlColumns, col.SqlName)
-		typeNameBySQLName[col.SqlName] = col.TypeName
+		sqlColumns = append(sqlColumns, col.SQLName)
+		typeNameBySQLName[col.SQLName] = col.TypeName
 	}
 
 	// Get column names from the row
@@ -851,18 +889,3 @@ func getDriverName(engine string) string {
 		panic("unsupported database engine: " + engine)
 	}
 }
-
-// func handleNoRows(stream serverStream) error {
-// 	err := stream.Send(&querypb.ExecuteQueryResponse{
-// 		Result: &querypb.ExecuteQueryResponse_RowResults{
-// 			RowResults: &querypb.RowResults{
-// 				JsonRows: "",
-// 				HasMore:  false,
-// 			},
-// 		},
-// 	})
-// 	if err != nil {
-// 		return errors.Wrap(err, "failed to send no rows response")
-// 	}
-// 	return nil
-// }

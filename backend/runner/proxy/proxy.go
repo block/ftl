@@ -15,10 +15,7 @@ import (
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	schemapb "github.com/block/ftl/backend/protos/xyz/block/ftl/v1/schema"
-	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
@@ -40,8 +37,6 @@ type Service struct {
 	controllerLeaseService      ftlleaseconnect.LeaseServiceClient
 	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
 	timelineClient              *timelineclient.Client
-	queryService                *query.Service
-	module                      *schema.Module
 	localModuleName             string
 	bindAddress                 string
 	localDeployment             key.Deployment
@@ -51,9 +46,7 @@ type Service struct {
 func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
-	queryService *query.Service,
 	bindAddress string,
-	module *schema.Module,
 	localDeployment key.Deployment,
 	localRunners bool) *Service {
 	proxy := &Service{
@@ -61,10 +54,8 @@ func New(controllerModuleService ftlv1connect.ControllerServiceClient,
 		controllerLeaseService:      leaseClient,
 		moduleVerbService:           xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:              timelineClient,
-		queryService:                queryService,
 		localModuleName:             localDeployment.Payload.Module,
 		bindAddress:                 bindAddress,
-		module:                      module,
 		localDeployment:             localDeployment,
 		localRunner:                 localRunners,
 	}
@@ -148,10 +139,6 @@ func (r *Service) Ping(ctx context.Context, c *connect.Request[ftlv1.PingRequest
 }
 
 func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
-	// TODO: timeline code starts here
-	if verb, ok := r.getLocalQueryVerb(req.Msg.Verb).Get(); ok {
-		return r.queryService.Call(ctx, verb, req.Msg.Body)
-	}
 	start := time.Now()
 	verbService, ok := r.moduleVerbService.Load(req.Msg.Verb.Module)
 	if !ok {
@@ -206,27 +193,6 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	r.timelineClient.Publish(ctx, callEvent)
 	observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
 	return resp, nil
-}
-
-func (r *Service) getLocalQueryVerb(verb *schemapb.Ref) optional.Option[*schema.Verb] {
-	if verb.Module != r.module.Name {
-		return optional.None[*schema.Verb]()
-	}
-
-	decl, ok := slices.Find(r.module.Decls, func(d schema.Decl) bool {
-		return d.GetName() == verb.Name
-	})
-	if !ok {
-		return optional.None[*schema.Verb]()
-	}
-	verbDecl, ok := decl.(*schema.Verb)
-	if !ok {
-		return optional.None[*schema.Verb]()
-	}
-	if !verbDecl.IsQuery() {
-		return optional.None[*schema.Verb]()
-	}
-	return optional.Some(verbDecl)
 }
 
 func (r *Service) ProcessList(ctx context.Context, c *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {

@@ -42,6 +42,7 @@ import (
 	"github.com/block/ftl/backend/runner/pubsub"
 	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/plugin"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/download"
@@ -292,6 +293,17 @@ type Service struct {
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	module, err := s.getModule(ctx, s.config.Deployment)
+	if verb, ok := s.getLocalQueryVerb(req.Msg.Verb, module).Get(); err == nil && ok {
+		respdata, err := s.queryService.Call(ctx, module, verb, req.Msg.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to invoke local query verb")
+		}
+		return connect.NewResponse(&ftlv1.CallResponse{
+			Response: &ftlv1.CallResponse_Body{Body: respdata},
+		}), nil
+	}
+
 	deployment, ok := s.deployment.Load().Get()
 	if !ok {
 		return nil, errors.WithStack(connect.NewError(connect.CodeUnavailable, errors.New("no deployment")))
@@ -313,6 +325,31 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+}
+
+func (s *Service) getLocalQueryVerb(verb *schemapb.Ref, module *schema.Module) optional.Option[*schema.Verb] {
+	if module == nil {
+		return optional.None[*schema.Verb]()
+	}
+
+	if verb.Module != module.Name {
+		return optional.None[*schema.Verb]()
+	}
+
+	decl, ok := slices.Find(module.Decls, func(d schema.Decl) bool {
+		return d.GetName() == verb.Name
+	})
+	if !ok {
+		return optional.None[*schema.Verb]()
+	}
+	verbDecl, ok := decl.(*schema.Verb)
+	if !ok {
+		return optional.None[*schema.Verb]()
+	}
+	if !verbDecl.IsQuery() {
+		return optional.None[*schema.Verb]()
+	}
+	return optional.Some(verbDecl)
 }
 
 func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Module, error) {
@@ -367,8 +404,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(s.controllerClient, leaseServiceClient, s.timelineClient, s.queryService,
-		s.config.Bind.String(), module, s.config.Deployment, s.config.LocalRunners)
+	s.proxy = proxy.New(s.controllerClient, leaseServiceClient, s.timelineClient, s.config.Bind.String(),
+		s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {

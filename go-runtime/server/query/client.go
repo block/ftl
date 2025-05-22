@@ -194,12 +194,12 @@ func (c *InlineQueryClient) ExecuteQuery(
 	ctx context.Context,
 	req *connect.Request[querypb.ExecuteQueryRequest],
 ) (*connect.ServerStreamForClient[querypb.ExecuteQueryResponse], error) {
-	if c.service == nil {
-		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
-	}
-	if err := c.service.ExecuteQueryInternal(ctx, req, c.collector); err != nil {
-		return nil, errors.Wrap(err, "failed to execute query")
-	}
+	// if c.service == nil {
+	// 	return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
+	// }
+	// if err := c.service.ExecuteQueryInternal(ctx, req, c.collector); err != nil {
+	// 	return nil, errors.Wrap(err, "failed to execute query")
+	// }
 	return nil, nil
 }
 
