@@ -1,5 +1,7 @@
 
 ftl:
+  istio:
+    enabled: true
   ingress:
     enabled: true
     urlPrefix: "/ingress/"

@@ -59,6 +59,7 @@ import (
 type Config struct {
 	Config                []string                `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
 	ControllerEndpoint    *url.URL                `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8892"`
 	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
@@ -190,12 +191,16 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 	go func() {
 		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
 	}()
-	return errors.Wrap(rpc.Serve(ctx, s.config.Bind,
+	opts := []rpc.Option{
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),
 		rpc.GRPC(pubsubpbconnect.NewPubSubAdminServiceHandler, s.pubSub),
 		rpc.HTTP("/", s),
-		rpc.HealthCheck(s.healthCheck),
+		rpc.HealthCheck(s.healthCheck)}
+	if s.config.HealthBind != nil {
+		opts = append(opts, rpc.WithHealthCheckBind(s.config.HealthBind))
+	}
+	return errors.Wrap(rpc.Serve(ctx, s.config.Bind, opts...,
 	), "failure in runner")
 }
 
