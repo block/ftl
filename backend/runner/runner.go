@@ -9,9 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -22,7 +20,6 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
-	"github.com/otiai10/copy"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -65,8 +62,6 @@ type Config struct {
 	AdminEndpoint         *url.URL                `name:"admin-endpoint" help:"Admin server endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TemplateDir           string                  `help:"Template directory to copy into each deployment, if any." type:"existingdir"`
-	DeploymentDir         string                  `help:"Directory to store deployments in." default:"${deploymentdir}"`
 	DeploymentKeepHistory int                     `help:"Number of deployments to keep history for." default:"3"`
 	HeartbeatPeriod       time.Duration           `help:"Minimum period between heartbeats." default:"3s"`
 	HeartbeatJitter       time.Duration           `help:"Jitter to add to heartbeat period." default:"2s"`
@@ -79,7 +74,7 @@ type Config struct {
 	DevModeRunnerSequence int64                   `help:"Runner sequence number  for dev mode runner. " hidden:""`
 }
 
-func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService, deploymentContextProvider deploymentcontext.DeploymentContextProvider, schemaClient ftlv1connect.SchemaServiceClient) error {
+func Start(ctx context.Context, config Config, deploymentArtifactProvider artefacts.DeploymentArtefactProvider, deploymentContextProvider deploymentcontext.DeploymentContextProvider, schemaClient ftlv1connect.SchemaServiceClient) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
 	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
@@ -97,8 +92,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	logger := log.FromContext(ctx).Attrs(map[string]string{"runner": runnerKey.String()})
 	ctx = log.ContextWithLogger(ctx, logger)
 	logger.Debugf("Starting FTL Runner for %s", config.Deployment.String())
-
-	err = manageDeploymentDirectory(logger, config)
 	if err != nil {
 		observability.Runner.StartupFailed(ctx)
 		return errors.WithStack(err)
@@ -120,16 +113,17 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
-		key:                       runnerKey,
-		config:                    config,
-		storage:                   storage,
-		schemaClient:              schemaClient,
-		timelineClient:            timelineClient,
-		timelineLogSink:           timeline.NewLogSink(timelineClient, log.Debug),
-		labels:                    labels,
-		cancelFunc:                doneFunc,
-		devEndpoint:               config.DevEndpoint,
-		devHotReloadEndpoint:      config.DevHotReloadEndpoint,
+		key:                  runnerKey,
+		config:               config,
+		storage:              storage,
+		deploymentProvider:   deploymentArtifactProvider,
+		schemaClient:         schemaClient,
+		timelineClient:       timelineClient,
+		timelineLogSink:      timeline.NewLogSink(timelineClient, log.Debug),
+		labels:               labels,
+		cancelFunc:           doneFunc,
+		devEndpoint:          config.DevEndpoint,
+		devHotReloadEndpoint: config.DevHotReloadEndpoint,
 		deploymentContextProvider: deploymentContextProvider,
 	}
 
@@ -197,62 +191,6 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 	), "failure in runner")
 }
 
-// manageDeploymentDirectory ensures the deployment directory exists and removes old deployments.
-func manageDeploymentDirectory(logger *log.Logger, config Config) error {
-	logger.Debugf("Deployment directory: %s", config.DeploymentDir)
-	err := os.MkdirAll(config.DeploymentDir, 0700)
-	if err != nil {
-		return errors.Wrap(err, "failed to create deployment directory")
-	}
-
-	// Clean up old deployments.
-	modules, err := os.ReadDir(config.DeploymentDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to read deployment directory")
-	}
-
-	for _, module := range modules {
-		if !module.IsDir() {
-			continue
-		}
-
-		moduleDir := filepath.Join(config.DeploymentDir, module.Name())
-		deployments, err := os.ReadDir(moduleDir)
-		if err != nil {
-			return errors.Wrap(err, "failed to read module directory")
-		}
-
-		if len(deployments) < config.DeploymentKeepHistory {
-			continue
-		}
-
-		stats, err := slices.MapErr(deployments, func(d os.DirEntry) (os.FileInfo, error) {
-			return errors.WithStack2(d.Info())
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to stat deployments")
-		}
-
-		// Sort deployments by modified time, remove anything past the history limit.
-		sort.Slice(deployments, func(i, j int) bool {
-			return stats[i].ModTime().After(stats[j].ModTime())
-		})
-
-		for _, deployment := range deployments[config.DeploymentKeepHistory:] {
-			old := filepath.Join(moduleDir, deployment.Name())
-			logger.Debugf("Removing old deployment: %s", old)
-
-			err := os.RemoveAll(old)
-			if err != nil {
-				// This is not a fatal error, just log it.
-				logger.Errorf(err, "Failed to remove old deployment: %s", deployment.Name())
-			}
-		}
-	}
-
-	return nil
-}
-
 var _ ftlv1connect.VerbServiceHandler = (*Service)(nil)
 
 type deployment struct {
@@ -271,12 +209,12 @@ type Service struct {
 	deployment atomic.Value[optional.Option[*deployment]]
 	readyTime  atomic.Value[time.Time]
 
-	config                    Config
-	storage                   *artefacts.OCIArtefactService
+	config           Config
+	deploymentProvider artefacts.DeploymentArtefactProvider
 	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
-	schemaClient              ftlv1connect.SchemaServiceClient
-	timelineClient            *timeline.Client
-	timelineLogSink           *timeline.LogSink
+	schemaClient     ftlv1connect.SchemaServiceClient
+	timelineClient   *timeline.Client
+	timelineLogSink  *timeline.LogSink
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]
 	labels               *structpb.Struct
@@ -347,21 +285,6 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	deploymentLogger := s.getDeploymentLogger(ctx, key)
 	ctx = log.ContextWithLogger(ctx, deploymentLogger)
-
-	deploymentDir := filepath.Join(s.config.DeploymentDir, module.Name, key.String())
-	if s.config.TemplateDir != "" {
-		err := copy.Copy(s.config.TemplateDir, deploymentDir)
-		if err != nil {
-			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return errors.Wrap(err, "failed to copy template directory")
-		}
-	} else {
-		err := os.MkdirAll(deploymentDir, 0700)
-		if err != nil {
-			observability.Deployment.Failure(ctx, optional.Some(key.String()))
-			return errors.Wrap(err, "failed to create deployment directory")
-		}
-	}
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
@@ -476,7 +399,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return errors.Wrap(err, "failed to ping dev endpoint")
 		}
 	} else {
-		err := download.ArtefactsFromOCI(ctx, s.schemaClient, key, deploymentDir, s.storage)
+		//err := download.ArtefactsFromOCI(ctx, s.schemaClient, key, deploymentDir, s.storage)
+		deploymentDir, err := s.deploymentProvider.Provide()
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return errors.Wrap(err, "failed to download artefacts")
