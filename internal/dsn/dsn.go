@@ -102,34 +102,36 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
 	case *schema.YAMLFileCredentialsConnector:
-		return resolveYAMLFileCredentials(ctx, c)
+		return resolveYAMLFileCredentials(c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
-func resolveYAMLFileCredentials(ctx context.Context, connector *schema.YAMLFileCredentialsConnector) (string, error) {
-	tmpl, err := template.New("dsn").Parse(connector.DSNTemplate)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse DSN template")
-	}
-	file, err := os.ReadFile(connector.Path)
+func resolveYAMLFileCredentials(connector *schema.YAMLFileCredentialsConnector) (string, error) {
+	bytes, err := os.ReadFile(connector.Path)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read DB Credentials file")
 	}
 
-	var cfg map[string]any
-	err = yaml.Unmarshal(file, &cfg)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal DB Credentials file")
-	}
+	return parseDSNFromYAML(string(bytes), connector.DSNTemplate)
+}
 
+func parseDSNFromYAML(yml string, tmplStr string) (string, error) {
+	cfg := map[string]any{}
+	err := yaml.Unmarshal([]byte(yml), &cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal YAML")
+	}
+	tmpl, err := template.New("dsn").Parse(tmplStr)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse DSN template")
+	}
 	buf := bytes.Buffer{}
 	err = tmpl.Execute(&buf, cfg)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to execute DSN template")
 	}
-
 	return buf.String(), nil
 }
 
@@ -214,7 +216,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 
 		return mcfg, nil
 	case *schema.YAMLFileCredentialsConnector:
-		dsn, err := resolveYAMLFileCredentials(ctx, c)
+		dsn, err := resolveYAMLFileCredentials(c)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to resolve YAML file credentials")
 		}

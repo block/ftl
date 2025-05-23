@@ -11,3 +11,15 @@ func TestParseRegionFromEndpoint(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "us-west-2", region)
 }
+
+func TestParseDSNFromYAML(t *testing.T) {
+	dsn, err := parseDSNFromYAML(`
+database: "ftl"
+username: "ftl"
+password: "ftl"
+host: "foo.us-west-2.rds.amazonaws.com"`,
+		`mysql://{{ index . "username" }}:{{ index . "password" }}@tcp({{ index . "host" }}:3306)/{{ index . "database" }}`)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "mysql://ftl:ftl@tcp(foo.us-west-2.rds.amazonaws.com:3306)/ftl", dsn)
+}
