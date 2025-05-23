@@ -1,7 +1,6 @@
 package dsn
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,17 +9,16 @@ import (
 	"net"
 	"os"
 	"strings"
-	"text/template"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
+	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
-	"github.com/go-yaml/yaml"
 )
 
 type dsnOptions struct {
@@ -102,35 +100,30 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
 	case *schema.YAMLFileCredentialsConnector:
-		return resolveYAMLFileCredentials(ctx, c)
+		return resolveYAMLFileCredentials(c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
-func resolveYAMLFileCredentials(ctx context.Context, connector *schema.YAMLFileCredentialsConnector) (string, error) {
-	tmpl, err := template.New("dsn").Parse(connector.DSNTemplate)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse DSN template")
-	}
-	file, err := os.ReadFile(connector.Path)
+func resolveYAMLFileCredentials(connector *schema.YAMLFileCredentialsConnector) (string, error) {
+	bytes, err := os.ReadFile(connector.Path)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read DB Credentials file")
 	}
 
-	var cfg map[string]any
-	err = yaml.Unmarshal(file, &cfg)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal DB Credentials file")
-	}
+	return parseDSNFromYAML(string(bytes), connector.DSNTemplate)
+}
 
-	buf := bytes.Buffer{}
-	err = tmpl.Execute(&buf, cfg)
+func parseDSNFromYAML(yml string, tmplStr string) (string, error) {
+	cfg := map[string]any{}
+	err := yaml.Unmarshal([]byte(yml), &cfg)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to execute DSN template")
+		return "", errors.Wrap(err, "failed to unmarshal YAML")
 	}
-
-	return buf.String(), nil
+	return os.Expand(tmplStr, func(key string) string {
+		return fmt.Sprintf("%s", cfg[key])
+	}), nil
 }
 
 func parseRegionFromEndpoint(endpoint string) (string, error) {
@@ -214,7 +207,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 
 		return mcfg, nil
 	case *schema.YAMLFileCredentialsConnector:
-		dsn, err := resolveYAMLFileCredentials(ctx, c)
+		dsn, err := resolveYAMLFileCredentials(c)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to resolve YAML file credentials")
 		}
