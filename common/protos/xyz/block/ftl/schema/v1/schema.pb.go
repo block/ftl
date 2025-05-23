@@ -1580,6 +1580,7 @@ type DatabaseConnector struct {
 	//
 	//	*DatabaseConnector_AwsiamAuthDatabaseConnector
 	//	*DatabaseConnector_DsnDatabaseConnector
+	//	*DatabaseConnector_YamlFileCredentialsConnector
 	Value         isDatabaseConnector_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1640,6 +1641,15 @@ func (x *DatabaseConnector) GetDsnDatabaseConnector() *DSNDatabaseConnector {
 	return nil
 }
 
+func (x *DatabaseConnector) GetYamlFileCredentialsConnector() *YAMLFileCredentialsConnector {
+	if x != nil {
+		if x, ok := x.Value.(*DatabaseConnector_YamlFileCredentialsConnector); ok {
+			return x.YamlFileCredentialsConnector
+		}
+	}
+	return nil
+}
+
 type isDatabaseConnector_Value interface {
 	isDatabaseConnector_Value()
 }
@@ -1652,9 +1662,15 @@ type DatabaseConnector_DsnDatabaseConnector struct {
 	DsnDatabaseConnector *DSNDatabaseConnector `protobuf:"bytes,1,opt,name=dsn_database_connector,json=dsnDatabaseConnector,proto3,oneof"`
 }
 
+type DatabaseConnector_YamlFileCredentialsConnector struct {
+	YamlFileCredentialsConnector *YAMLFileCredentialsConnector `protobuf:"bytes,3,opt,name=yaml_file_credentials_connector,json=yamlFileCredentialsConnector,proto3,oneof"`
+}
+
 func (*DatabaseConnector_AwsiamAuthDatabaseConnector) isDatabaseConnector_Value() {}
 
 func (*DatabaseConnector_DsnDatabaseConnector) isDatabaseConnector_Value() {}
+
+func (*DatabaseConnector_YamlFileCredentialsConnector) isDatabaseConnector_Value() {}
 
 type DatabaseRuntime struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
@@ -7145,6 +7161,66 @@ func (x *VerbRuntime) GetEgressRuntime() *EgressRuntime {
 	return nil
 }
 
+type YAMLFileCredentialsConnector struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *Position              `protobuf:"bytes,1,opt,name=pos,proto3,oneof" json:"pos,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	DsnTemplate   string                 `protobuf:"bytes,3,opt,name=dsn_template,json=dsnTemplate,proto3" json:"dsn_template,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *YAMLFileCredentialsConnector) Reset() {
+	*x = YAMLFileCredentialsConnector{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *YAMLFileCredentialsConnector) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*YAMLFileCredentialsConnector) ProtoMessage() {}
+
+func (x *YAMLFileCredentialsConnector) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use YAMLFileCredentialsConnector.ProtoReflect.Descriptor instead.
+func (*YAMLFileCredentialsConnector) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{99}
+}
+
+func (x *YAMLFileCredentialsConnector) GetPos() *Position {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *YAMLFileCredentialsConnector) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *YAMLFileCredentialsConnector) GetDsnTemplate() string {
+	if x != nil {
+		return x.DsnTemplate
+	}
+	return ""
+}
+
 var File_xyz_block_ftl_schema_v1_schema_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
@@ -7239,10 +7315,11 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\bmetadata\x18\x05 \x03(\v2!.xyz.block.ftl.schema.v1.MetadataR\bmetadataB\x06\n" +
 	"\x04_posB\n" +
 	"\n" +
-	"\b_runtime\"\x80\x02\n" +
+	"\b_runtime\"\x80\x03\n" +
 	"\x11DatabaseConnector\x12{\n" +
 	"\x1eawsiam_auth_database_connector\x18\x02 \x01(\v24.xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnectorH\x00R\x1bawsiamAuthDatabaseConnector\x12e\n" +
-	"\x16dsn_database_connector\x18\x01 \x01(\v2-.xyz.block.ftl.schema.v1.DSNDatabaseConnectorH\x00R\x14dsnDatabaseConnectorB\a\n" +
+	"\x16dsn_database_connector\x18\x01 \x01(\v2-.xyz.block.ftl.schema.v1.DSNDatabaseConnectorH\x00R\x14dsnDatabaseConnector\x12~\n" +
+	"\x1fyaml_file_credentials_connector\x18\x03 \x01(\v25.xyz.block.ftl.schema.v1.YAMLFileCredentialsConnectorH\x00R\x1cyamlFileCredentialsConnectorB\a\n" +
 	"\x05value\"}\n" +
 	"\x0fDatabaseRuntime\x12Z\n" +
 	"\vconnections\x18\x01 \x01(\v23.xyz.block.ftl.schema.v1.DatabaseRuntimeConnectionsH\x00R\vconnections\x88\x01\x01B\x0e\n" +
@@ -7692,7 +7769,12 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\x16subscription_connector\x18\x01 \x01(\v2..xyz.block.ftl.schema.v1.SubscriptionConnectorH\x00R\x15subscriptionConnector\x88\x01\x01\x12R\n" +
 	"\x0eegress_runtime\x18\x02 \x01(\v2&.xyz.block.ftl.schema.v1.EgressRuntimeH\x01R\regressRuntime\x88\x01\x01B\x19\n" +
 	"\x17_subscription_connectorB\x11\n" +
-	"\x0f_egress_runtime*<\n" +
+	"\x0f_egress_runtime\"\x97\x01\n" +
+	"\x1cYAMLFileCredentialsConnector\x128\n" +
+	"\x03pos\x18\x01 \x01(\v2!.xyz.block.ftl.schema.v1.PositionH\x00R\x03pos\x88\x01\x01\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12!\n" +
+	"\fdsn_template\x18\x03 \x01(\tR\vdsnTemplateB\x06\n" +
+	"\x04_pos*<\n" +
 	"\tAliasKind\x12\x1a\n" +
 	"\x16ALIAS_KIND_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fALIAS_KIND_JSON\x10\x01*\x87\x02\n" +
@@ -7739,7 +7821,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_schema_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 99)
+var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
 var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(AliasKind)(0),                              // 0: xyz.block.ftl.schema.v1.AliasKind
 	(ChangesetState)(0),                         // 1: xyz.block.ftl.schema.v1.ChangesetState
@@ -7845,7 +7927,8 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*Value)(nil),                               // 101: xyz.block.ftl.schema.v1.Value
 	(*Verb)(nil),                                // 102: xyz.block.ftl.schema.v1.Verb
 	(*VerbRuntime)(nil),                         // 103: xyz.block.ftl.schema.v1.VerbRuntime
-	(*timestamppb.Timestamp)(nil),               // 104: google.protobuf.Timestamp
+	(*YAMLFileCredentialsConnector)(nil),        // 104: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
+	(*timestamppb.Timestamp)(nil),               // 105: google.protobuf.Timestamp
 }
 var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	81,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
@@ -7854,7 +7937,7 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	96,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
 	81,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	81,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	104, // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
+	105, // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
 	83,  // 7: xyz.block.ftl.schema.v1.Changeset.realm_changes:type_name -> xyz.block.ftl.schema.v1.RealmChange
 	1,   // 8: xyz.block.ftl.schema.v1.Changeset.state:type_name -> xyz.block.ftl.schema.v1.ChangesetState
 	10,  // 9: xyz.block.ftl.schema.v1.ChangesetCommittedNotification.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
@@ -7874,196 +7957,198 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	49,  // 23: xyz.block.ftl.schema.v1.Database.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	5,   // 24: xyz.block.ftl.schema.v1.DatabaseConnector.awsiam_auth_database_connector:type_name -> xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector
 	26,  // 25: xyz.block.ftl.schema.v1.DatabaseConnector.dsn_database_connector:type_name -> xyz.block.ftl.schema.v1.DSNDatabaseConnector
-	31,  // 26: xyz.block.ftl.schema.v1.DatabaseRuntime.connections:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeConnections
-	29,  // 27: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.read:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
-	29,  // 28: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.write:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
-	25,  // 29: xyz.block.ftl.schema.v1.Decl.config:type_name -> xyz.block.ftl.schema.v1.Config
-	27,  // 30: xyz.block.ftl.schema.v1.Decl.data:type_name -> xyz.block.ftl.schema.v1.Data
-	28,  // 31: xyz.block.ftl.schema.v1.Decl.database:type_name -> xyz.block.ftl.schema.v1.Database
-	37,  // 32: xyz.block.ftl.schema.v1.Decl.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	89,  // 33: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
-	94,  // 34: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
-	97,  // 35: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	102, // 36: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	86,  // 37: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	86,  // 38: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	36,  // 39: xyz.block.ftl.schema.v1.EgressRuntime.targets:type_name -> xyz.block.ftl.schema.v1.EgressTarget
-	81,  // 40: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 41: xyz.block.ftl.schema.v1.Enum.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 42: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
-	38,  // 43: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
-	81,  // 44: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	101, // 45: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
-	11,  // 46: xyz.block.ftl.schema.v1.Event.changeset_committed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedEvent
-	13,  // 47: xyz.block.ftl.schema.v1.Event.changeset_created_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedEvent
-	15,  // 48: xyz.block.ftl.schema.v1.Event.changeset_drained_event:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedEvent
-	17,  // 49: xyz.block.ftl.schema.v1.Event.changeset_failed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedEvent
-	19,  // 50: xyz.block.ftl.schema.v1.Event.changeset_finalized_event:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedEvent
-	21,  // 51: xyz.block.ftl.schema.v1.Event.changeset_prepared_event:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedEvent
-	23,  // 52: xyz.block.ftl.schema.v1.Event.changeset_rolling_back_event:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackEvent
-	33,  // 53: xyz.block.ftl.schema.v1.Event.deployment_runtime_event:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	81,  // 54: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 55: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 56: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	81,  // 57: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	87,  // 58: xyz.block.ftl.schema.v1.FullSchemaNotification.schema:type_name -> xyz.block.ftl.schema.v1.Schema
-	10,  // 59: xyz.block.ftl.schema.v1.FullSchemaNotification.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
-	44,  // 60: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_literal:type_name -> xyz.block.ftl.schema.v1.IngressPathLiteral
-	45,  // 61: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_parameter:type_name -> xyz.block.ftl.schema.v1.IngressPathParameter
-	81,  // 62: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 63: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 64: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 65: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 66: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 67: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
-	96,  // 68: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
-	50,  // 69: xyz.block.ftl.schema.v1.Metadata.alias:type_name -> xyz.block.ftl.schema.v1.MetadataAlias
-	51,  // 70: xyz.block.ftl.schema.v1.Metadata.artefact:type_name -> xyz.block.ftl.schema.v1.MetadataArtefact
-	52,  // 71: xyz.block.ftl.schema.v1.Metadata.calls:type_name -> xyz.block.ftl.schema.v1.MetadataCalls
-	53,  // 72: xyz.block.ftl.schema.v1.Metadata.config:type_name -> xyz.block.ftl.schema.v1.MetadataConfig
-	54,  // 73: xyz.block.ftl.schema.v1.Metadata.cron_job:type_name -> xyz.block.ftl.schema.v1.MetadataCronJob
-	55,  // 74: xyz.block.ftl.schema.v1.Metadata.databases:type_name -> xyz.block.ftl.schema.v1.MetadataDatabases
-	56,  // 75: xyz.block.ftl.schema.v1.Metadata.egress:type_name -> xyz.block.ftl.schema.v1.MetadataEgress
-	57,  // 76: xyz.block.ftl.schema.v1.Metadata.encoding:type_name -> xyz.block.ftl.schema.v1.MetadataEncoding
-	58,  // 77: xyz.block.ftl.schema.v1.Metadata.fixture:type_name -> xyz.block.ftl.schema.v1.MetadataFixture
-	59,  // 78: xyz.block.ftl.schema.v1.Metadata.generated:type_name -> xyz.block.ftl.schema.v1.MetadataGenerated
-	60,  // 79: xyz.block.ftl.schema.v1.Metadata.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
-	61,  // 80: xyz.block.ftl.schema.v1.Metadata.ingress:type_name -> xyz.block.ftl.schema.v1.MetadataIngress
-	62,  // 81: xyz.block.ftl.schema.v1.Metadata.partitions:type_name -> xyz.block.ftl.schema.v1.MetadataPartitions
-	63,  // 82: xyz.block.ftl.schema.v1.Metadata.publisher:type_name -> xyz.block.ftl.schema.v1.MetadataPublisher
-	64,  // 83: xyz.block.ftl.schema.v1.Metadata.retry:type_name -> xyz.block.ftl.schema.v1.MetadataRetry
-	65,  // 84: xyz.block.ftl.schema.v1.Metadata.sql_column:type_name -> xyz.block.ftl.schema.v1.MetadataSQLColumn
-	66,  // 85: xyz.block.ftl.schema.v1.Metadata.sql_migration:type_name -> xyz.block.ftl.schema.v1.MetadataSQLMigration
-	67,  // 86: xyz.block.ftl.schema.v1.Metadata.sql_query:type_name -> xyz.block.ftl.schema.v1.MetadataSQLQuery
-	68,  // 87: xyz.block.ftl.schema.v1.Metadata.secrets:type_name -> xyz.block.ftl.schema.v1.MetadataSecrets
-	69,  // 88: xyz.block.ftl.schema.v1.Metadata.subscriber:type_name -> xyz.block.ftl.schema.v1.MetadataSubscriber
-	70,  // 89: xyz.block.ftl.schema.v1.Metadata.transaction:type_name -> xyz.block.ftl.schema.v1.MetadataTransaction
-	71,  // 90: xyz.block.ftl.schema.v1.Metadata.type_map:type_name -> xyz.block.ftl.schema.v1.MetadataTypeMap
-	81,  // 91: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	0,   // 92: xyz.block.ftl.schema.v1.MetadataAlias.kind:type_name -> xyz.block.ftl.schema.v1.AliasKind
-	81,  // 93: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 94: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 95: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 96: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 97: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 98: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 99: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 100: xyz.block.ftl.schema.v1.MetadataDatabases.uses:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 101: xyz.block.ftl.schema.v1.MetadataEgress.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 102: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 103: xyz.block.ftl.schema.v1.MetadataFixture.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 104: xyz.block.ftl.schema.v1.MetadataGenerated.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 105: xyz.block.ftl.schema.v1.MetadataGit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 106: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	43,  // 107: xyz.block.ftl.schema.v1.MetadataIngress.path:type_name -> xyz.block.ftl.schema.v1.IngressPathComponent
-	81,  // 108: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 109: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 110: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 111: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 112: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 113: xyz.block.ftl.schema.v1.MetadataSQLColumn.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 114: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 115: xyz.block.ftl.schema.v1.MetadataSQLQuery.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 116: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 117: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 118: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 119: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
-	3,   // 120: xyz.block.ftl.schema.v1.MetadataSubscriber.from_offset:type_name -> xyz.block.ftl.schema.v1.FromOffset
-	81,  // 121: xyz.block.ftl.schema.v1.MetadataTransaction.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 122: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 123: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	49,  // 124: xyz.block.ftl.schema.v1.Module.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	32,  // 125: xyz.block.ftl.schema.v1.Module.decls:type_name -> xyz.block.ftl.schema.v1.Decl
-	73,  // 126: xyz.block.ftl.schema.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
-	74,  // 127: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	77,  // 128: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	75,  // 129: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	76,  // 130: xyz.block.ftl.schema.v1.ModuleRuntime.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	104, // 131: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	104, // 132: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
-	104, // 133: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
-	2,   // 134: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
-	12,  // 135: xyz.block.ftl.schema.v1.Notification.changeset_committed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedNotification
-	14,  // 136: xyz.block.ftl.schema.v1.Notification.changeset_created_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedNotification
-	16,  // 137: xyz.block.ftl.schema.v1.Notification.changeset_drained_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedNotification
-	18,  // 138: xyz.block.ftl.schema.v1.Notification.changeset_failed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedNotification
-	20,  // 139: xyz.block.ftl.schema.v1.Notification.changeset_finalized_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedNotification
-	22,  // 140: xyz.block.ftl.schema.v1.Notification.changeset_prepared_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedNotification
-	24,  // 141: xyz.block.ftl.schema.v1.Notification.changeset_rolling_back_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
-	34,  // 142: xyz.block.ftl.schema.v1.Notification.deployment_runtime_notification:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
-	42,  // 143: xyz.block.ftl.schema.v1.Notification.full_schema_notification:type_name -> xyz.block.ftl.schema.v1.FullSchemaNotification
-	81,  // 144: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 145: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 146: xyz.block.ftl.schema.v1.Realm.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	72,  // 147: xyz.block.ftl.schema.v1.Realm.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	72,  // 148: xyz.block.ftl.schema.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	72,  // 149: xyz.block.ftl.schema.v1.RealmChange.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
-	81,  // 150: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 151: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
-	30,  // 152: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
-	35,  // 153: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
-	75,  // 154: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	76,  // 155: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	77,  // 156: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	80,  // 157: xyz.block.ftl.schema.v1.Runtime.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
-	95,  // 158: xyz.block.ftl.schema.v1.Runtime.topic_runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	85,  // 159: xyz.block.ftl.schema.v1.RuntimeElement.element:type_name -> xyz.block.ftl.schema.v1.Runtime
-	81,  // 160: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	82,  // 161: xyz.block.ftl.schema.v1.Schema.realms:type_name -> xyz.block.ftl.schema.v1.Realm
-	87,  // 162: xyz.block.ftl.schema.v1.SchemaState.schema:type_name -> xyz.block.ftl.schema.v1.Schema
-	10,  // 163: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
-	33,  // 164: xyz.block.ftl.schema.v1.SchemaState.changeset_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	33,  // 165: xyz.block.ftl.schema.v1.SchemaState.deployment_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	81,  // 166: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 167: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 168: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 169: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	80,  // 170: xyz.block.ftl.schema.v1.SubscriptionConnector.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
-	81,  // 171: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 172: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	95,  // 173: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	4,   // 174: xyz.block.ftl.schema.v1.Topic.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 175: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 176: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	6,   // 177: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
-	7,   // 178: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
-	8,   // 179: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
-	9,   // 180: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	27,  // 181: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
-	37,  // 182: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	41,  // 183: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	46,  // 184: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	48,  // 185: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	79,  // 186: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	84,  // 187: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	90,  // 188: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	93,  // 189: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	97,  // 190: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	100, // 191: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	81,  // 192: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 193: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 194: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 195: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	81,  // 196: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 197: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 198: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 199: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	47,  // 200: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	91,  // 201: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	99,  // 202: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	81,  // 203: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 204: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 205: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	96,  // 206: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 207: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	103, // 208: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	92,  // 209: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
-	35,  // 210: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
-	211, // [211:211] is the sub-list for method output_type
-	211, // [211:211] is the sub-list for method input_type
-	211, // [211:211] is the sub-list for extension type_name
-	211, // [211:211] is the sub-list for extension extendee
-	0,   // [0:211] is the sub-list for field type_name
+	104, // 26: xyz.block.ftl.schema.v1.DatabaseConnector.yaml_file_credentials_connector:type_name -> xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
+	31,  // 27: xyz.block.ftl.schema.v1.DatabaseRuntime.connections:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeConnections
+	29,  // 28: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.read:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
+	29,  // 29: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.write:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
+	25,  // 30: xyz.block.ftl.schema.v1.Decl.config:type_name -> xyz.block.ftl.schema.v1.Config
+	27,  // 31: xyz.block.ftl.schema.v1.Decl.data:type_name -> xyz.block.ftl.schema.v1.Data
+	28,  // 32: xyz.block.ftl.schema.v1.Decl.database:type_name -> xyz.block.ftl.schema.v1.Database
+	37,  // 33: xyz.block.ftl.schema.v1.Decl.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	89,  // 34: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
+	94,  // 35: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
+	97,  // 36: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	102, // 37: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
+	86,  // 38: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	86,  // 39: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	36,  // 40: xyz.block.ftl.schema.v1.EgressRuntime.targets:type_name -> xyz.block.ftl.schema.v1.EgressTarget
+	81,  // 41: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 42: xyz.block.ftl.schema.v1.Enum.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	96,  // 43: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
+	38,  // 44: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
+	81,  // 45: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	101, // 46: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
+	11,  // 47: xyz.block.ftl.schema.v1.Event.changeset_committed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedEvent
+	13,  // 48: xyz.block.ftl.schema.v1.Event.changeset_created_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedEvent
+	15,  // 49: xyz.block.ftl.schema.v1.Event.changeset_drained_event:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedEvent
+	17,  // 50: xyz.block.ftl.schema.v1.Event.changeset_failed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedEvent
+	19,  // 51: xyz.block.ftl.schema.v1.Event.changeset_finalized_event:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedEvent
+	21,  // 52: xyz.block.ftl.schema.v1.Event.changeset_prepared_event:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedEvent
+	23,  // 53: xyz.block.ftl.schema.v1.Event.changeset_rolling_back_event:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackEvent
+	33,  // 54: xyz.block.ftl.schema.v1.Event.deployment_runtime_event:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
+	81,  // 55: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 56: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 57: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	81,  // 58: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	87,  // 59: xyz.block.ftl.schema.v1.FullSchemaNotification.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	10,  // 60: xyz.block.ftl.schema.v1.FullSchemaNotification.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
+	44,  // 61: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_literal:type_name -> xyz.block.ftl.schema.v1.IngressPathLiteral
+	45,  // 62: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_parameter:type_name -> xyz.block.ftl.schema.v1.IngressPathParameter
+	81,  // 63: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 64: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 65: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 66: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 67: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 68: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
+	96,  // 69: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
+	50,  // 70: xyz.block.ftl.schema.v1.Metadata.alias:type_name -> xyz.block.ftl.schema.v1.MetadataAlias
+	51,  // 71: xyz.block.ftl.schema.v1.Metadata.artefact:type_name -> xyz.block.ftl.schema.v1.MetadataArtefact
+	52,  // 72: xyz.block.ftl.schema.v1.Metadata.calls:type_name -> xyz.block.ftl.schema.v1.MetadataCalls
+	53,  // 73: xyz.block.ftl.schema.v1.Metadata.config:type_name -> xyz.block.ftl.schema.v1.MetadataConfig
+	54,  // 74: xyz.block.ftl.schema.v1.Metadata.cron_job:type_name -> xyz.block.ftl.schema.v1.MetadataCronJob
+	55,  // 75: xyz.block.ftl.schema.v1.Metadata.databases:type_name -> xyz.block.ftl.schema.v1.MetadataDatabases
+	56,  // 76: xyz.block.ftl.schema.v1.Metadata.egress:type_name -> xyz.block.ftl.schema.v1.MetadataEgress
+	57,  // 77: xyz.block.ftl.schema.v1.Metadata.encoding:type_name -> xyz.block.ftl.schema.v1.MetadataEncoding
+	58,  // 78: xyz.block.ftl.schema.v1.Metadata.fixture:type_name -> xyz.block.ftl.schema.v1.MetadataFixture
+	59,  // 79: xyz.block.ftl.schema.v1.Metadata.generated:type_name -> xyz.block.ftl.schema.v1.MetadataGenerated
+	60,  // 80: xyz.block.ftl.schema.v1.Metadata.git:type_name -> xyz.block.ftl.schema.v1.MetadataGit
+	61,  // 81: xyz.block.ftl.schema.v1.Metadata.ingress:type_name -> xyz.block.ftl.schema.v1.MetadataIngress
+	62,  // 82: xyz.block.ftl.schema.v1.Metadata.partitions:type_name -> xyz.block.ftl.schema.v1.MetadataPartitions
+	63,  // 83: xyz.block.ftl.schema.v1.Metadata.publisher:type_name -> xyz.block.ftl.schema.v1.MetadataPublisher
+	64,  // 84: xyz.block.ftl.schema.v1.Metadata.retry:type_name -> xyz.block.ftl.schema.v1.MetadataRetry
+	65,  // 85: xyz.block.ftl.schema.v1.Metadata.sql_column:type_name -> xyz.block.ftl.schema.v1.MetadataSQLColumn
+	66,  // 86: xyz.block.ftl.schema.v1.Metadata.sql_migration:type_name -> xyz.block.ftl.schema.v1.MetadataSQLMigration
+	67,  // 87: xyz.block.ftl.schema.v1.Metadata.sql_query:type_name -> xyz.block.ftl.schema.v1.MetadataSQLQuery
+	68,  // 88: xyz.block.ftl.schema.v1.Metadata.secrets:type_name -> xyz.block.ftl.schema.v1.MetadataSecrets
+	69,  // 89: xyz.block.ftl.schema.v1.Metadata.subscriber:type_name -> xyz.block.ftl.schema.v1.MetadataSubscriber
+	70,  // 90: xyz.block.ftl.schema.v1.Metadata.transaction:type_name -> xyz.block.ftl.schema.v1.MetadataTransaction
+	71,  // 91: xyz.block.ftl.schema.v1.Metadata.type_map:type_name -> xyz.block.ftl.schema.v1.MetadataTypeMap
+	81,  // 92: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	0,   // 93: xyz.block.ftl.schema.v1.MetadataAlias.kind:type_name -> xyz.block.ftl.schema.v1.AliasKind
+	81,  // 94: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 95: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 96: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 97: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 98: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 99: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 100: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 101: xyz.block.ftl.schema.v1.MetadataDatabases.uses:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 102: xyz.block.ftl.schema.v1.MetadataEgress.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 103: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 104: xyz.block.ftl.schema.v1.MetadataFixture.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 105: xyz.block.ftl.schema.v1.MetadataGenerated.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 106: xyz.block.ftl.schema.v1.MetadataGit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 107: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	43,  // 108: xyz.block.ftl.schema.v1.MetadataIngress.path:type_name -> xyz.block.ftl.schema.v1.IngressPathComponent
+	81,  // 109: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 110: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 111: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 112: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 113: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 114: xyz.block.ftl.schema.v1.MetadataSQLColumn.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 115: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 116: xyz.block.ftl.schema.v1.MetadataSQLQuery.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 117: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 118: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
+	81,  // 119: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	84,  // 120: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
+	3,   // 121: xyz.block.ftl.schema.v1.MetadataSubscriber.from_offset:type_name -> xyz.block.ftl.schema.v1.FromOffset
+	81,  // 122: xyz.block.ftl.schema.v1.MetadataTransaction.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 123: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 124: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	49,  // 125: xyz.block.ftl.schema.v1.Module.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	32,  // 126: xyz.block.ftl.schema.v1.Module.decls:type_name -> xyz.block.ftl.schema.v1.Decl
+	73,  // 127: xyz.block.ftl.schema.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
+	74,  // 128: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
+	77,  // 129: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	75,  // 130: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	76,  // 131: xyz.block.ftl.schema.v1.ModuleRuntime.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	105, // 132: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	105, // 133: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
+	105, // 134: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
+	2,   // 135: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
+	12,  // 136: xyz.block.ftl.schema.v1.Notification.changeset_committed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedNotification
+	14,  // 137: xyz.block.ftl.schema.v1.Notification.changeset_created_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedNotification
+	16,  // 138: xyz.block.ftl.schema.v1.Notification.changeset_drained_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedNotification
+	18,  // 139: xyz.block.ftl.schema.v1.Notification.changeset_failed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedNotification
+	20,  // 140: xyz.block.ftl.schema.v1.Notification.changeset_finalized_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedNotification
+	22,  // 141: xyz.block.ftl.schema.v1.Notification.changeset_prepared_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedNotification
+	24,  // 142: xyz.block.ftl.schema.v1.Notification.changeset_rolling_back_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
+	34,  // 143: xyz.block.ftl.schema.v1.Notification.deployment_runtime_notification:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
+	42,  // 144: xyz.block.ftl.schema.v1.Notification.full_schema_notification:type_name -> xyz.block.ftl.schema.v1.FullSchemaNotification
+	81,  // 145: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 146: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
+	81,  // 147: xyz.block.ftl.schema.v1.Realm.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	72,  // 148: xyz.block.ftl.schema.v1.Realm.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	72,  // 149: xyz.block.ftl.schema.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	72,  // 150: xyz.block.ftl.schema.v1.RealmChange.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
+	81,  // 151: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 152: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
+	30,  // 153: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
+	35,  // 154: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	75,  // 155: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	76,  // 156: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	77,  // 157: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	80,  // 158: xyz.block.ftl.schema.v1.Runtime.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+	95,  // 159: xyz.block.ftl.schema.v1.Runtime.topic_runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	85,  // 160: xyz.block.ftl.schema.v1.RuntimeElement.element:type_name -> xyz.block.ftl.schema.v1.Runtime
+	81,  // 161: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 162: xyz.block.ftl.schema.v1.Schema.realms:type_name -> xyz.block.ftl.schema.v1.Realm
+	87,  // 163: xyz.block.ftl.schema.v1.SchemaState.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	10,  // 164: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
+	33,  // 165: xyz.block.ftl.schema.v1.SchemaState.changeset_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
+	33,  // 166: xyz.block.ftl.schema.v1.SchemaState.deployment_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
+	81,  // 167: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 168: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
+	81,  // 169: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 170: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	80,  // 171: xyz.block.ftl.schema.v1.SubscriptionConnector.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+	81,  // 172: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 173: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	95,  // 174: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	4,   // 175: xyz.block.ftl.schema.v1.Topic.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	96,  // 176: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 177: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	6,   // 178: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
+	7,   // 179: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
+	8,   // 180: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
+	9,   // 181: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
+	27,  // 182: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
+	37,  // 183: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	41,  // 184: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	46,  // 185: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	48,  // 186: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	79,  // 187: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	84,  // 188: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	90,  // 189: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	93,  // 190: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	97,  // 191: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	100, // 192: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	81,  // 193: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 194: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	96,  // 195: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 196: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	81,  // 197: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 198: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 199: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	81,  // 200: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	47,  // 201: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	91,  // 202: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	99,  // 203: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	81,  // 204: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 205: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	96,  // 206: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	96,  // 207: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 208: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	103, // 209: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	92,  // 210: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
+	35,  // 211: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	81,  // 212: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	213, // [213:213] is the sub-list for method output_type
+	213, // [213:213] is the sub-list for method input_type
+	213, // [213:213] is the sub-list for extension type_name
+	213, // [213:213] is the sub-list for extension extendee
+	0,   // [0:213] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -8084,6 +8169,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[24].OneofWrappers = []any{
 		(*DatabaseConnector_AwsiamAuthDatabaseConnector)(nil),
 		(*DatabaseConnector_DsnDatabaseConnector)(nil),
+		(*DatabaseConnector_YamlFileCredentialsConnector)(nil),
 	}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[25].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[27].OneofWrappers = []any{
@@ -8229,13 +8315,14 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_schema_v1_schema_proto_rawDesc), len(file_xyz_block_ftl_schema_v1_schema_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   99,
+			NumMessages:   100,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

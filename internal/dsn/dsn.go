@@ -1,13 +1,16 @@
 package dsn
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"embed"
 	"fmt"
 	"net"
+	"os"
 	"strings"
+	"text/template"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,6 +20,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
+	"github.com/go-yaml/yaml"
 )
 
 type dsnOptions struct {
@@ -97,9 +101,36 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 			return "", errors.Wrap(err, "failed to split host and port")
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
+	case *schema.YAMLFileCredentialsConnector:
+		return resolveYAMLFileCredentials(ctx, c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
+}
+
+func resolveYAMLFileCredentials(ctx context.Context, connector *schema.YAMLFileCredentialsConnector) (string, error) {
+	tmpl, err := template.New("dsn").Parse(connector.DSNTemplate)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse DSN template")
+	}
+	file, err := os.ReadFile(connector.Path)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read DB Credentials file")
+	}
+
+	var cfg map[string]any
+	err = yaml.Unmarshal(file, &cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal DB Credentials file")
+	}
+
+	buf := bytes.Buffer{}
+	err = tmpl.Execute(&buf, cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to execute DSN template")
+	}
+
+	return buf.String(), nil
 }
 
 func parseRegionFromEndpoint(endpoint string) (string, error) {
@@ -182,6 +213,16 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		mcfg.MultiStatements = true
 
 		return mcfg, nil
+	case *schema.YAMLFileCredentialsConnector:
+		dsn, err := resolveYAMLFileCredentials(ctx, c)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to resolve YAML file credentials")
+		}
+		cfg, err := mysqlauthproxy.ParseDSN(dsn)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse DSN")
+		}
+		return cfg, nil
 	default:
 		return nil, errors.Errorf("unexpected database connector type: %T", connector)
 	}

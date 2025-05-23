@@ -153,6 +153,7 @@ message DatabaseConnector {
   oneof value {
     AWSIAMAuthDatabaseConnector awsiam_auth_database_connector = 2;
     DSNDatabaseConnector dsn_database_connector = 1;
+    YAMLFileCredentialsConnector yaml_file_credentials_connector = 3;
   }
 }
 
@@ -698,4 +699,10 @@ enum Visibility {
   VISIBILITY_SCOPE_NONE = 0;
   VISIBILITY_SCOPE_MODULE = 1;
   VISIBILITY_SCOPE_REALM = 2;
+}
+
+message YAMLFileCredentialsConnector {
+  optional Position pos = 1;
+  string path = 2;
+  string dsn_template = 3;
 }
