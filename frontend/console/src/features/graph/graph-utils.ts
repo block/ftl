@@ -336,7 +336,7 @@ function isPublisher(verb: Verb, module: string, name: string): boolean {
 type WithVisibility = { visibility?: Visibility }
 export const nodeIsExported = (node: FTLNode | undefined) => {
   if (!node) return false
-  console.log(node)
+
   let visibility: Visibility | undefined
   if (node instanceof Config) {
     visibility = (node.config as WithVisibility).visibility
