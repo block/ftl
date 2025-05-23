@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -27,8 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	v3 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -38,6 +35,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/kube"
 )
 
 const provisionerDeploymentName = "ftl-provisioner"
@@ -60,7 +58,7 @@ type k8sScaling struct {
 	// Map of known deployments
 	knownDeployments *xsync.MapOf[string, bool]
 	istioSecurity    optional.Option[istioclient.Clientset]
-	namespaceMapper  NamespaceMapper
+	namespaceMapper  kube.NamespaceMapper
 	// A unique per cluster identifier for this FTL instance
 	instanceName              string
 	cronServiceAccount        string
@@ -70,20 +68,18 @@ type k8sScaling struct {
 	routeTemplate             string
 }
 
-type NamespaceMapper func(module string, realm string, systemNamespace string) string
-
-func NewK8sScaling(disableIstio bool, instanceName string, mapper NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate}
+func NewK8sScaling(disableIstio bool, instanceName string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx).Scope("K8sScaling")
-	clientset, err := CreateClientSet()
+	clientset, err := kube.CreateClientSet()
 	if err != nil {
 		return errors.Wrap(err, "failed to create clientset")
 	}
 
-	namespace, err := GetCurrentNamespace()
+	namespace, err := kube.GetCurrentNamespace()
 	if err != nil {
 		// Nothing we can do here, if we don't have a namespace we have no runners
 		return errors.Wrap(err, "failed to get current namespace")
@@ -98,7 +94,7 @@ func (r *k8sScaling) Start(ctx context.Context) error {
 		// If istio is present and not explicitly disabled we create the client
 		for _, group := range groups.Groups {
 			if group.Name == "security.istio.io" {
-				sec, err = CreateIstioClientSet()
+				sec, err = kube.CreateIstioClientSet()
 				if err != nil {
 					return errors.Wrap(err, "failed to create istio clientset")
 				}
@@ -125,7 +121,7 @@ func (r *k8sScaling) UpdateDeployment(ctx context.Context, deploymentKey string,
 	if err != nil {
 		return errors.Wrap(err, "failed to parse deployment key")
 	}
-	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, dk.Payload.Realm, r.systemNamespace))
+	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(sch.Name, dk.Payload.Realm))
 	deployment, err := deploymentClient.Get(ctx, deploymentKey, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get deployment %s for update", deploymentKey)
@@ -215,81 +211,6 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	return nil
 }
 
-func CreateClientSet() (*kubernetes.Clientset, error) {
-	config, err := getKubeConfig()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create client set")
-	}
-	return clientset, nil
-}
-
-func CreateIstioClientSet() (*istioclient.Clientset, error) {
-	config, err := getKubeConfig()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	// creates the clientset
-	clientset, err := istioclient.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create client set")
-	}
-	return clientset, nil
-}
-
-func getKubeConfig() (*rest.Config, error) {
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		// if we're not in a cluster, use the kubeconfig
-		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get kubeconfig")
-		}
-	}
-	return config, nil
-}
-
-func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
-	// No longer used
-	return url.URL{Scheme: "http",
-		Host: fmt.Sprintf("%s.%s:8892", deployment.Payload.Module, r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm, r.systemNamespace))}
-
-}
-
-func GetCurrentNamespace() (string, error) {
-	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	namespace, err := os.ReadFile(namespaceFile)
-	if err != nil && !os.IsNotExist(err) {
-		return "", errors.Wrap(err, "failed to read namespace file")
-	} else if err == nil {
-		return string(namespace), nil
-	}
-
-	// If not running in a cluster, get the namespace from the kubeconfig
-	configAccess := clientcmd.NewDefaultPathOptions()
-	config, err := configAccess.GetStartingConfig()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get kubeconfig")
-	}
-
-	currentContext := config.CurrentContext
-	if currentContext == "" {
-		return "", errors.Errorf("no current context found in kubeconfig")
-	}
-
-	c, exists := config.Contexts[currentContext]
-	if !exists {
-		return "", errors.Errorf("context %s not found in kubeconfig", currentContext)
-	}
-
-	return c.Namespace, nil
-}
-
 func (r *k8sScaling) updateDeployment(ctx context.Context, namespace string, name string, mod func(deployment *kubeapps.Deployment)) error {
 	deploymentClient := r.client.AppsV1().Deployments(namespace)
 	for range 10 {
@@ -323,7 +244,7 @@ func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 
 func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
 	logger := log.FromContext(ctx)
-	userNamespace := r.namespaceMapper(module, realm, r.systemNamespace)
+	userNamespace := r.namespaceMapper(module, realm)
 	cmClient := r.client.CoreV1().ConfigMaps(r.systemNamespace)      // for deploymentTemplate, serviceTemplate etc.
 	cmData, err := cmClient.Get(ctx, configMapName, v1.GetOptions{}) // This is ftl-provisioner-deployment-config
 	if err != nil {
@@ -676,7 +597,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 		}
 		logger.Debugf("Processing callable module %s", callableModule)
 		policyName := module + "-" + callableModule
-		callableModuleNamespace := r.namespaceMapper(callableModule, realm, r.systemNamespace)
+		callableModuleNamespace := r.namespaceMapper(callableModule, realm)
 		err := r.createOrUpdateIstioPolicy(ctx, sec, callableModuleNamespace, policyName, func(policy *istiosec.AuthorizationPolicy) {
 
 			targetServiceAccount, err := r.client.CoreV1().ServiceAccounts(callableModuleNamespace).Get(ctx, callableModule, v1.GetOptions{})
@@ -697,7 +618,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 					From: []*istiosecmodel.Rule_From{
 						{
 							Source: &istiosecmodel.Source{
-								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, realm, r.systemNamespace) + "/sa/" + module},
+								Principals: []string{"cluster.local/ns/" + r.namespaceMapper(module, realm) + "/sa/" + module},
 							},
 						},
 					},
@@ -821,10 +742,7 @@ func (r *k8sScaling) findPodLogs(ctx context.Context, key string, podClient v3.P
 }
 
 func (r *k8sScaling) ensureNamespace(ctx context.Context, realm string, sch *schema.Module) (string, error) {
-	namespace := r.namespaceMapper(sch.Name, realm, r.systemNamespace)
-	if namespace == r.systemNamespace {
-		return namespace, nil
-	}
+	namespace := r.namespaceMapper(sch.Name, realm)
 	ns, err := r.client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
 	if err == nil {
 		if ns.Labels != nil {
@@ -900,4 +818,11 @@ func extractBase(image string) (string, error) {
 		return "", errors.Errorf("no tag found in image %s", image)
 	}
 	return image[:idx], nil
+}
+
+func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
+
+	return url.URL{Scheme: "http",
+		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm))}
+
 }

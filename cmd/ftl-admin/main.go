@@ -35,6 +35,8 @@ var cli struct {
 	Realm               string                `help:"Realm name." env:"FTL_REALM" required:""`
 	Config              string                `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	RegistryConfig      oci.ArtefactConfig    `embed:"" prefix:"oci-"`
+	UserNamespace       string                   `help:"Namespace to use for kube user resources." env:"FTL_USER_NAMESPACE"`
+
 }
 
 func main() {

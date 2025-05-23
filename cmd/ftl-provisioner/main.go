@@ -15,6 +15,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -55,27 +56,19 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
-	var mapper k8sscaling.NamespaceMapper
-	var routeTemplate string
-	if cli.UserNamespace != "" {
-		routeTemplate = fmt.Sprintf("http://${module}.%s:8892", cli.UserNamespace)
-		mapper = func(module string, realm string, systemNamespace string) string {
-			return cli.UserNamespace
-		}
-	} else {
-		routeTemplate = "http://${module}.${module}-${realm}:8892"
-		mapper = func(module string, realm string, systemNamespace string) string {
-			return module + "-" + realm
-		}
-	}
-
+	mapper := kube.NewNamespaceMapper(cli.UserNamespace)
 	artefactService, err := oci.NewArtefactService(ctx, cli.ArtefactConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 	imageService, err := oci.NewImageService(ctx, artefactService, &cli.ImageConfig)
 	kctx.FatalIfErrorf(err, "failed to create image service")
-
-	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	var routeTemplate string
+	if cli.UserNamespace != "" {
+		routeTemplate = fmt.Sprintf("http://${module}.%s:8892", cli.UserNamespace)
+	} else {
+		routeTemplate = "http://${module}.${module}-${realm}:8892"
+	}
+	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper,routeTemplate,  cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService)
