@@ -9,10 +9,16 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner"
+	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
+	"github.com/block/ftl/internal/routing"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 var cli struct {
@@ -50,7 +56,11 @@ and route to user code.
 		}
 		return key
 	})
-
-	err = runner.Start(ctx, cli.RunnerConfig, storage)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.RunnerConfig.SchemaEndpoint.String(), log.Error)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.RunnerConfig.AdminEndpoint.String(), log.Error)
+	routeTable := routing.New(ctx, schemaeventsource.New(ctx, "runner-deployment-context", schemaClient))
+	dp, err := deploymentcontext.NewAdminProvider(ctx, cli.RunnerConfig.Deployment, routeTable, schemaClient, adminClient)
+	kctx.FatalIfErrorf(err)
+	err = runner.Start(ctx, cli.RunnerConfig, storage, dp, schemaClient)
 	kctx.FatalIfErrorf(err)
 }

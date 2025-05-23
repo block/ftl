@@ -1,29 +1,10 @@
 locals {
-  controller_service_account_name = "${var.ftl_cluster_name}-controller"
   provisioner_service_account_name = "${var.ftl_cluster_name}-provisioner"
   admin_service_account_name = "${var.ftl_cluster_name}-admin"
 }
 
 data "aws_region" "current" {
 
-}
-
-
-data "aws_iam_policy_document" "assume_controller_role_policy" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    principals {
-      type        = "Federated"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "${replace(data.aws_eks_cluster.eks.identity[0].oidc[0].issuer, "https://", "")}:sub"
-      values   = ["system:serviceaccount:${var.kube_namespace}:${local.controller_service_account_name}"]
-    }
-  }
 }
 
 data "aws_iam_policy_document" "assume_admin_role_policy" {
@@ -48,11 +29,6 @@ resource "aws_iam_role" "ftl_admin_role" {
   assume_role_policy = data.aws_iam_policy_document.assume_admin_role_policy.json
 }
 
-resource "aws_iam_role" "ftl_controller_role" {
-  name               = "${var.ftl_cluster_name}-controller-role"
-  assume_role_policy = data.aws_iam_policy_document.assume_controller_role_policy.json
-}
-
 resource "aws_iam_policy" "ftl_kms_policy" {
   name        = "${var.ftl_cluster_name}-kms-policy"
   description = "Policy to allow KMS key usage"
@@ -63,7 +39,7 @@ resource "aws_iam_policy" "ftl_kms_policy" {
       {
         Action   = ["sts:AssumeRole", "sts:AssumeRoleWithWebIdentity"]
         Effect   = "Allow"
-        Resource = aws_iam_role.ftl_controller_role.arn
+        Resource = aws_iam_role.ftl_admin_role.arn
       },
       {
         Action   = [
@@ -94,19 +70,9 @@ resource "aws_iam_policy" "ftl_kms_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "attach_ftl_controller_kms_policy" {
-  role       = aws_iam_role.ftl_controller_role.name
-  policy_arn = aws_iam_policy.ftl_kms_policy.arn
-}
-
 resource "aws_iam_role_policy_attachment" "attach_ftl_admin_kms_policy" {
   role       = aws_iam_role.ftl_admin_role.name
   policy_arn = aws_iam_policy.ftl_kms_policy.arn
-}
-
-resource "aws_iam_role_policy" "ftl_controller_ecr_read_access" {
-  role   = aws_iam_role.ftl_controller_role.name
-  policy = data.aws_iam_policy_document.ecr_deployment_read_policy.json
 }
 
 resource "aws_iam_role_policy" "ftl_runner_ecr_read_access" {

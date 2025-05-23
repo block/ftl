@@ -317,7 +317,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		return errors.Wrapf(err, "Failed to create deployment context provider")
 	}
 	go func() {
-		err := runner.Start(runnerCtx, config, l.storage, dcproc)
+		err := runner.Start(runnerCtx, config, l.storage, dcproc, l.schemaClient)
 		cancel(errors.Wrap(err, "runner exited"))
 		l.lock.Lock()
 		defer l.lock.Unlock()

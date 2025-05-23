@@ -110,7 +110,7 @@ func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routi
 				logger.Errorf(err, "could not detect change on routes")
 			}
 
-			checksum := int64(binary.BigEndian.Uint64((h.Sum(nil))[0:8]))
+			checksum := int64(binary.BigEndian.Uint64((h.Sum(nil))[0:8])) //nolint
 
 			if checksum != lastChecksum {
 				logger.Debugf("Sending module context for: %s routes: %v", module, routeTable)

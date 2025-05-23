@@ -62,6 +62,7 @@ type Config struct {
 	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
 	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	AdminEndpoint         *url.URL                `name:"admin-endpoint" help:"Admin server endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TemplateDir           string                  `help:"Template directory to copy into each deployment, if any." type:"existingdir"`
@@ -78,7 +79,7 @@ type Config struct {
 	DevModeRunnerSequence int64                   `help:"Runner sequence number  for dev mode runner. " hidden:""`
 }
 
-func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService, deploymentContextProvider deploymentcontext.DeploymentContextProvider) error {
+func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService, deploymentContextProvider deploymentcontext.DeploymentContextProvider, schemaClient ftlv1connect.SchemaServiceClient) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
 	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
@@ -105,8 +106,6 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 
 	logger.Debugf("Listening on %s", config.Bind)
 	logger.Debugf("Using Schema endpoint %s", config.SchemaEndpoint.String())
-
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, config.SchemaEndpoint.String(), log.Error)
 
 	labels, err := structpb.NewStruct(map[string]any{
 		"hostname": hostname,

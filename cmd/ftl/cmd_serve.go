@@ -332,7 +332,7 @@ func (s *serveCommonConfig) run(
 		if err != nil {
 			logger.Errorf(err, "FTL failed to start")
 		}
-		logger.Infof("FTL started in %.2fs", time.Since(start).Seconds())
+		logger.Infof("FTL started in %.2fs", time.Since(start).Seconds()) //nolint
 
 		if len(projConfig.Commands.Startup) > 0 {
 			for _, cmd := range projConfig.Commands.Startup {
