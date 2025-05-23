@@ -14,19 +14,18 @@ import (
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/console"
-	"github.com/block/ftl/backend/controller"
 	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
@@ -36,12 +35,10 @@ import (
 	"github.com/block/ftl/common/schema"
 	consolefrontend "github.com/block/ftl/frontend/console"
 	"github.com/block/ftl/internal/bind"
-	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/projectconfig"
@@ -75,7 +72,7 @@ type serveCommonConfig struct {
 	Console             console.Config       `embed:"" prefix:"console-"`
 	Admin               admin.Config         `embed:"" prefix:"admin-"`
 	Recreate            bool                 `help:"Recreate any stateful resources if they already exist." default:"false"`
-	controller.CommonConfig
+	WaitFor             []string             `help:"Wait for these modules to be deployed before becoming ready." placeholder:"MODULE"`
 	provisioner.CommonProvisionerConfig
 	schemaservice.CommonSchemaServiceConfig
 }
@@ -116,9 +113,7 @@ func (s *serveCommonConfig) run(
 	timelineClient := timelineclient.NewClient(ctx, s.Bind)
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, s.Bind.String(), log.Error)
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, s.Bind.String(), log.Error)
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.Bind.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)
-	leaseClient := rpc.Dial(leasepbconnect.NewLeaseServiceClient, s.Bind.String(), log.Error)
 
 	// We must use our own event source here
 	// The injected one is connected to the admin client for CLI commands, we need this one to connect directly
@@ -131,16 +126,12 @@ func (s *serveCommonConfig) run(
 			// allow usage of --background and --stop together to "restart" the background process
 			_ = KillBackgroundServe(logger) //nolint:errcheck // ignore error here if the process is not running
 		}
-		_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+		_, err := adminClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 		if err == nil {
 			// The controller is already running, bail out.
 			return errors.WithStack(errors.New(ftlRunningErrorMsg))
 		}
 		if err := runInBackground(logger); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
 			return errors.WithStack(err)
 		}
 
@@ -153,7 +144,7 @@ func (s *serveCommonConfig) run(
 	if err := writePidFile(os.Getpid()); err != nil {
 		logger.Errorf(err, "Failed to write pid file")
 	}
-	_, err := controllerClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
+	_, err := adminClient.Ping(ctx, connect.NewRequest(&ftlv1.PingRequest{}))
 	if err == nil {
 		// The controller is already running, bail out.
 		return errors.WithStack(errors.New(ftlRunningErrorMsg))
@@ -204,6 +195,9 @@ func (s *serveCommonConfig) run(
 		storage,
 		bool(s.ObservabilityConfig.ExportOTEL),
 		devModeEndpoints,
+		routing.New(ctx, schemaEventSource),
+		schemaClient,
+		adminClient,
 	)
 	if err != nil {
 		return errors.WithStack(err)
@@ -218,20 +212,6 @@ func (s *serveCommonConfig) run(
 		CommonSchemaServiceConfig: s.CommonSchemaServiceConfig,
 	}, timelineClient, devMode)
 	services = append(services, schemaService)
-
-	config := controller.Config{
-		CommonConfig: s.CommonConfig,
-		Key:          key.NewLocalControllerKey(1),
-	}
-	config.ModuleUpdateFrequency = time.Second * 1
-
-	controllerCtx := log.ContextWithLogger(ctx, logger.Scope("controller"))
-
-	controllerService, err := controller.New(controllerCtx, s.Bind, adminClient, schemaClient, leaseClient, config, true)
-	if err != nil {
-		return errors.Wrap(err, "controller failed")
-	}
-	services = append(services, controllerService)
 
 	if !s.NoConsole {
 		svc := console.New(schemaEventSource, timelineClient, adminClient, router, buildEngineClient, s.Bind, s.Console, optional.Some(projConfig), true)
@@ -347,10 +327,12 @@ func (s *serveCommonConfig) run(
 	// Wait for controller to start, then run startup commands.
 	wg.Go(func() error {
 		start := time.Now()
-		if err := waitForControllerOnline(ctx, s.StartupTimeout, controllerClient); err != nil {
-			return errors.Wrap(err, "controller failed to start")
+
+		err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, adminClient)
+		if err != nil {
+			logger.Errorf(err, "FTL failed to start")
 		}
-		logger.Infof("Controller started in %.2fs", time.Since(start).Seconds())
+		logger.Infof("FTL started in %.2fs", time.Since(start).Seconds())
 
 		if len(projConfig.Commands.Startup) > 0 {
 			for _, cmd := range projConfig.Commands.Startup {
@@ -497,34 +479,4 @@ func isServeRunning(logger *log.Logger) (bool, error) {
 	}
 
 	return true, nil
-}
-
-// waitForControllerOnline polls the controller service until it is online.
-func waitForControllerOnline(ctx context.Context, startupTimeout time.Duration, client ftlv1connect.ControllerServiceClient) error {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Waiting %s for controller to be online", startupTimeout)
-
-	ctx, cancel := context.WithTimeout(ctx, startupTimeout)
-	defer cancel()
-
-	ticker := time.NewTicker(time.Millisecond * 50)
-	defer ticker.Stop()
-
-	for range channels.IterContext(ctx, ticker.C) {
-		_, err := client.Status(ctx, connect.NewRequest(&ftlv1.StatusRequest{}))
-		if err != nil {
-			logger.Tracef("Error getting status, retrying...: %v", err)
-			continue // retry
-		}
-
-		return nil
-	}
-	if ctx.Err() == nil {
-		return nil
-	}
-
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		logger.Errorf(ctx.Err(), "Timeout reached while polling for controller status")
-	}
-	return errors.Wrap(ctx.Err(), "context cancelled")
 }

@@ -5,7 +5,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -44,6 +43,7 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
@@ -61,7 +61,6 @@ type Config struct {
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
-	ControllerEndpoint    *url.URL                `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8892"`
 	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
@@ -79,7 +78,7 @@ type Config struct {
 	DevModeRunnerSequence int64                   `help:"Runner sequence number  for dev mode runner. " hidden:""`
 }
 
-func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService) error {
+func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactService, deploymentContextProvider deploymentcontext.DeploymentContextProvider) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
 	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
@@ -104,11 +103,9 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 		return errors.WithStack(err)
 	}
 
-	logger.Debugf("Using FTL endpoint: %s", config.ControllerEndpoint)
 	logger.Debugf("Listening on %s", config.Bind)
 	logger.Debugf("Using Schema endpoint %s", config.SchemaEndpoint.String())
 
-	controllerClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, config.ControllerEndpoint.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, config.SchemaEndpoint.String(), log.Error)
 
 	labels, err := structpb.NewStruct(map[string]any{
@@ -124,17 +121,17 @@ func Start(ctx context.Context, config Config, storage *artefacts.OCIArtefactSer
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
-		key:                  runnerKey,
-		config:               config,
-		storage:              storage,
-		controllerClient:     controllerClient,
-		schemaClient:         schemaClient,
-		timelineClient:       timelineClient,
-		timelineLogSink:      timeline.NewLogSink(timelineClient, log.Debug),
-		labels:               labels,
-		cancelFunc:           doneFunc,
-		devEndpoint:          config.DevEndpoint,
-		devHotReloadEndpoint: config.DevHotReloadEndpoint,
+		key:                       runnerKey,
+		config:                    config,
+		storage:                   storage,
+		schemaClient:              schemaClient,
+		timelineClient:            timelineClient,
+		timelineLogSink:           timeline.NewLogSink(timelineClient, log.Debug),
+		labels:                    labels,
+		cancelFunc:                doneFunc,
+		devEndpoint:               config.DevEndpoint,
+		devHotReloadEndpoint:      config.DevHotReloadEndpoint,
+		deploymentContextProvider: deploymentContextProvider,
 	}
 
 	module, err := svc.getModule(ctx, config.Deployment)
@@ -188,9 +185,6 @@ func (s *Service) startDeployment(ctx context.Context, key key.Deployment, modul
 		return errors.WithStack(err)
 	}
 	go s.timelineLogSink.RunLogLoop(ctx)
-	go func() {
-		go rpc.RetryStreamingClientStream(ctx, backoff.Backoff{}, s.controllerClient.RegisterRunner, s.registrationLoop)
-	}()
 	opts := []rpc.Option{
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s),
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),
@@ -278,12 +272,12 @@ type Service struct {
 	deployment atomic.Value[optional.Option[*deployment]]
 	readyTime  atomic.Value[time.Time]
 
-	config           Config
-	storage          *artefacts.OCIArtefactService
-	controllerClient ftlv1connect.ControllerServiceClient
-	schemaClient     ftlv1connect.SchemaServiceClient
-	timelineClient   *timeline.Client
-	timelineLogSink  *timeline.LogSink
+	config                    Config
+	storage                   *artefacts.OCIArtefactService
+	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
+	schemaClient              ftlv1connect.SchemaServiceClient
+	timelineClient            *timeline.Client
+	timelineLogSink           *timeline.LogSink
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]
 	labels               *structpb.Struct
@@ -372,7 +366,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(s.controllerClient, leaseServiceClient, s.timelineClient,
+	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient,
 		s.config.Bind.String(), s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
@@ -388,7 +382,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 	}
 	proxyServer, err := rpc.NewServer(ctx, parse,
 		rpc.GRPC(ftlv1connect.NewVerbServiceHandler, s.proxy),
-		rpc.GRPC(ftlv1connect.NewControllerServiceHandler, s.proxy),
+		rpc.GRPC(ftlv1connect.NewDeploymentContextServiceHandler, s.proxy),
 		rpc.GRPC(ftlleaseconnect.NewLeaseServiceHandler, s.proxy),
 		rpc.GRPC(pubsubpbconnect.NewPublishServiceHandler, s.pubSub),
 		rpc.GRPC(querypbconnect.NewQueryServiceHandler, s.queryService),
@@ -408,7 +402,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	// Make sure the proxy is up and running before we start the deployment
 	// We get the bind address slightly before the server is ready, so we ping to be sure
-	proxyPingClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, s.proxyBindAddress.String(), log.Error)
+	proxyPingClient := rpc.Dial(ftlv1connect.NewDeploymentContextServiceClient, s.proxyBindAddress.String(), log.Error)
 	err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, proxyPingClient)
 	if err != nil {
 		observability.Deployment.Failure(ctx, optional.Some(key.String()))
@@ -492,8 +486,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 		logger.Debugf("Setting FTL_CONTROLLER_ENDPOINT to %s", s.proxyBindAddress.String())
 		envVars := []string{"FTL_CONTROLLER_ENDPOINT=" + s.proxyBindAddress.String(),
 			"FTL_CONFIG=" + strings.Join(s.config.Config, ","),
-			"FTL_DEPLOYMENT=" + s.config.Deployment.String(),
-			"FTL_OBSERVABILITY_ENDPOINT=" + s.config.ControllerEndpoint.String()}
+			"FTL_DEPLOYMENT=" + s.config.Deployment.String()}
 		if s.config.DebugPort > 0 {
 			envVars = append(envVars, fmt.Sprintf("FTL_DEBUG_PORT=%d", s.config.DebugPort))
 		}
@@ -606,55 +599,6 @@ func (s *Service) makeDeployment(ctx context.Context, key key.Deployment, plugin
 		client:       plugin.Client,
 		reverseProxy: proxy,
 	}
-}
-
-func (s *Service) registrationLoop(ctx context.Context, send func(request *ftlv1.RegisterRunnerRequest) error) error {
-	logger := log.FromContext(ctx)
-
-	// Figure out the appropriate state.
-	var deploymentKey *string
-	depl, ok := s.deployment.Load().Get()
-	if ok {
-		dkey := depl.key.String()
-		deploymentKey = &dkey
-		select {
-		case <-depl.ctx.Done():
-			err := context.Cause(depl.ctx)
-			s.getDeploymentLogger(ctx, depl.key).Errorf(err, "Deployment terminated")
-			s.deployment.Store(optional.None[*deployment]())
-			s.cancelFunc(errors.Wrapf(err, "deployment %s terminated", depl.key))
-			return nil
-		default:
-		}
-	}
-
-	logger.Tracef("Registering with Controller for deployment %s", s.config.Deployment)
-	err := send(&ftlv1.RegisterRunnerRequest{
-		Key:        s.key.String(),
-		Endpoint:   s.config.Bind.String(),
-		Labels:     s.labels,
-		Deployment: s.config.Deployment.String(),
-	})
-	if err != nil {
-		s.registrationFailure.Store(optional.Some(err))
-		observability.Runner.RegistrationFailure(ctx, optional.Ptr(deploymentKey))
-		return errors.Wrap(err, "failed to register with Controller")
-	}
-
-	// Wait for the next heartbeat.
-	delay := s.config.HeartbeatPeriod + time.Duration(rand.Intn(int(s.config.HeartbeatJitter))) //nolint:gosec
-	logger.Tracef("Registered with Controller, next heartbeat in %s", delay)
-	observability.Runner.Registered(ctx, optional.Ptr(deploymentKey))
-	select {
-	case <-ctx.Done():
-		err = context.Cause(ctx)
-		s.registrationFailure.Store(optional.Some(err))
-		observability.Runner.RegistrationFailure(ctx, optional.Ptr(deploymentKey))
-		return errors.WithStack(err)
-
-	case <-time.After(delay):
-	}
-	return nil
 }
 
 func (s *Service) getDeploymentLogger(ctx context.Context, deploymentKey key.Deployment) *log.Logger {
