@@ -1,11 +1,9 @@
 package kube
 
 import (
-	"context"
 	"os"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/block/ftl/common/schema"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

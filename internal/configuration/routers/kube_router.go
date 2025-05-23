@@ -8,8 +8,6 @@ import (
 	"sort"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
-	"github.com/docker/docker/api/types/mount"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
