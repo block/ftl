@@ -15,12 +15,12 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
+	"github.com/go-yaml/yaml"
 
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
-	"github.com/go-yaml/yaml"
 )
 
 type dsnOptions struct {
