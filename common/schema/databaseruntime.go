@@ -74,3 +74,21 @@ func (d *AWSIAMAuthDatabaseConnector) String() string {
 }
 
 func (d *AWSIAMAuthDatabaseConnector) schemaChildren() []Node { return nil }
+
+//protobuf:3
+type YAMLFileCredentialsConnector struct {
+	Pos Position `parser:"" protobuf:"1,optional"`
+
+	Path        string `parser:"" protobuf:"2"`
+	DSNTemplate string `parser:"" protobuf:"3"`
+}
+
+var _ DatabaseConnector = (*YAMLFileCredentialsConnector)(nil)
+
+func (d *YAMLFileCredentialsConnector) Position() Position { return d.Pos }
+func (d *YAMLFileCredentialsConnector) databaseConnector() {}
+func (d *YAMLFileCredentialsConnector) String() string {
+	return fmt.Sprintf("(file: %s, template: %s)", d.Path, d.DSNTemplate)
+}
+
+func (d *YAMLFileCredentialsConnector) schemaChildren() []Node { return nil }
