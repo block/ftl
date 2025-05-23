@@ -1,7 +1,3 @@
-output "controller_role_arn" {
-  description = "ARN of the FTL controller IAM role"
-  value = aws_iam_role.ftl_controller_role.arn
-}
 
 output "provisioner_role_arn" {
   description = "ARN of the FTL provisioner IAM role"
@@ -26,11 +22,6 @@ output "kms_key_arn" {
 output "ecr_repository_url" {
   description = "URL of the FTL ECR repository"
   value = aws_ecr_repository.ftl_deployment_content_repo.repository_url
-}
-
-output "controller_service_account_name" {
-  description = "Name of the controller service account"
-  value = local.controller_service_account_name
 }
 
 output "provisioner_service_account_name" {
