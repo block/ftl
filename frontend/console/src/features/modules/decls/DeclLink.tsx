@@ -26,7 +26,7 @@ const SnippetContainer = ({
         height: ref.current.offsetHeight,
       })
     }
-  }, [ref.current])
+  }, [visible])
 
   if (!linkRect) return null
 
