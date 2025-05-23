@@ -36,7 +36,9 @@ var cli struct {
 	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
+	UserNamespace       string                   `help:"Namespace to use for kube user resources." env:"FTL_USER_NAMESPACE"`
 	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
+	Realm               string                   `help:"Realm to use for the admin service. env:"FTL_REALM"`
 }
 
 func main() {
