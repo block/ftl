@@ -42,7 +42,7 @@ import xyz.block.ftl.query.v1.TransactionStatus;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
-import xyz.block.ftl.v1.ControllerServiceGrpc;
+import xyz.block.ftl.v1.DeploymentContextServiceGrpc;
 import xyz.block.ftl.v1.GetDeploymentContextRequest;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 import xyz.block.ftl.v1.VerbServiceGrpc;
@@ -60,7 +60,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     final VerbServiceGrpc.VerbServiceStub verbService;
-    final ControllerServiceGrpc.ControllerServiceStub deploymentService;
+    final DeploymentContextServiceGrpc.DeploymentContextServiceStub deploymentService;
     final LeaseServiceGrpc.LeaseServiceStub leaseService;
     final PublishServiceGrpc.PublishServiceStub publishService;
     final QueryServiceGrpc.QueryServiceStub queryService;
@@ -85,7 +85,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
             }
         });
         this.deploymentName = deploymentName;
-        deploymentService = ControllerServiceGrpc.newStub(channel);
+        deploymentService = DeploymentContextServiceGrpc.newStub(channel);
         deploymentService.getDeploymentContext(
                 GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                 moduleObserver);

@@ -16,6 +16,8 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
@@ -24,7 +26,7 @@ import (
 )
 
 var _ ftlv1connect.VerbServiceHandler = &Service{}
-var _ ftlv1connect.ControllerServiceHandler = &Service{}
+var _ ftlv1connect.DeploymentContextServiceHandler = &Service{}
 
 type moduleVerbService struct {
 	client     ftlv1connect.VerbServiceClient
@@ -33,77 +35,69 @@ type moduleVerbService struct {
 }
 
 type Service struct {
-	controllerDeploymentService ftlv1connect.ControllerServiceClient
-	controllerLeaseService      ftlleaseconnect.LeaseServiceClient
-	moduleVerbService           *xsync.MapOf[string, moduleVerbService]
-	timelineClient              *timelineclient.Client
-	localModuleName             string
-	bindAddress                 string
-	localDeployment             key.Deployment
-	localRunner                 bool
+	deploymentContextProvider deploymentcontext.DeploymentContextProvider
+	controllerLeaseService    ftlleaseconnect.LeaseServiceClient
+	moduleVerbService         *xsync.MapOf[string, moduleVerbService]
+	timelineClient            *timelineclient.Client
+	localModuleName           string
+	bindAddress               string
+	localDeployment           key.Deployment
+	localRunner               bool
 }
 
-func New(controllerModuleService ftlv1connect.ControllerServiceClient,
+func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
 	bindAddress string,
 	localDeployment key.Deployment,
 	localRunners bool) *Service {
 	proxy := &Service{
-		controllerDeploymentService: controllerModuleService,
-		controllerLeaseService:      leaseClient,
-		moduleVerbService:           xsync.NewMapOf[string, moduleVerbService](),
-		timelineClient:              timelineClient,
-		localModuleName:             localDeployment.Payload.Module,
-		bindAddress:                 bindAddress,
-		localDeployment:             localDeployment,
-		localRunner:                 localRunners,
+		deploymentContextProvider: controllerModuleService,
+		controllerLeaseService:    leaseClient,
+		moduleVerbService:         xsync.NewMapOf[string, moduleVerbService](),
+		timelineClient:            timelineClient,
+		localModuleName:           localDeployment.Payload.Module,
+		bindAddress:               bindAddress,
+		localDeployment:           localDeployment,
+		localRunner:               localRunners,
 	}
 	return proxy
 }
 
 func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentContextRequest], c2 *connect.ServerStream[ftlv1.GetDeploymentContextResponse]) error {
-	moduleContext, err := r.controllerDeploymentService.GetDeploymentContext(ctx, connect.NewRequest(c.Msg))
 	logger := log.FromContext(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to get module context")
-	}
-	for {
-		rcv := moduleContext.Receive()
+	for i := range channels.IterContext[deploymentcontext.DeploymentContext](ctx, r.deploymentContextProvider) {
 
-		if rcv {
-			logger.Debugf("Received DeploymentContext from module: %v", moduleContext.Msg())
-			for _, route := range moduleContext.Msg().Routes {
-				logger.Debugf("Adding proxy route: %s -> %s", route.Deployment, route.Uri)
+		logger.Debugf("Received DeploymentContext from module: %v", i.GetModule())
+		for deployment := range i.GetRoutes() {
+			route := i.GetRoute(deployment)
+			logger.Debugf("Adding proxy route: %s -> %s", deployment, route)
 
-				deployment, err := key.ParseDeploymentKey(route.Deployment)
-				if err != nil {
-					return errors.Wrap(err, "failed to parse deployment key")
-				}
-				module := deployment.Payload.Module
-				if existing, ok := r.moduleVerbService.Load(module); !ok || existing.deployment.String() != deployment.String() {
-					r.moduleVerbService.Store(module, moduleVerbService{
-						client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, route.Uri, log.Error),
-						deployment: deployment,
-						uri:        route.Uri,
-					})
-				}
-			}
-			logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
-			r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
-				client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
-				deployment: r.localDeployment,
-				uri:        r.bindAddress,
-			})
-			err := c2.Send(moduleContext.Msg())
+			deployment, err := key.ParseDeploymentKey(deployment)
 			if err != nil {
-				return errors.Wrap(err, "failed to send message")
+				return errors.Wrap(err, "failed to parse deployment key")
 			}
-		} else if moduleContext.Err() != nil {
-			return errors.Wrap(moduleContext.Err(), "failed to receive message")
+			module := deployment.Payload.Module
+			if existing, ok := r.moduleVerbService.Load(module); !ok || existing.deployment.String() != deployment.String() {
+				r.moduleVerbService.Store(module, moduleVerbService{
+					client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, route, log.Error),
+					deployment: deployment,
+					uri:        route,
+				})
+			}
+		}
+		logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
+		r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
+			client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
+			deployment: r.localDeployment,
+			uri:        r.bindAddress,
+		})
+		err := c2.Send(i.ToProto())
+		if err != nil {
+			return errors.Wrap(err, "failed to send message")
 		}
 	}
-
+	return nil
 }
 
 func (r *Service) AcquireLease(ctx context.Context, c *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
@@ -193,16 +187,4 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	r.timelineClient.Publish(ctx, callEvent)
 	observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
 	return resp, nil
-}
-
-func (r *Service) ProcessList(ctx context.Context, c *connect.Request[ftlv1.ProcessListRequest]) (*connect.Response[ftlv1.ProcessListResponse], error) {
-	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
-}
-
-func (r *Service) Status(ctx context.Context, c *connect.Request[ftlv1.StatusRequest]) (*connect.Response[ftlv1.StatusResponse], error) {
-	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
-}
-
-func (r *Service) RegisterRunner(ctx context.Context, c *connect.ClientStream[ftlv1.RegisterRunnerRequest]) (*connect.Response[ftlv1.RegisterRunnerResponse], error) {
-	return nil, errors.Errorf("should never be called, this is temp refactoring debt")
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/controller/artefacts"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
@@ -22,10 +23,12 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/localdebug"
 	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -41,10 +44,9 @@ type localScaling struct {
 	// Module -> Port
 	debugPorts map[string]*localdebug.DebugInfo
 	// Module -> runner sequence
-	runnerCounts      map[string]int64
-	controllerAddress *url.URL
-	leaseAddress      *url.URL
-	schemaAddress     *url.URL
+	runnerCounts  map[string]int64
+	leaseAddress  *url.URL
+	schemaAddress *url.URL
 
 	prevRunnerSuffix int
 	ideSupport       optional.Option[localdebug.IDEIntegration]
@@ -54,7 +56,10 @@ type localScaling struct {
 	devModeEndpointsUpdates <-chan dev.LocalEndpoint
 	devModeEndpoints        map[string]*devModeRunner
 
-	LogConfig log.Config
+	LogConfig    log.Config
+	routeTable   *routing.RouteTable
+	schemaClient ftlv1connect.SchemaServiceClient
+	adminClient  adminpbconnect.AdminServiceClient
 }
 
 func (l *localScaling) StartDeployment(ctx context.Context, deployment string, sch *schema.Module, hasCron bool, hasIngress bool) (url.URL, error) {
@@ -187,6 +192,9 @@ func NewLocalScaling(
 	storage *artefacts.OCIArtefactService,
 	enableOtel bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
+	routeTable *routing.RouteTable,
+	schemaClient ftlv1connect.SchemaServiceClient,
+	adminClient adminpbconnect.AdminServiceClient,
 ) (scaling.RunnerScaling, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
@@ -197,7 +205,6 @@ func NewLocalScaling(
 		lock:                    sync.Mutex{},
 		cacheDir:                cacheDir,
 		runners:                 map[string]*deploymentInfo{},
-		controllerAddress:       controllerAddresse,
 		leaseAddress:            leaseAddress,
 		schemaAddress:           schemaAddress,
 		prevRunnerSuffix:        -1,
@@ -207,6 +214,9 @@ func NewLocalScaling(
 		devModeEndpointsUpdates: devModeEndpoints,
 		devModeEndpoints:        map[string]*devModeRunner{},
 		runnerCounts:            map[string]int64{},
+		routeTable:              routeTable,
+		schemaClient:            schemaClient,
+		adminClient:             adminClient,
 	}
 	if configPath != "" {
 		local.ideSupport = optional.Ptr(localdebug.NewIDEIntegration(configPath, enableVSCodeIntegration, enableIntellijIntegration))
@@ -259,7 +269,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		ide.SyncIDEDebugIntegrations(ctx, l.debugPorts)
 		debugPort = debug.Port
 	}
-	controllerEndpoint := l.controllerAddress
 
 	bind, err := plugin.AllocatePort()
 	if err != nil {
@@ -275,7 +284,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	}
 	config := runner.Config{
 		Bind:                  bindURL,
-		ControllerEndpoint:    controllerEndpoint,
 		SchemaEndpoint:        l.schemaAddress,
 		LeaseEndpoint:         l.leaseAddress,
 		Key:                   key.NewLocalRunnerKey(keySuffix),
@@ -304,8 +312,12 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	runnerCtx, cancel := context.WithCancelCause(runnerCtx)
 	info.runner = optional.Some(runnerInfo{cancelFunc: cancel, port: bind.Port, host: "127.0.0.1"})
 
+	dcproc, err := deploymentcontext.NewAdminProvider(ctx, info.key, l.routeTable, l.schemaClient, l.adminClient)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to create deployment context provider")
+	}
 	go func() {
-		err := runner.Start(runnerCtx, config, l.storage)
+		err := runner.Start(runnerCtx, config, l.storage, dcproc, l.schemaClient)
 		cancel(errors.Wrap(err, "runner exited"))
 		l.lock.Lock()
 		defer l.lock.Unlock()

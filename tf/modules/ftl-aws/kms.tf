@@ -21,7 +21,7 @@ resource "aws_kms_key" "ftl_db_kms_key" {
       "Sid": "AllowRoleUseOfKMS",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "${aws_iam_role.ftl_controller_role.arn}"
+        "AWS": "${aws_iam_role.ftl_admin_role.arn}"
       },
       "Action": [
         "kms:Encrypt",

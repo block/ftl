@@ -40,7 +40,7 @@ func main() {
 	ctx := log.ContextWithLogger(context.Background(), logger)
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer cancel()
-	err := observability.Init(ctx, false, "", "ftl-controller", ftl.Version, cli.ObservabilityConfig)
+	err := observability.Init(ctx, false, "", "ftl-schema", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)

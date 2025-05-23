@@ -24,7 +24,6 @@ rm: teardown
 full-deploy *args: build-all-images setup-istio-cluster
   #!/bin/bash
   kubectl rollout restart replicaset ftl-schema || true # if this exists already restart it to get the latest image
-  kubectl rollout restart deployment ftl-controller || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-provisioner || true # if this exists already restart it to get the latest image
   kubectl rollout restart statefulset ftl-cron || true # if this exists already restart it to get the latest image
   kubectl rollout restart deployment ftl-http-ingress || true # if this exists already restart it to get the latest image
@@ -39,7 +38,6 @@ wait-for-kube:
   kubectl rollout status --watch statefulset/ftl-schema --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-timeline --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-console --timeout=5m
-  kubectl wait --for=condition=available deployment/ftl-controller --timeout=5m
   kubectl rollout status --watch statefulset/ftl-cron --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
   kubectl wait --for=condition=available deployment/registry --timeout=5m
@@ -161,25 +159,3 @@ build-image image: setup-registry setup-istio-cluster
   docker push {{registry_local}}/ftl-{{image}}:latest
   kubectl rollout restart deployment ftl-{{image}} || true
 
-# Deploy FTL module from specified path
-deploy path:
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  rm -f ftl.tar.gz
-  COPYFILE_DISABLE=1 tar -cf ftl.tar -C .. .
-  export POD=$(kubectl get pods -l app=ftl-controller --no-headers | tail -1 | awk '{print $1}')
-  kubectl exec -it ${POD} -- apt install -y golang
-  kubectl exec -it ${POD} -- rm -rf /tmp/ftl/
-  kubectl exec -it ${POD} -- mkdir -p /tmp/ftl/
-  kubectl cp ftl.tar ${POD}:/tmp/ftl/ftl.tar
-  kubectl exec -it ${POD} -- tar --warning=no-unknown-keyword -tf /tmp/ftl/ftl.tar
-  kubectl exec -it ${POD} -- tar -xf /tmp/ftl/ftl.tar -C /tmp/ftl/
-  kubectl exec -it ${POD} -- bash -c "cd /tmp/ftl && FTL_ENDPOINT=http://ftl-admin:8892 /root/ftl deploy {{path}}"
-  rm -f ftl.tar.gz
-
-# Execute FTL CLI commands in the controller pod
-ftl *args:
-  #!/usr/bin/env bash
-  set -euxo pipefail
-  export POD=$(kubectl get pods -l app=ftl-controller --no-headers | tail -1 | awk '{print $1}')
-  kubectl exec -it ${POD} -- bash -c "FTL_ENDPOINT=http://ftl-admin:8892 /root/ftl {{args}}"

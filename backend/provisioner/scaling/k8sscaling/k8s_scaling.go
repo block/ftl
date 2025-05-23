@@ -41,7 +41,7 @@ import (
 )
 
 const provisionerDeploymentName = "ftl-provisioner"
-const configMapName = "ftl-controller-deployment-config"
+const configMapName = "ftl-provisioner-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
 const serviceTemplate = "serviceTemplate"
 const serviceAccountTemplate = "serviceAccountTemplate"
@@ -54,7 +54,6 @@ var _ scaling.RunnerScaling = &k8sScaling{}
 
 type k8sScaling struct {
 	disableIstio bool
-	controller   string
 
 	client          *kubernetes.Clientset
 	systemNamespace string
@@ -72,8 +71,8 @@ type k8sScaling struct {
 
 type NamespaceMapper func(module string, realm string, systemNamespace string) string
 
-func NewK8sScaling(disableIstio bool, controllerURL string, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, controller: controllerURL, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
+func NewK8sScaling(disableIstio bool, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -422,7 +421,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		return errors.WithStack(err)
 	}
 
-	// runner images use the same tag as the controller
+	// runner images use the same tag as the provisioner
 	rawRunnerImage := sch.Runtime.Base.Image
 	if rawRunnerImage == "" {
 		rawRunnerImage = "ftl0/ftl-runner"
@@ -432,10 +431,10 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		return errors.Errorf("module runtime's image should not contain a tag: %s", rawRunnerImage)
 	}
 	if strings.HasPrefix(rawRunnerImage, "ftl0/") {
-		// Images in the ftl0 namespace should use the same tag as the controller and use the same namespace as ourImage
+		// Images in the ftl0 namespace should use the same tag as the provisioner and use the same namespace as ourImage
 		runnerImage = strings.ReplaceAll(ourImage, "ftl-provisioner", rawRunnerImage[len(`ftl0/`):])
 	} else {
-		// Images outside of the ftl0 namespace should use the same tag as the controller
+		// Images outside of the ftl0 namespace should use the same tag as the provisioner
 		ourImageComponents := strings.Split(ourImage, ":")
 		if len(ourImageComponents) != 2 {
 			return errors.Errorf("expected <name>:<tag> for image name %q", ourImage)
@@ -606,11 +605,9 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	callableModuleNames = maps.Keys(callableModules)
 	callableModuleNames = slices.Sort(callableModuleNames)
 
-	// Allow controller ingress
 	err := r.createOrUpdateIstioPolicy(ctx, sec, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
 		addLabels(&policy.ObjectMeta, realm, module, name)
 		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
-		// At present we only allow ingress from the controller
 		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{

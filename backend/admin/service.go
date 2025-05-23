@@ -20,7 +20,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/block/ftl/backend/controller/artefacts"
-	"github.com/block/ftl/backend/controller/state"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
@@ -782,13 +781,13 @@ func (s *Service) GetDeploymentArtefacts(ctx context.Context, req *connect.Reque
 	chunk := make([]byte, s.config.ArtefactChunkSize)
 nextArtefact:
 	for artefact := range islices.FilterVariants[schema.MetadataArtefact](deployment.Metadata) {
-		deploymentArtefact := &state.DeploymentArtefact{
-			Digest:     artefact.Digest,
+		deploymentArtefact := &adminpb.DeploymentArtefact{
+			Digest:     artefact.Digest[:],
 			Path:       artefact.Path,
 			Executable: artefact.Executable,
 		}
 		for _, clientArtefact := range req.Msg.HaveArtefacts {
-			if proto.Equal(adminpb.ArtefactToProto(deploymentArtefact), clientArtefact) {
+			if proto.Equal(deploymentArtefact, clientArtefact) {
 				continue nextArtefact
 			}
 		}
@@ -802,7 +801,7 @@ nextArtefact:
 			n, err := reader.Read(chunk)
 			if n != 0 {
 				if err := resp.Send(&adminpb.GetDeploymentArtefactsResponse{
-					Artefact: adminpb.ArtefactToProto(deploymentArtefact),
+					Artefact: deploymentArtefact,
 					Chunk:    chunk[:n],
 				}); err != nil {
 					return errors.Wrap(err, "could not send artefact chunk")

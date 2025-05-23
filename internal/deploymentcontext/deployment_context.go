@@ -3,6 +3,8 @@ package deploymentcontext
 import (
 	"context"
 	"encoding/json"
+	"iter"
+	"maps"
 	"os"
 	"strings"
 	"sync"
@@ -22,6 +24,8 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/rpc"
 )
+
+type DeploymentContextProvider <-chan DeploymentContext
 
 // Verb is a function that takes a request and returns a response but is not constrained by request/response type like ftl.Verb
 //
@@ -177,6 +181,18 @@ func (m DeploymentContext) GetEgress(name string) string {
 	return m.egress[name]
 }
 
+func (m DeploymentContext) GetRoutes() iter.Seq[string] {
+	return maps.Keys(m.routes)
+}
+
+func (m DeploymentContext) GetRoute(name string) string {
+	return m.routes[name]
+}
+
+func (m DeploymentContext) GetModule() string {
+	return m.module
+}
+
 // GetDatabase gets a database DSN by name and type.
 //
 // Returns an error if no database with that name is found or it is not the
@@ -248,10 +264,10 @@ type DeploymentContextSupplier interface {
 }
 
 type grpcDeploymentContextSupplier struct {
-	client ftlv1connect.ControllerServiceClient
+	client ftlv1connect.DeploymentContextServiceClient
 }
 
-func NewDeploymentContextSupplier(client ftlv1connect.ControllerServiceClient) DeploymentContextSupplier {
+func NewDeploymentContextSupplier(client ftlv1connect.DeploymentContextServiceClient) DeploymentContextSupplier {
 	return DeploymentContextSupplier(grpcDeploymentContextSupplier{client})
 }
 

@@ -68,10 +68,6 @@ JVM_RUNTIME_OUT := "jvm-runtime/ftl-runtime/java/runtime/target/ftl-java-runtime
 # Configuration for building Docker images
 DOCKER_IMAGES := '''
 {
-  "controller": {
-    "extra_binaries": ["ftl"],
-    "extra_files": ["ftl-provisioner-config.toml"]
-  },
   "provisioner": {
     "extra_binaries": [
       "ftl-provisioner-cloudformation",
@@ -162,7 +158,7 @@ build-without-frontend +tools: build-protos build-zips capture-hermit-versions
 
 # Build all backend binaries
 build-backend:
-  just build ftl ftl-controller ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-timeline
+  just build ftl ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-timeline
 
 # Build all backend tests
 build-backend-tests:
