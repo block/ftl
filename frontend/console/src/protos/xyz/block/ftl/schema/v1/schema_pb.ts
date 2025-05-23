@@ -1273,6 +1273,12 @@ export class DatabaseConnector extends Message<DatabaseConnector> {
      */
     value: DSNDatabaseConnector;
     case: "dsnDatabaseConnector";
+  } | {
+    /**
+     * @generated from field: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector yaml_file_credentials_connector = 3;
+     */
+    value: YAMLFileCredentialsConnector;
+    case: "yamlFileCredentialsConnector";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<DatabaseConnector>) {
@@ -1285,6 +1291,7 @@ export class DatabaseConnector extends Message<DatabaseConnector> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 2, name: "awsiam_auth_database_connector", kind: "message", T: AWSIAMAuthDatabaseConnector, oneof: "value" },
     { no: 1, name: "dsn_database_connector", kind: "message", T: DSNDatabaseConnector, oneof: "value" },
+    { no: 3, name: "yaml_file_credentials_connector", kind: "message", T: YAMLFileCredentialsConnector, oneof: "value" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DatabaseConnector {
@@ -5313,6 +5320,55 @@ export class VerbRuntime extends Message<VerbRuntime> {
 
   static equals(a: VerbRuntime | PlainMessage<VerbRuntime> | undefined, b: VerbRuntime | PlainMessage<VerbRuntime> | undefined): boolean {
     return proto3.util.equals(VerbRuntime, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
+ */
+export class YAMLFileCredentialsConnector extends Message<YAMLFileCredentialsConnector> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: string path = 2;
+   */
+  path = "";
+
+  /**
+   * @generated from field: string dsn_template = 3;
+   */
+  dsnTemplate = "";
+
+  constructor(data?: PartialMessage<YAMLFileCredentialsConnector>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "path", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "dsn_template", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): YAMLFileCredentialsConnector {
+    return new YAMLFileCredentialsConnector().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): YAMLFileCredentialsConnector {
+    return new YAMLFileCredentialsConnector().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): YAMLFileCredentialsConnector {
+    return new YAMLFileCredentialsConnector().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: YAMLFileCredentialsConnector | PlainMessage<YAMLFileCredentialsConnector> | undefined, b: YAMLFileCredentialsConnector | PlainMessage<YAMLFileCredentialsConnector> | undefined): boolean {
+    return proto3.util.equals(YAMLFileCredentialsConnector, a, b);
   }
 }
 
