@@ -50,9 +50,11 @@ diff -u <(
 </script>-->
 
 ```sh file=test.sh region=init
+ftl --version
 ftl init myproject
 cd myproject
 ftl module new go alice
+cat alice/go.mod
 ```
 
 ### Build and deploy the module
