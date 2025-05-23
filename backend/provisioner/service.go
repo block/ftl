@@ -37,10 +37,9 @@ type CommonProvisionerConfig struct {
 }
 
 type Config struct {
-	ControllerEndpoint *url.URL `name:"ftl-controller-endpoint" help:"Controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" default:"http://127.0.0.1:8893"`
-	SchemaEndpoint     *url.URL `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	AdminEndpoint      *url.URL `help:"Admin service endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint   *url.URL `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+	SchemaEndpoint   *url.URL `help:"Schema service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	AdminEndpoint    *url.URL `help:"Admin service endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineEndpoint *url.URL `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	CommonProvisionerConfig
 }
 

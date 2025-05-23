@@ -41,7 +41,7 @@ import (
 )
 
 const provisionerDeploymentName = "ftl-provisioner"
-const configMapName = "ftl-controller-deployment-config"
+const configMapName = "ftl-provisioner-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
 const serviceTemplate = "serviceTemplate"
 const serviceAccountTemplate = "serviceAccountTemplate"

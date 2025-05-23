@@ -27,7 +27,7 @@ rules:
   - apiGroups: [ "" ]
     resources: [ "configmaps" ]
     resourceNames:
-      - ftl-controller-deployment-config
+      - ftl-provisioner-deployment-config
     verbs: [ "get"]
   - apiGroups: [ "security.istio.io" ]
     resources: [ "authorizationpolicies" ]

@@ -483,8 +483,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return errors.Wrap(err, "failed to download artefacts")
 		}
 
-		logger.Debugf("Setting FTL_CONTROLLER_ENDPOINT to %s", s.proxyBindAddress.String())
-		envVars := []string{"FTL_CONTROLLER_ENDPOINT=" + s.proxyBindAddress.String(),
+		logger.Debugf("Setting FTL_RUNNER_ENDPOINT to %s", s.proxyBindAddress.String())
+		envVars := []string{"FTL_RUNNER_ENDPOINT=" + s.proxyBindAddress.String(),
 			"FTL_CONFIG=" + strings.Join(s.config.Config, ","),
 			"FTL_DEPLOYMENT=" + s.config.Deployment.String()}
 		if s.config.DebugPort > 0 {

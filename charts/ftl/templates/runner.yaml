@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ftl-controller-deployment-config
+  name: ftl-provisioner-deployment-config
 data:
   serviceTemplate: |-
     apiVersion: v1

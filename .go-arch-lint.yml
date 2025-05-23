@@ -3,7 +3,6 @@ version: 3
 workdir: .
 components:
   controller: { in: backend/controller/** }
-  ftl-controller-cmd: { in: cmd/ftl-controller/** }
   common-plugin: { in: common/plugin/** }
   common: { in: common/** }
   common-tests: { in: common/internal/tests/** }

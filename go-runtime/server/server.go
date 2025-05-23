@@ -34,7 +34,7 @@ import (
 )
 
 type UserVerbConfig struct {
-	FTLEndpoint         *url.URL             `help:"FTL controller endpoint." env:"FTL_CONTROLLER_ENDPOINT" required:""`
+	FTLEndpoint         *url.URL             `help:"FTL runner endpoint." env:"FTL_RUNNER_ENDPOINT" required:""`
 	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
 	Config              []string             `name:"config" short:"C" help:"Paths to FTL project configuration files." env:"FTL_CONFIG" placeholder:"FILE[,FILE,...]" type:"existingfile"`
 }
@@ -44,7 +44,7 @@ type UserVerbConfig struct {
 // This function is intended to be used by the code generator.
 func NewUserVerbServer(projectName string, moduleName string, handlers ...Handler) plugin.Constructor[ftlv1connect.VerbServiceHandler, UserVerbConfig] {
 	return func(ctx context.Context, uc UserVerbConfig) (context.Context, ftlv1connect.VerbServiceHandler, error) {
-		moduleServiceClient := rpc.Dial(ftlv1connect.NewControllerServiceClient, uc.FTLEndpoint.String(), log.Error)
+		moduleServiceClient := rpc.Dial(ftlv1connect.NewDeploymentContextServiceClient, uc.FTLEndpoint.String(), log.Error)
 		ctx = rpccontext.ContextWithClient(ctx, moduleServiceClient)
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, uc.FTLEndpoint.String(), log.Error)
 		ctx = rpccontext.ContextWithClient(ctx, verbServiceClient)

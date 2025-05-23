@@ -17,7 +17,7 @@ public class DefaultRunnerDetails implements RunnerDetails {
 
     @Override
     public String getProxyAddress() {
-        String endpoint = System.getenv("FTL_CONTROLLER_ENDPOINT");
+        String endpoint = System.getenv("FTL_RUNNER_ENDPOINT");
         String testEndpoint = System.getProperty("ftl.test.endpoint"); //set by the test framework
         if (testEndpoint != null) {
             endpoint = testEndpoint;
