@@ -853,6 +853,10 @@ func DatabaseConnectorToProto(value DatabaseConnector) *destpb.DatabaseConnector
 		return &destpb.DatabaseConnector{
 			Value: &destpb.DatabaseConnector_DsnDatabaseConnector{value.ToProto()},
 		}
+	case *YAMLFileCredentialsConnector:
+		return &destpb.DatabaseConnector{
+			Value: &destpb.DatabaseConnector_YamlFileCredentialsConnector{value.ToProto()},
+		}
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", value))
 	}
@@ -867,6 +871,8 @@ func DatabaseConnectorFromProto(v *destpb.DatabaseConnector) (DatabaseConnector,
 		return AWSIAMAuthDatabaseConnectorFromProto(v.GetAwsiamAuthDatabaseConnector())
 	case *destpb.DatabaseConnector_DsnDatabaseConnector:
 		return DSNDatabaseConnectorFromProto(v.GetDsnDatabaseConnector())
+	case *destpb.DatabaseConnector_YamlFileCredentialsConnector:
+		return YAMLFileCredentialsConnectorFromProto(v.GetYamlFileCredentialsConnector())
 	default:
 		panic(fmt.Sprintf("unknown variant: %T", v.Value))
 	}
@@ -3402,4 +3408,33 @@ func (x Visibility) ToProto() destpb.Visibility {
 func VisibilityFromProto(v destpb.Visibility) (Visibility, error) {
 	// TODO: Check if the value is valid.
 	return Visibility(v), nil
+}
+
+func (x *YAMLFileCredentialsConnector) ToProto() *destpb.YAMLFileCredentialsConnector {
+	if x == nil {
+		return nil
+	}
+	return &destpb.YAMLFileCredentialsConnector{
+		Pos:         x.Pos.ToProto(),
+		Path:        orZero(ptr(string(x.Path))),
+		DsnTemplate: orZero(ptr(string(x.DSNTemplate))),
+	}
+}
+
+func YAMLFileCredentialsConnectorFromProto(v *destpb.YAMLFileCredentialsConnector) (out *YAMLFileCredentialsConnector, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &YAMLFileCredentialsConnector{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Pos")
+	}
+	if out.Path, err = orZeroR(result.From(ptr(string(v.Path)), nil)).Result(); err != nil {
+		return nil, errors.Wrap(err, "Path")
+	}
+	if out.DSNTemplate, err = orZeroR(result.From(ptr(string(v.DsnTemplate)), nil)).Result(); err != nil {
+		return nil, errors.Wrap(err, "DSNTemplate")
+	}
+	return out, nil
 }

@@ -7,11 +7,13 @@ import (
 	"embed"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
+	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/schema"
@@ -97,9 +99,31 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 			return "", errors.Wrap(err, "failed to split host and port")
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
+	case *schema.YAMLFileCredentialsConnector:
+		return resolveYAMLFileCredentials(c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
+}
+
+func resolveYAMLFileCredentials(connector *schema.YAMLFileCredentialsConnector) (string, error) {
+	bytes, err := os.ReadFile(connector.Path)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read DB Credentials file")
+	}
+
+	return parseDSNFromYAML(string(bytes), connector.DSNTemplate)
+}
+
+func parseDSNFromYAML(yml string, tmplStr string) (string, error) {
+	cfg := map[string]any{}
+	err := yaml.Unmarshal([]byte(yml), &cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal YAML")
+	}
+	return os.Expand(tmplStr, func(key string) string {
+		return fmt.Sprintf("%s", cfg[key])
+	}), nil
 }
 
 func parseRegionFromEndpoint(endpoint string) (string, error) {
@@ -182,6 +206,16 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		mcfg.MultiStatements = true
 
 		return mcfg, nil
+	case *schema.YAMLFileCredentialsConnector:
+		dsn, err := resolveYAMLFileCredentials(c)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to resolve YAML file credentials")
+		}
+		cfg, err := mysqlauthproxy.ParseDSN(dsn)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse DSN")
+		}
+		return cfg, nil
 	default:
 		return nil, errors.Errorf("unexpected database connector type: %T", connector)
 	}
