@@ -17,6 +17,7 @@ import (
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
+	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -34,11 +35,9 @@ var cli struct {
 	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
 	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
 	UserNamespace       string                   `help:"Namespace to use for kube user resources." env:"FTL_USER_NAMESPACE"`
 	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
-	Realm               string                   `help:"Realm to use for the admin service. env:"FTL_REALM"`
+	Realm               string                   `help:"Realm to use for the admin service." env:"FTL_REALM"`
 }
 
 func main() {
@@ -55,7 +54,12 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-admin", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	configResolver := routers.NewFileRouter[cf.Configuration](cli.Config)
+	cs, err := kube.CreateClientSet()
+	kctx.FatalIfErrorf(err, "failed to initialize kube client")
+
+	mapper := kube.NewNamespaceMapper(cli.UserNamespace)
+
+	configResolver := routers.NewKubeConfigRouter(cs, mapper, cli.Realm)
 	cm, err := manager.New(ctx, configResolver, providers.NewInline[cf.Configuration]())
 	kctx.FatalIfErrorf(err)
 
@@ -63,7 +67,7 @@ func main() {
 	awsConfig, err := config.LoadDefaultConfig(ctx)
 	kctx.FatalIfErrorf(err)
 	asmSecretProvider := providers.NewASM(secretsmanager.NewFromConfig(awsConfig))
-	dbSecretResolver := routers.NewFileRouter[cf.Secrets](cli.Secrets)
+	dbSecretResolver := routers.NewKubeSecretRouter(cs, mapper, cli.Realm)
 	sm, err := manager.New(ctx, dbSecretResolver, asmSecretProvider)
 	kctx.FatalIfErrorf(err)
 

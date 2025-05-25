@@ -2,14 +2,9 @@ package routers
 
 import (
 	"context"
-	"encoding/json"
 	"net/url"
-	"os"
-	"sort"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
-	"github.com/docker/docker/api/types/mount"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -20,7 +15,6 @@ import (
 
 const (
 	FTLConfigmapName = "ftl-deployment"
-	FTLSecretName    = "ftl-deployment"
 )
 
 var _ configuration.Router[configuration.Configuration] = (*KubeConfigRouter)(nil)
@@ -60,42 +54,40 @@ func (f *KubeConfigRouter) Get(ctx context.Context, ref configuration.Ref) (key 
 }
 
 func (f *KubeConfigRouter) List(ctx context.Context) ([]configuration.Entry, error) {
-	conf, err := f.load()
-	if err != nil {
-		return nil, errors.Wrap(err, "list")
-	}
-	out := make([]configuration.Entry, 0, len(conf))
-	for ref, key := range conf {
-		out = append(out, configuration.Entry{Ref: ref, Accessor: key})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Ref.String() < out[j].Ref.String() })
-	return out, nil
+	// We don't support this currently
+	return nil, nil
 }
 
 func (f *KubeConfigRouter) Role() (role configuration.Configuration) { return }
 
 func (f *KubeConfigRouter) Set(ctx context.Context, ref configuration.Ref, key *url.URL) error {
-	conf, err := f.load()
-	if err != nil {
-		return errors.Wrapf(err, "set %s", ref)
+	if module, ok := ref.Module.Get(); ok {
+		conf, err := f.load(ctx, module)
+		if err != nil {
+			return errors.Wrapf(err, "set %s", ref)
+		}
+		conf[ref] = key
+		if err = f.save(ctx, module, conf); err != nil {
+			return errors.Wrapf(err, "set %s", ref)
+		}
+		return nil
 	}
-	conf[ref] = key
-	if err = f.save(conf); err != nil {
-		return errors.Wrapf(err, "set %s", ref)
-	}
-	return nil
+	return errors.Errorf("unable to set global config")
 }
 
 func (f *KubeConfigRouter) Unset(ctx context.Context, ref configuration.Ref) error {
-	conf, err := f.load()
-	if err != nil {
-		return errors.Wrapf(err, "unset %s", ref)
+	if module, ok := ref.Module.Get(); ok {
+		conf, err := f.load(ctx, module)
+		if err != nil {
+			return errors.Wrapf(err, "set %s", ref)
+		}
+		delete(conf, ref)
+		if err = f.save(ctx, module, conf); err != nil {
+			return errors.Wrapf(err, "set %s", ref)
+		}
+		return nil
 	}
-	delete(conf, ref)
-	if err = f.save(conf); err != nil {
-		return errors.Wrapf(err, "unset %s", ref)
-	}
-	return nil
+	return errors.Errorf("unable to unset global config")
 }
 
 func (f *KubeConfigRouter) load(ctx context.Context, module string) (map[configuration.Ref]*url.URL, error) {
@@ -128,10 +120,6 @@ func (f *KubeConfigRouter) load(ctx context.Context, module string) (map[configu
 }
 
 func (f *KubeConfigRouter) save(ctx context.Context, module string, data map[configuration.Ref]*url.URL) error {
-	w, err := os.Create(f.path)
-	if err != nil {
-		return errors.Wrap(err, "failed to create file")
-	}
 	serialisable := map[string]string{}
 	for ref, key := range data {
 		serialisable[ref.String()] = key.String()
@@ -139,19 +127,22 @@ func (f *KubeConfigRouter) save(ctx context.Context, module string, data map[con
 	ns := f.mapper(module, f.realm)
 	cm, err := f.client.CoreV1().ConfigMaps(ns).Get(ctx, FTLConfigmapName, v1.GetOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil, nil
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrap(err, "failed to get ConfigMap")
 		}
-		return nil, errors.Wrap(err, "failed to get ConfigMap")
+		cm.Name = FTLConfigmapName
+		cm.Namespace = ns
+		cm.Labels = map[string]string{"app.kubernetes.io/managed-by": "ftl"}
+		cm, err = f.client.CoreV1().ConfigMaps(ns).Create(ctx, cm, v1.CreateOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to create ConfigMap")
+		}
 	}
-	serialisable := cm.Data
-	if cm.Data == nil {
-		return make(map[configuration.Ref]*url.URL), nil
-	}
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	if err = enc.Encode(serialisable); err != nil {
-		return errors.Wrapf(err, "failed to encode %s", f.path)
+	cm.Data = serialisable
+
+	cm, err = f.client.CoreV1().ConfigMaps(ns).Update(ctx, cm, v1.UpdateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to update ConfigMap")
 	}
 	return nil
 }
