@@ -248,7 +248,7 @@ public class HTTPProcessor {
 
                     moduleBuilder.registerVerbMethod(endpoint.getMethodInfo(),
                             endpoint.getActualClassInfo().name().toString(),
-                            Visibility.VISIBILITY_SCOPE_NONE, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
+                            Visibility.VISIBILITY_SCOPE_MODULE, false, ModuleBuilder.BodyType.ALLOWED, verbCustomization);
                 }
             }
         });
