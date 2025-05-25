@@ -16,6 +16,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/routing"
