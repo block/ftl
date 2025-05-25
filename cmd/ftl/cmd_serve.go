@@ -328,7 +328,7 @@ func (s *serveCommonConfig) run(
 	wg.Go(func() error {
 		start := time.Now()
 
-		err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, adminClient)
+		err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, schemaClient)
 		if err != nil {
 			logger.Errorf(err, "FTL failed to start")
 		}
