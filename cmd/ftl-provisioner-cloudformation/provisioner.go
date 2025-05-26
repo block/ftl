@@ -17,8 +17,8 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
+	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
+	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
@@ -134,7 +134,11 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
-		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
+		Status: &provisionerpb.ProvisioningStatus{
+			Status: &provisionerpb.ProvisioningStatus_Running{
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+			},
+		},
 		ProvisioningToken: stackID,
 	}), nil
 }

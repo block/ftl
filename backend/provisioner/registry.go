@@ -8,7 +8,7 @@ import (
 	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
+	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1/provisionerpbconnect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"

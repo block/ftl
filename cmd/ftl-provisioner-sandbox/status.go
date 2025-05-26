@@ -7,7 +7,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
-	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -42,19 +42,22 @@ func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[pr
 			return nil, errors.Wrap(err, "failed to update resources")
 		}
 		return connect.NewResponse(&provisionerpb.StatusResponse{
-			Status: &provisionerpb.StatusResponse_Success{
-				Success: &provisionerpb.StatusResponse_ProvisioningSuccess{
-					Outputs: slices.Map(events, func(t *schema.RuntimeElement) *schemapb.RuntimeElement {
-						return t.ToProto()
-					}),
-				},
-			},
+			Status: &provisionerpb.ProvisioningStatus{
+				Status: &provisionerpb.ProvisioningStatus_Success{
+					Success: &provisionerpb.ProvisioningStatus_ProvisioningSuccess{
+						Outputs: slices.Map(events, func(t *schema.RuntimeElement) *schemapb.RuntimeElement {
+							return t.ToProto()
+						}),
+					},
+				}},
 		}), nil
 	}
 
 	return connect.NewResponse(&provisionerpb.StatusResponse{
-		Status: &provisionerpb.StatusResponse_Running{
-			Running: &provisionerpb.StatusResponse_ProvisioningRunning{},
+		Status: &provisionerpb.ProvisioningStatus{
+			Status: &provisionerpb.ProvisioningStatus_Running{
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+			},
 		},
 	}), nil
 }

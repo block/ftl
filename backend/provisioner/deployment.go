@@ -5,7 +5,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
-	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"

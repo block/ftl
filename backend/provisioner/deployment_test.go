@@ -6,7 +6,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
-	proto "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
+	proto "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
 	"github.com/block/ftl/backend/provisioner"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
