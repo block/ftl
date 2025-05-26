@@ -204,7 +204,7 @@ func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectc
 		args := []string{}
 		args = append(args, cmdPath...)
 		for _, parser := range parsers {
-			newArgs, err := parser(request.Params.Arguments)
+			newArgs, err := parser(request.GetArguments())
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}

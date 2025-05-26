@@ -65,7 +65,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 					},
 				},
 			}
-			if module, ok := request.Params.Arguments["module"].(string); ok && module != "" {
+			if module, ok := request.GetArguments()["module"].(string); ok && module != "" {
 				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
 					Filter: &timelinepb.TimelineQuery_Filter_Module{
 						Module: &timelinepb.TimelineQuery_ModuleFilter{
@@ -74,7 +74,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 					},
 				})
 			}
-			if requestKeyStr, ok := request.Params.Arguments["requestKey"].(string); ok && requestKeyStr != "" {
+			if requestKeyStr, ok := request.GetArguments()["requestKey"].(string); ok && requestKeyStr != "" {
 				requestKey, err := key.ParseRequestKey(requestKeyStr)
 				if err != nil {
 					return nil, errors.Wrap(err, "invalid request key")
@@ -87,7 +87,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 					},
 				})
 			}
-			if levelStr, ok := request.Params.Arguments["logLevel"].(string); ok && levelStr != "" {
+			if levelStr, ok := request.GetArguments()["logLevel"].(string); ok && levelStr != "" {
 				var level timelinepb.LogLevel
 				switch levelStr {
 				case "debug":
@@ -109,7 +109,7 @@ func TimelineTool(ctx context.Context, timelineClient timelinepbconnect.Timeline
 					},
 				})
 			}
-			if cursor, ok := request.Params.Arguments["cursor"].(int); ok {
+			if cursor, ok := request.GetArguments()["cursor"].(int); ok {
 				cursor64 := int64(cursor)
 				timelineReq.Query.Filters = append(timelineReq.Query.Filters, &timelinepb.TimelineQuery_Filter{
 					Filter: &timelinepb.TimelineQuery_Filter_Id{

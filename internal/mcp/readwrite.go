@@ -38,7 +38,7 @@ func ReadTool() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 				Make sure you read every file before you overwrite it so you do not accidentally alter data or code.`),
 			mcp.WithString("path", mcp.Description("Path to the file to read")),
 		), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			path, ok := request.Params.Arguments["path"].(string)
+			path, ok := request.GetArguments()["path"].(string)
 			if !ok {
 				return nil, errors.Errorf("path is required")
 			}
@@ -95,11 +95,11 @@ func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEng
 			mcp.WithString("verificationToken", mcp.Description(`Obtained by the Read tool to verify that the existing content of the file has been read and understood before being replaced. Not required for new files.`)),
 		), func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			logger := log.FromContext(ctx)
-			path, ok := request.Params.Arguments["path"].(string)
+			path, ok := request.GetArguments()["path"].(string)
 			if !ok {
 				return nil, errors.Errorf("path is required")
 			}
-			fileContent, ok := request.Params.Arguments["content"].(string)
+			fileContent, ok := request.GetArguments()["content"].(string)
 			if !ok {
 				return nil, errors.Errorf("content is required")
 			}
@@ -136,7 +136,7 @@ func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEng
 				if err != nil {
 					return nil, errors.Wrap(err, "could not generate verification token")
 				}
-				expectedToken, ok := request.Params.Arguments["verificationToken"].(string)
+				expectedToken, ok := request.GetArguments()["verificationToken"].(string)
 				if !ok || expectedToken != token {
 					// File was not read (or file has changed). Return an error response with an explanation and the original content
 					return errors.WithStack2(newReadResult(originalContent, token, true, `The file was not read before it was written or it has changed since it was last read.

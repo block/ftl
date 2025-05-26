@@ -259,7 +259,7 @@ func Exec(ctx context.Context, name string, command ...string) error {
 		return errors.WithStack(err)
 	}
 
-	exec, err := cli.ContainerExecCreate(ctx, name, types.ExecConfig{
+	exec, err := cli.ContainerExecCreate(ctx, name, container.ExecOptions{
 		Cmd:          command,
 		AttachStderr: true,
 		AttachStdout: true,
@@ -268,7 +268,7 @@ func Exec(ctx context.Context, name string, command ...string) error {
 		return errors.Wrap(err, "failed to create exec")
 	}
 
-	attach, err := cli.ContainerExecAttach(ctx, exec.ID, types.ExecStartCheck{})
+	attach, err := cli.ContainerExecAttach(ctx, exec.ID, container.ExecAttachOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to attach exec")
 	}
@@ -279,7 +279,7 @@ func Exec(ctx context.Context, name string, command ...string) error {
 		return errors.Wrap(err, "failed to stream exec")
 	}
 
-	err = cli.ContainerExecStart(ctx, exec.ID, types.ExecStartCheck{})
+	err = cli.ContainerExecStart(ctx, exec.ID, container.ExecStartOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to start exec")
 	}
