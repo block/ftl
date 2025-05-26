@@ -56,7 +56,9 @@ func (c *SandboxProvisioner) Status(ctx context.Context, req *connect.Request[pr
 	return connect.NewResponse(&provisionerpb.StatusResponse{
 		Status: &provisionerpb.ProvisioningStatus{
 			Status: &provisionerpb.ProvisioningStatus_Running{
-				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{
+					ProvisioningToken: token,
+				},
 			},
 		},
 	}), nil

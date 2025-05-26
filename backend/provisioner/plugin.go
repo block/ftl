@@ -2,6 +2,7 @@ package provisioner
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -34,8 +35,9 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 	if err != nil {
 		return nil, errors.Wrap(err, "error provisioning")
 	}
-	status := resp.Msg.Status
-	token := resp.Msg.ProvisioningToken
+	tasks := resp.Msg.Tasks
+	var results []*schemapb.RuntimeElement
+	var failures []string
 
 	// call status endpoint in a loop until the status is not pending
 	backoff := backoff.Backoff{
@@ -43,22 +45,35 @@ func (p *PluginGrpcClient) Provision(ctx context.Context, req *provisioner.Provi
 		Max: 30 * time.Second,
 	}
 	for {
-		switch s := status.Status.(type) {
-		case *provisioner.ProvisioningStatus_Running:
-			time.Sleep(backoff.Duration())
-		case *provisioner.ProvisioningStatus_Success:
-			return s.Success.Outputs, nil
-		case *provisioner.ProvisioningStatus_Failed:
-			return nil, errors.Errorf("provisioning failed: %s", s.Failed.ErrorMessage)
+		var tokens []string
+		for _, task := range tasks {
+			if task.GetRunning() != nil {
+				tokens = append(tokens, task.GetRunning().GetProvisioningToken())
+			} else if task.GetSuccess() != nil {
+				results = append(results, task.GetSuccess().GetOutputs()...)
+			} else if task.GetFailed() != nil {
+				failures = append(failures, task.GetFailed().GetErrorMessage())
+			}
 		}
 
-		statusResp, err := p.client.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{
-			ProvisioningToken: token,
-			DesiredModule:     req.DesiredModule,
-		}))
-		if err != nil {
-			return nil, errors.Wrap(err, "provisioner status check faile")
+		if len(tokens) == 0 {
+			if len(failures) > 0 {
+				return nil, errors.Errorf("provisioning failed: %s", strings.Join(failures, ", "))
+			}
+			return results, nil
 		}
-		status = statusResp.Msg.Status
+		time.Sleep(backoff.Duration())
+
+		tasks = nil
+		for _, token := range tokens {
+			status, err := p.client.Status(ctx, connect.NewRequest(&provisioner.StatusRequest{
+				ProvisioningToken: token,
+				DesiredModule:     req.DesiredModule,
+			}))
+			if err != nil {
+				return nil, errors.Wrap(err, "provisioner status check failed")
+			}
+			tasks = append(tasks, status.Msg.Status)
+		}
 	}
 }

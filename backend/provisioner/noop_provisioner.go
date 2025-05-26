@@ -21,12 +21,13 @@ func (d *NoopProvisioner) Ping(context.Context, *connect.Request[ftlv1.PingReque
 
 func (d *NoopProvisioner) Provision(ctx context.Context, req *connect.Request[provisioner.ProvisionRequest]) (*connect.Response[provisioner.ProvisionResponse], error) {
 	return connect.NewResponse(&provisioner.ProvisionResponse{
-		Status: &provisioner.ProvisioningStatus{
+		Tasks: []*provisioner.ProvisioningStatus{{
 			Status: &provisioner.ProvisioningStatus_Running{
-				Running: &provisioner.ProvisioningStatus_ProvisioningRunning{},
+				Running: &provisioner.ProvisioningStatus_ProvisioningRunning{
+					ProvisioningToken: "token",
+				},
 			},
-		},
-		ProvisioningToken: "token",
+		}},
 	}), nil
 }
 

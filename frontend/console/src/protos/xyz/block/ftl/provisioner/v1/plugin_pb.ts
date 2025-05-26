@@ -68,6 +68,11 @@ export class ProvisioningStatus extends Message<ProvisioningStatus> {
  * @generated from message xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningRunning
  */
 export class ProvisioningStatus_ProvisioningRunning extends Message<ProvisioningStatus_ProvisioningRunning> {
+  /**
+   * @generated from field: string provisioning_token = 1;
+   */
+  provisioningToken = "";
+
   constructor(data?: PartialMessage<ProvisioningStatus_ProvisioningRunning>) {
     super();
     proto3.util.initPartial(data, this);
@@ -76,6 +81,7 @@ export class ProvisioningStatus_ProvisioningRunning extends Message<Provisioning
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningRunning";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "provisioning_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisioningStatus_ProvisioningRunning {
@@ -235,14 +241,9 @@ export class ProvisionRequest extends Message<ProvisionRequest> {
  */
 export class ProvisionResponse extends Message<ProvisionResponse> {
   /**
-   * @generated from field: string provisioning_token = 1;
+   * @generated from field: repeated xyz.block.ftl.provisioner.v1.ProvisioningStatus tasks = 1;
    */
-  provisioningToken = "";
-
-  /**
-   * @generated from field: xyz.block.ftl.provisioner.v1.ProvisioningStatus status = 2;
-   */
-  status?: ProvisioningStatus;
+  tasks: ProvisioningStatus[] = [];
 
   constructor(data?: PartialMessage<ProvisionResponse>) {
     super();
@@ -252,8 +253,7 @@ export class ProvisionResponse extends Message<ProvisionResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.provisioner.v1.ProvisionResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "provisioning_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "status", kind: "message", T: ProvisioningStatus },
+    { no: 1, name: "tasks", kind: "message", T: ProvisioningStatus, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProvisionResponse {

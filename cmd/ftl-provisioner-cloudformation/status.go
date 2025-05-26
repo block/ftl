@@ -62,7 +62,9 @@ func (c *CloudformationProvisioner) Status(ctx context.Context, req *connect.Req
 	return connect.NewResponse(&provisionerpb.StatusResponse{
 		Status: &provisionerpb.ProvisioningStatus{
 			Status: &provisionerpb.ProvisioningStatus_Running{
-				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{
+					ProvisioningToken: token,
+				},
 			},
 		},
 	}), nil
