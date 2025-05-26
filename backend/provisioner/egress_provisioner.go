@@ -10,11 +10,11 @@ import (
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	egress2 "github.com/block/ftl/internal/egress"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 )
 
 // NewEgressProvisioner creates a new provisioner that provisions egress, it simply interpolates the egress values from config

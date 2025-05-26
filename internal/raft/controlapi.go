@@ -10,7 +10,7 @@ import (
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 // AddMember to the cluster. This needs to be called on an existing running cluster member,

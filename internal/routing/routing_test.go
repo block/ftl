@@ -10,9 +10,9 @@ import (
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 

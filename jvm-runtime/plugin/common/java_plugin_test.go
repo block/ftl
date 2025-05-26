@@ -9,8 +9,8 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 )
 

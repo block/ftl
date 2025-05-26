@@ -27,8 +27,8 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"oras.land/oras-go/v2/registry/remote/retry"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/log"
 )
 
 type ArtefactReader interface {

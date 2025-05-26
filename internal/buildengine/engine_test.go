@@ -8,9 +8,9 @@ import (
 	"github.com/alecthomas/assert/v2"
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )

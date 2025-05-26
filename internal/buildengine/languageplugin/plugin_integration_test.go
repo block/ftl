@@ -23,12 +23,12 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
+	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/flock"
 	in "github.com/block/ftl/internal/integration"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"

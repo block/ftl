@@ -34,10 +34,10 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	ftlexec "github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
 

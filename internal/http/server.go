@@ -9,7 +9,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 const ShutdownGracePeriod = 5 * time.Second

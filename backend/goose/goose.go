@@ -13,8 +13,8 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
-	"github.com/block/ftl/internal/log"
 )
 
 // MessageSource represents the source of a message from Goose

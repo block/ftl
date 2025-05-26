@@ -13,9 +13,9 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/flock"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
 )

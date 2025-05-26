@@ -15,9 +15,9 @@ import (
 	"github.com/alecthomas/types/optional"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/container"
 	"github.com/block/ftl/internal/dsn"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/observability"
 )
 

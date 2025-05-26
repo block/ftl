@@ -17,6 +17,7 @@ import (
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/runner/query"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/go-runtime/ftl"
@@ -27,7 +28,6 @@ import (
 	cf "github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/deploymentcontext"
-	"github.com/block/ftl/internal/log"
 	pc "github.com/block/ftl/internal/projectconfig"
 	mcu "github.com/block/ftl/internal/testutils/modulecontext"
 )

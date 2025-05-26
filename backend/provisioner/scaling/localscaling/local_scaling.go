@@ -20,6 +20,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner/scaling"
 	"github.com/block/ftl/backend/runner"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
@@ -27,7 +28,6 @@ import (
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/localdebug"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 )

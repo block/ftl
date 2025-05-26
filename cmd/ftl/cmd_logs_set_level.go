@@ -5,7 +5,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 type logsSetLevelCmd struct {

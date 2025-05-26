@@ -17,9 +17,9 @@ import (
 	"github.com/block/ftl"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/watch"
 )
 

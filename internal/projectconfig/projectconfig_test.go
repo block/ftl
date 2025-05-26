@@ -7,7 +7,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 func TestProjectConfig(t *testing.T) {

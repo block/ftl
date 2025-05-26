@@ -8,11 +8,11 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 )
 
 // TODO: these should be event methods once we can move them to this package

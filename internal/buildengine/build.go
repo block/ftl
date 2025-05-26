@@ -12,12 +12,12 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sql"
 )

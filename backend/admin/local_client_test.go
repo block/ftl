@@ -10,13 +10,13 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
 	in "github.com/block/ftl/internal/integration"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 )
 

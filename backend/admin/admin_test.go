@@ -13,12 +13,12 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestAdminService(t *testing.T) {

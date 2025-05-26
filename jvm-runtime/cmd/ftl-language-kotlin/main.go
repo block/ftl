@@ -8,9 +8,9 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/internal/clirpc"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/jvm-runtime/plugin/common"
 	"github.com/block/ftl/jvm-runtime/plugin/kotlin"
 )

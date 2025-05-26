@@ -9,9 +9,9 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/runner/pubsub/observability"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/timelineclient"
 )

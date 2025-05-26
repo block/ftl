@@ -10,8 +10,8 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/jackc/pgx/v5/pgproto3"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/dev"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
 )
 

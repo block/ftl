@@ -11,9 +11,9 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/log"
 )
 
 type Commands struct {

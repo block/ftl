@@ -16,9 +16,9 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.

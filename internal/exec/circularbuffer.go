@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 type CircularBuffer struct {

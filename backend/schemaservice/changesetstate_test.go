@@ -8,10 +8,10 @@ import (
 	"github.com/alecthomas/assert/v2"
 
 	"github.com/block/ftl/backend/schemaservice"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestChangesetState(t *testing.T) {

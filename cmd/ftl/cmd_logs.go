@@ -11,7 +11,7 @@ import (
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 type logsCmd struct {

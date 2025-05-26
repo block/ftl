@@ -10,7 +10,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"golang.org/x/sys/unix"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 var ErrLocked = errors.New("locked")

@@ -8,10 +8,10 @@ import (
 	"github.com/alecthomas/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/git"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 )
 

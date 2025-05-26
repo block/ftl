@@ -10,7 +10,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 // CacheDecorator decorates asynchronous providers with a cache to provide synchronous access.

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 const projectToml = "project.toml"

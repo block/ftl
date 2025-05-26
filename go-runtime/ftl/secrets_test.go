@@ -7,10 +7,10 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/internal"
 	"github.com/block/ftl/internal/deploymentcontext"
-	"github.com/block/ftl/internal/log"
 	. "github.com/block/ftl/internal/testutils/modulecontext"
 )
 

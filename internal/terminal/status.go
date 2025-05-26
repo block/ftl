@@ -20,7 +20,7 @@ import (
 	"github.com/tidwall/pretty"
 	"golang.org/x/term"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 

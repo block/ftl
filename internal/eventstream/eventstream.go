@@ -8,10 +8,10 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
-	"github.com/block/ftl/internal/log"
 )
 
 // EventView is a materialized view of an event stream.

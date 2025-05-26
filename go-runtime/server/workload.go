@@ -8,8 +8,8 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/go-runtime/ftl"
-	"github.com/block/ftl/internal/log"
 )
 
 func addWorkloadIdentity(ctx context.Context, metadata http.Header) (context.Context, error) {

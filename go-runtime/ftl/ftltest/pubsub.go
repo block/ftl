@@ -12,11 +12,11 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/log"
 )
 
 type topicState struct {

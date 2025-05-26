@@ -22,10 +22,10 @@ import (
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dsn"
-	"github.com/block/ftl/internal/log"
 )
 
 var _ queryconnect.QueryServiceHandler = (*Service)(nil)

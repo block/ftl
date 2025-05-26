@@ -129,7 +129,7 @@ build-all: build-protos-unconditionally build-backend build-frontend build-backe
 # Run "go generate" on all packages
 build-generate:
   @mk common/schema/aliaskind_enumer.go : common/schema/metadataalias.go -- go generate -x ./common/schema
-  @mk internal/log/log_level_string.go : internal/log/api.go -- go generate -x ./internal/log
+  @mk common/log/log_level_string.go : common/log/api.go -- go generate -x ./common/log
 
 # Generate testdata for go2proto. This should be run after any changes to go2proto.
 build-go2proto-testdata:

@@ -11,9 +11,9 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 const (

@@ -18,7 +18,7 @@ import (
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 const lsName = "ftl-language-server"

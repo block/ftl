@@ -20,9 +20,9 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
+	"github.com/block/ftl/common/log"
 	ftlhttp "github.com/block/ftl/internal/http"
 	"github.com/block/ftl/internal/local"
-	"github.com/block/ftl/internal/log"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
 )

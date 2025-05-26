@@ -14,11 +14,11 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 // this is helpful when a test requires another module to be built before running

@@ -8,10 +8,10 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/internal"
-	"github.com/block/ftl/internal/log"
 )
 
 func PanicsWithErr(t testing.TB, substr string, fn func()) {
