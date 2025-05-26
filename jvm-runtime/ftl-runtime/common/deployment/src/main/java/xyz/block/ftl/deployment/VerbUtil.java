@@ -19,7 +19,7 @@ public class VerbUtil {
             type = VerbType.SINK;
             for (MethodInfo methodInfo : clazz.methods()) {
                 if (methodInfo.name().equals("call") && methodInfo.returnType() == VoidType.VOID
-                        && methodInfo.parametersCount() == 1) {
+                        && methodInfo.parametersCount() == 1 && !methodInfo.isBridge()) {
                     method = methodInfo;
                     MethodParameterInfo param = methodInfo.parameters().get(0);
                     bodyParamType = param.type();
@@ -31,7 +31,7 @@ public class VerbUtil {
             type = VerbType.VERB;
             for (MethodInfo methodInfo : clazz.methods()) {
                 if (methodInfo.name().equals("call") && methodInfo.returnType() != VoidType.VOID
-                        && methodInfo.parametersCount() == 1) {
+                        && methodInfo.parametersCount() == 1 && !methodInfo.isBridge()) {
                     method = methodInfo;
                     MethodParameterInfo param = methodInfo.parameters().get(0);
                     bodyParamType = param.type();
@@ -43,7 +43,7 @@ public class VerbUtil {
             type = VerbType.EMPTY;
             for (MethodInfo methodInfo : clazz.methods()) {
                 if (methodInfo.name().equals("call") && methodInfo.returnType() == VoidType.VOID
-                        && methodInfo.parametersCount() == 0) {
+                        && methodInfo.parametersCount() == 0 && !methodInfo.isBridge()) {
                     method = methodInfo;
                     break;
                 }
@@ -52,7 +52,7 @@ public class VerbUtil {
             type = VerbType.SOURCE;
             for (MethodInfo methodInfo : clazz.methods()) {
                 if (methodInfo.name().equals("call") && methodInfo.returnType() != VoidType.VOID
-                        && methodInfo.parametersCount() == 0) {
+                        && methodInfo.parametersCount() == 0 && !methodInfo.isBridge()) {
                     method = methodInfo;
                     break;
                 }
