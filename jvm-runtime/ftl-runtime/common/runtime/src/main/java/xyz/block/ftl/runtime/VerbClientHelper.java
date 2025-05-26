@@ -40,7 +40,7 @@ public class VerbClientHelper {
             if (result == null) {
                 return null;
             } else if (listReturnType) {
-                return mapper.readerForArrayOf(returnType).readValue(result);
+                return mapper.readerForListOf(returnType).readValue(result);
             } else if (mapReturnType) {
                 return mapper.readerForMapOf(returnType).readValue(result);
             } else if (returnType == JsonNode.class) {

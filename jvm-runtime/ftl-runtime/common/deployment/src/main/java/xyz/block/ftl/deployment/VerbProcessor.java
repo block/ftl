@@ -54,10 +54,10 @@ public class VerbProcessor {
 
     @BuildStep
     VerbClientBuildItem handleVerbClients(CombinedIndexBuildItem index,
-            BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
-            BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
-            ModuleNameBuildItem moduleNameBuildItem,
-            LaunchModeBuildItem launchModeBuildItem) {
+                                          BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+                                          BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
+                                          ModuleNameBuildItem moduleNameBuildItem,
+                                          LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(VerbClient.class);
         log.debugf("Processing %d verb clients", clientDefinitions.size());
         Map<DotName, VerbClientBuildItem.DiscoveredClients> clients = new HashMap<>();
@@ -82,10 +82,7 @@ public class VerbProcessor {
                         var paramType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
                             signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
                             signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
@@ -95,6 +92,14 @@ public class VerbProcessor {
                                             method.parameters().get(0).type().name().toString()));
                                 }
                             }
+                            var isList = returnType.name().toString().equals("java.util.List");
+                            var isMap = returnType.name().toString().equals("java.util.Map");
+                            if (isList) {
+                                returnType = returnType.asParameterizedType().arguments().get(0);
+                            } else if (isMap) {
+                                returnType = returnType.asParameterizedType().arguments().get(1);
+                            }
+
                             for (var sig : signatures) {
 
                                 var publish = cc.getMethodCreator("call", sig.getKey(),
@@ -105,8 +110,8 @@ public class VerbProcessor {
                                         MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
                                                 String.class, Object.class, Class.class, boolean.class, boolean.class),
                                         helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
-                                        publish.loadClass(returnType.name().toString()), publish.load(false),
-                                        publish.load(false));
+                                        publish.loadClass(returnType.name().toString()), publish.load(isList),
+                                        publish.load(isMap));
                                 publish.returnValue(results);
                             }
 
@@ -125,10 +130,7 @@ public class VerbProcessor {
                         var paramType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(paramType.name().toString());
                             signatures.add(Object.class.getName());
@@ -163,10 +165,7 @@ public class VerbProcessor {
                         var returnType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(returnType.name().toString());
                             signatures.add(Object.class.getName());
@@ -174,6 +173,13 @@ public class VerbProcessor {
                                 if (method.name().equals("call") && method.parameters().size() == 0) {
                                     signatures.add(method.returnType().name().toString());
                                 }
+                            }
+                            var isList = returnType.name().toString().equals("java.util.List");
+                            var isMap = returnType.name().toString().equals("java.util.Map");
+                            if (isList) {
+                                returnType = returnType.asParameterizedType().arguments().get(0);
+                            } else if (isMap) {
+                                returnType = returnType.asParameterizedType().arguments().get(1);
                             }
                             for (var sig : signatures) {
                                 var publish = cc.getMethodCreator("call", sig);
@@ -183,8 +189,8 @@ public class VerbProcessor {
                                         MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
                                                 String.class, Object.class, Class.class, boolean.class, boolean.class),
                                         helper, publish.load(name), publish.load(module), publish.loadNull(),
-                                        publish.loadClass(returnType.name().toString()), publish.load(false),
-                                        publish.load(false));
+                                        publish.loadClass(returnType.name().toString()), publish.load(isList),
+                                        publish.load(isMap));
                                 publish.returnValue(results);
                             }
 
@@ -201,10 +207,7 @@ public class VerbProcessor {
                 } else if (i.name().equals(VERB_CLIENT_EMPTY)) {
                     try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                             Object.class.getName(), iface.name().toString())) {
-                        if (launchModeBuildItem.isTest()) {
-                            cc.addAnnotation(TEST_ANNOTATION);
-                            cc.addAnnotation(Singleton.class);
-                        }
+                        cc.addAnnotation(Singleton.class);
                         var publish = cc.getMethodCreator("call", void.class);
                         var helper = publish.invokeStaticMethod(
                                 MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
@@ -261,8 +264,8 @@ public class VerbProcessor {
 
                                             @Override
                                             public void visit(int version, int access, String name, String signature,
-                                                    String superName,
-                                                    String[] interfaces) {
+                                                              String superName,
+                                                              String[] interfaces) {
                                                 super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
                                                         interfaces);
                                                 MethodVisitor ctor = visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
@@ -292,8 +295,8 @@ public class VerbProcessor {
                                         return new ClassVisitor(Gizmo.ASM_API_VERSION, classVisitor) {
                                             @Override
                                             public void visit(int version, int access, String name, String signature,
-                                                    String superName,
-                                                    String[] interfaces) {
+                                                              String superName,
+                                                              String[] interfaces) {
                                                 super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
                                                         interfaces);
                                             }
@@ -387,10 +390,10 @@ public class VerbProcessor {
 
     @BuildStep
     SQLQueryClientBuildItem handleSQLQueryClients(CombinedIndexBuildItem index,
-            BuildProducer<GeneratedClassBuildItem> generatedClients,
-            BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
-            ModuleNameBuildItem moduleNameBuildItem,
-            LaunchModeBuildItem launchModeBuildItem) {
+                                                  BuildProducer<GeneratedClassBuildItem> generatedClients,
+                                                  BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+                                                  ModuleNameBuildItem moduleNameBuildItem,
+                                                  LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(SQLQueryClient.class);
 
         if (clientDefinitions.isEmpty()) {
@@ -563,9 +566,9 @@ public class VerbProcessor {
 
     @BuildStep
     public void verbsAndCron(CombinedIndexBuildItem index,
-            BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
-            BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
-            List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
+                             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
+                             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
+                             List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
     ) {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
         log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
@@ -661,8 +664,8 @@ public class VerbProcessor {
             var returnType = callMethod.returnType();
             final var actualReturnType = returnType.name().toString().startsWith("java.util.List")
                     && returnType.kind() == Type.Kind.PARAMETERIZED_TYPE
-                            ? returnType.asParameterizedType().arguments().get(0)
-                            : returnType;
+                    ? returnType.asParameterizedType().arguments().get(0)
+                    : returnType;
 
             AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleValue == null || moduleValue.asString().isEmpty() ? null : moduleValue.asString();

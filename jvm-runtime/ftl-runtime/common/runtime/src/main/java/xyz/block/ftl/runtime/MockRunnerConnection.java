@@ -4,10 +4,18 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.enterprise.inject.spi.CDI;
+
 import org.jetbrains.annotations.Nullable;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.ByteString;
+
+import io.quarkus.arc.Arc;
 import xyz.block.ftl.LeaseFailedException;
 import xyz.block.ftl.LeaseHandle;
+import xyz.block.ftl.schema.v1.Ref;
+import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class MockRunnerConnection implements FTLRunnerConnection {
@@ -28,7 +36,10 @@ public class MockRunnerConnection implements FTLRunnerConnection {
 
     @Override
     public byte[] callVerb(String name, String module, byte[] payload) {
-        return new byte[0];
+        var ret = CDI.current().select(VerbRegistry.class).get().invoke(CallRequest.newBuilder()
+                .setVerb(Ref.newBuilder().setModule(module).setName(name).build())
+                .setBody(ByteString.copyFrom(payload)).build(), Arc.container().instance(ObjectMapper.class).get());
+        return ret.getBody().toByteArray();
     }
 
     @Override
