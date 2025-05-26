@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync/v3"
 
-	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1"
-	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1/provisionerpbconnect"
+	provisionerpb "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
+	provisionerconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1/provisionerpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
@@ -107,7 +107,11 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	logger.Debugf("Starting task %s", token)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
-		Status:            provisionerpb.ProvisionResponse_PROVISION_RESPONSE_STATUS_SUBMITTED,
+		Status: &provisionerpb.ProvisioningStatus{
+			Status: &provisionerpb.ProvisioningStatus_Running{
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+			},
+		},
 		ProvisioningToken: token,
 	}), nil
 }

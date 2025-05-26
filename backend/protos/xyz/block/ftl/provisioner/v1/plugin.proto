@@ -1,38 +1,14 @@
 syntax = "proto3";
 
-package xyz.block.ftl.provisioner.v1beta1;
+package xyz.block.ftl.provisioner.v1;
 
 import "xyz/block/ftl/schema/v1/schema.proto";
 import "xyz/block/ftl/v1/ftl.proto";
 
-option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1beta1;provisionerpb";
+option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1;provisionerpb";
 option java_multiple_files = true;
 
-message ProvisionRequest {
-  string ftl_cluster_id = 1;
-  xyz.block.ftl.schema.v1.Module desired_module = 2;
-  xyz.block.ftl.schema.v1.Module previous_module = 3;
-  string changeset = 4;
-  repeated string kinds = 5;
-}
-
-message ProvisionResponse {
-  enum ProvisionResponseStatus {
-    PROVISION_RESPONSE_STATUS_UNSPECIFIED = 0;
-    PROVISION_RESPONSE_STATUS_SUBMITTED = 1;
-  }
-
-  string provisioning_token = 1;
-  ProvisionResponseStatus status = 2;
-}
-
-message StatusRequest {
-  string provisioning_token = 1;
-  // The outputs of this module are updated if the the status is a success
-  xyz.block.ftl.schema.v1.Module desired_module = 2;
-}
-
-message StatusResponse {
+message ProvisioningStatus {
   message ProvisioningRunning {}
 
   message ProvisioningFailed {
@@ -48,6 +24,29 @@ message StatusResponse {
     ProvisioningSuccess success = 2;
     ProvisioningFailed failed = 3;
   }
+}
+
+message ProvisionRequest {
+  string ftl_cluster_id = 1;
+  xyz.block.ftl.schema.v1.Module desired_module = 2;
+  xyz.block.ftl.schema.v1.Module previous_module = 3;
+  string changeset = 4;
+  repeated string kinds = 5;
+}
+
+message ProvisionResponse {
+  string provisioning_token = 1;
+  ProvisioningStatus status = 2;
+}
+
+message StatusRequest {
+  string provisioning_token = 1;
+  // The outputs of this module are updated if the the status is a success
+  xyz.block.ftl.schema.v1.Module desired_module = 2;
+}
+
+message StatusResponse {
+  ProvisioningStatus status = 1;
 }
 
 service ProvisionerPluginService {
