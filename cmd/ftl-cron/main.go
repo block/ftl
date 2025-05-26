@@ -9,7 +9,7 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/routing"

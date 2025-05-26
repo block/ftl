@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 type Config struct {

@@ -15,9 +15,9 @@ import (
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"

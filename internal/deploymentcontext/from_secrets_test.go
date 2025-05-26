@@ -7,7 +7,7 @@ import (
 	"github.com/alecthomas/assert/v2"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 func TestFromSecrets(t *testing.T) {

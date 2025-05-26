@@ -15,11 +15,11 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/cors"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/terminal"
 )
 

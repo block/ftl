@@ -3,7 +3,7 @@ package ftl
 import (
 	"context"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 // Logger is a levelled printf-style logger with support for structured

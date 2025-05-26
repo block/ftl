@@ -16,8 +16,8 @@ import (
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/pgproxy"
 )
 

@@ -11,7 +11,7 @@ import (
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/schemaservice"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"

@@ -17,8 +17,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
+	"github.com/block/ftl/common/log"
 	in "github.com/block/ftl/internal/integration"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestTimeline(t *testing.T) {

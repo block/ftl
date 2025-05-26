@@ -10,11 +10,11 @@ import (
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 )
 

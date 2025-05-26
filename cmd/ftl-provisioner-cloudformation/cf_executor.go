@@ -12,7 +12,7 @@ import (
 	goformation "github.com/awslabs/goformation/v7/cloudformation"
 	cf "github.com/awslabs/goformation/v7/cloudformation/cloudformation"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/provisioner/state"
 )
 

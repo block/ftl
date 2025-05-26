@@ -14,10 +14,10 @@ import (
 
 	leasepb "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	leaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/deploymentcontext"
-	"github.com/block/ftl/internal/log"
 )
 
 // ErrLeaseHeld is returned when an attempt is made to acquire a lease that is

@@ -14,10 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/go-sql-driver/mysql"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/concurrency"
 	"github.com/block/ftl/internal/dsn"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner"
 	"github.com/block/ftl/internal/provisioner/state"
 )

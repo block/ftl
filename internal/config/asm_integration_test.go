@@ -12,9 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/container"
-	"github.com/block/ftl/internal/log"
 )
 
 //go:embed testdata/docker-compose.yml

@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestConfig(t *testing.T) {

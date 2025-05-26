@@ -11,7 +11,7 @@ import (
 
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/lsp"
 )
 

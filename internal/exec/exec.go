@@ -11,7 +11,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/kballard/go-shellquote"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 )
 
 type Cmd struct {

@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/rand"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/block/ftl/internal/log"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/raft"
 	sm "github.com/block/ftl/internal/statemachine"
 )

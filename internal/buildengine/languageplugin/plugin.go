@@ -15,8 +15,8 @@ import (
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 )

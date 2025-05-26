@@ -10,8 +10,8 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"

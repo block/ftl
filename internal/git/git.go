@@ -8,8 +8,8 @@ import (
 
 	"github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 type Git interface {

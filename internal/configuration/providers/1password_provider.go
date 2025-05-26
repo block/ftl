@@ -12,9 +12,9 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/kballard/go-shellquote"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 const OnePasswordProviderKey configuration.ProviderKey = "op"

@@ -10,13 +10,13 @@ import (
 	"github.com/alecthomas/types/optional"
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/common/strcase"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/provisioner/executor"
 	"github.com/block/ftl/internal/provisioner/state"
 )

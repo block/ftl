@@ -6,9 +6,9 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
-	"github.com/block/ftl/internal/log"
 )
 
 // Handle to update and query a state machine.

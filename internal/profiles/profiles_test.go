@@ -10,8 +10,8 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/profiles"
 )
 

@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestASM(t *testing.T) {

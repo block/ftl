@@ -16,10 +16,10 @@ import (
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
+	"github.com/block/ftl/common/log"
 	goruntime "github.com/block/ftl/go-runtime"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 type CmdService struct{}

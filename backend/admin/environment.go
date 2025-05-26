@@ -11,10 +11,10 @@ import (
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/log"
 )
 
 type SchemaClient interface {

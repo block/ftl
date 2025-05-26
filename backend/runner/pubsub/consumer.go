@@ -19,11 +19,11 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/runner/pubsub/observability"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc/headers"
 	"github.com/block/ftl/internal/timelineclient"
 )

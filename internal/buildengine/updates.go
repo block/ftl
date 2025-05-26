@@ -16,8 +16,8 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	ftlerrors "github.com/block/ftl/common/errors"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/rpc"
 )
 

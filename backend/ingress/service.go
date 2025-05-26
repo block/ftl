@@ -13,11 +13,11 @@ import (
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/internal/cors"
 	ftlhttp "github.com/block/ftl/internal/http"
 	"github.com/block/ftl/internal/key"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/timelineclient"

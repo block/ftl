@@ -13,12 +13,12 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/dev"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"

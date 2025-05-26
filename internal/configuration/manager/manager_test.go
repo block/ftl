@@ -12,10 +12,10 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/zalando/go-keyring"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
-	"github.com/block/ftl/internal/log"
 )
 
 func TestManager(t *testing.T) {

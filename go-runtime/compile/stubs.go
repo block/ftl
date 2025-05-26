@@ -16,10 +16,10 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/watch"
 )

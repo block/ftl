@@ -31,13 +31,13 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/encoding"
+	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/devstate"
 	"github.com/block/ftl/internal/dsn"
 	ftlexec "github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 )
 
 // Scaffold a directory relative to the testdata directory to a directory relative to the working directory.

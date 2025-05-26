@@ -10,8 +10,8 @@ import (
 	"github.com/alecthomas/atomic"
 
 	"github.com/block/ftl/common/builderrors"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/log"
 )
 
 var _ io.Writer = &errorDetector{}

@@ -14,10 +14,10 @@ import (
 	"github.com/block/scaffolder"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/exec"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/projectinit"

@@ -24,9 +24,9 @@ import (
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1/raftpbconnect"
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/iterops"
-	"github.com/block/ftl/internal/log"
 	"github.com/block/ftl/internal/retry"
 	"github.com/block/ftl/internal/rpc"
 	sm "github.com/block/ftl/internal/statemachine"
