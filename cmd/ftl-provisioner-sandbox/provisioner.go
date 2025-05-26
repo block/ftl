@@ -107,12 +107,13 @@ func (c *SandboxProvisioner) Provision(ctx context.Context, req *connect.Request
 	logger.Debugf("Starting task %s", token)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
-		Status: &provisionerpb.ProvisioningStatus{
+		Tasks: []*provisionerpb.ProvisioningStatus{{
 			Status: &provisionerpb.ProvisioningStatus_Running{
-				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{
+					ProvisioningToken: token,
+				},
 			},
-		},
-		ProvisioningToken: token,
+		}},
 	}), nil
 }
 

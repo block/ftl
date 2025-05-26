@@ -198,11 +198,10 @@ func (x *ProvisionRequest) GetKinds() []string {
 }
 
 type ProvisionResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ProvisioningToken string                 `protobuf:"bytes,1,opt,name=provisioning_token,json=provisioningToken,proto3" json:"provisioning_token,omitempty"`
-	Status            *ProvisioningStatus    `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tasks         []*ProvisioningStatus  `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ProvisionResponse) Reset() {
@@ -235,16 +234,9 @@ func (*ProvisionResponse) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_provisioner_v1_plugin_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ProvisionResponse) GetProvisioningToken() string {
+func (x *ProvisionResponse) GetTasks() []*ProvisioningStatus {
 	if x != nil {
-		return x.ProvisioningToken
-	}
-	return ""
-}
-
-func (x *ProvisionResponse) GetStatus() *ProvisioningStatus {
-	if x != nil {
-		return x.Status
+		return x.Tasks
 	}
 	return nil
 }
@@ -347,9 +339,10 @@ func (x *StatusResponse) GetStatus() *ProvisioningStatus {
 }
 
 type ProvisioningStatus_ProvisioningRunning struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ProvisioningToken string                 `protobuf:"bytes,1,opt,name=provisioning_token,json=provisioningToken,proto3" json:"provisioning_token,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ProvisioningStatus_ProvisioningRunning) Reset() {
@@ -380,6 +373,13 @@ func (x *ProvisioningStatus_ProvisioningRunning) ProtoReflect() protoreflect.Mes
 // Deprecated: Use ProvisioningStatus_ProvisioningRunning.ProtoReflect.Descriptor instead.
 func (*ProvisioningStatus_ProvisioningRunning) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_provisioner_v1_plugin_proto_rawDescGZIP(), []int{0, 0}
+}
+
+func (x *ProvisioningStatus_ProvisioningRunning) GetProvisioningToken() string {
+	if x != nil {
+		return x.ProvisioningToken
+	}
+	return ""
 }
 
 type ProvisioningStatus_ProvisioningFailed struct {
@@ -474,12 +474,13 @@ var File_xyz_block_ftl_provisioner_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_provisioner_v1_plugin_proto_rawDesc = "" +
 	"\n" +
-	")xyz/block/ftl/provisioner/v1/plugin.proto\x12\x1cxyz.block.ftl.provisioner.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\xed\x03\n" +
+	")xyz/block/ftl/provisioner/v1/plugin.proto\x12\x1cxyz.block.ftl.provisioner.v1\x1a$xyz/block/ftl/schema/v1/schema.proto\x1a\x1axyz/block/ftl/v1/ftl.proto\"\x9c\x04\n" +
 	"\x12ProvisioningStatus\x12`\n" +
 	"\arunning\x18\x01 \x01(\v2D.xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningRunningH\x00R\arunning\x12`\n" +
 	"\asuccess\x18\x02 \x01(\v2D.xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningSuccessH\x00R\asuccess\x12]\n" +
-	"\x06failed\x18\x03 \x01(\v2C.xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningFailedH\x00R\x06failed\x1a\x15\n" +
-	"\x13ProvisioningRunning\x1a9\n" +
+	"\x06failed\x18\x03 \x01(\v2C.xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningFailedH\x00R\x06failed\x1aD\n" +
+	"\x13ProvisioningRunning\x12-\n" +
+	"\x12provisioning_token\x18\x01 \x01(\tR\x11provisioningToken\x1a9\n" +
 	"\x12ProvisioningFailed\x12#\n" +
 	"\rerror_message\x18\x01 \x01(\tR\ferrorMessage\x1aX\n" +
 	"\x13ProvisioningSuccess\x12A\n" +
@@ -490,10 +491,9 @@ const file_xyz_block_ftl_provisioner_v1_plugin_proto_rawDesc = "" +
 	"\x0edesired_module\x18\x02 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\rdesiredModule\x12H\n" +
 	"\x0fprevious_module\x18\x03 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x0epreviousModule\x12\x1c\n" +
 	"\tchangeset\x18\x04 \x01(\tR\tchangeset\x12\x14\n" +
-	"\x05kinds\x18\x05 \x03(\tR\x05kinds\"\x8c\x01\n" +
-	"\x11ProvisionResponse\x12-\n" +
-	"\x12provisioning_token\x18\x01 \x01(\tR\x11provisioningToken\x12H\n" +
-	"\x06status\x18\x02 \x01(\v20.xyz.block.ftl.provisioner.v1.ProvisioningStatusR\x06status\"\x86\x01\n" +
+	"\x05kinds\x18\x05 \x03(\tR\x05kinds\"[\n" +
+	"\x11ProvisionResponse\x12F\n" +
+	"\x05tasks\x18\x01 \x03(\v20.xyz.block.ftl.provisioner.v1.ProvisioningStatusR\x05tasks\"\x86\x01\n" +
 	"\rStatusRequest\x12-\n" +
 	"\x12provisioning_token\x18\x01 \x01(\tR\x11provisioningToken\x12F\n" +
 	"\x0edesired_module\x18\x02 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\rdesiredModule\"Z\n" +
@@ -537,7 +537,7 @@ var file_xyz_block_ftl_provisioner_v1_plugin_proto_depIdxs = []int32{
 	6,  // 2: xyz.block.ftl.provisioner.v1.ProvisioningStatus.failed:type_name -> xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningFailed
 	8,  // 3: xyz.block.ftl.provisioner.v1.ProvisionRequest.desired_module:type_name -> xyz.block.ftl.schema.v1.Module
 	8,  // 4: xyz.block.ftl.provisioner.v1.ProvisionRequest.previous_module:type_name -> xyz.block.ftl.schema.v1.Module
-	0,  // 5: xyz.block.ftl.provisioner.v1.ProvisionResponse.status:type_name -> xyz.block.ftl.provisioner.v1.ProvisioningStatus
+	0,  // 5: xyz.block.ftl.provisioner.v1.ProvisionResponse.tasks:type_name -> xyz.block.ftl.provisioner.v1.ProvisioningStatus
 	8,  // 6: xyz.block.ftl.provisioner.v1.StatusRequest.desired_module:type_name -> xyz.block.ftl.schema.v1.Module
 	0,  // 7: xyz.block.ftl.provisioner.v1.StatusResponse.status:type_name -> xyz.block.ftl.provisioner.v1.ProvisioningStatus
 	9,  // 8: xyz.block.ftl.provisioner.v1.ProvisioningStatus.ProvisioningSuccess.outputs:type_name -> xyz.block.ftl.schema.v1.RuntimeElement

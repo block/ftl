@@ -134,12 +134,13 @@ func (c *CloudformationProvisioner) Provision(ctx context.Context, req *connect.
 	logger.Debugf("Starting task for module %s: %s", req.Msg.DesiredModule.Name, stackID)
 	task.Start(ctx, module.Name, module.Runtime.Deployment.DeploymentKey)
 	return connect.NewResponse(&provisionerpb.ProvisionResponse{
-		Status: &provisionerpb.ProvisioningStatus{
+		Tasks: []*provisionerpb.ProvisioningStatus{{
 			Status: &provisionerpb.ProvisioningStatus_Running{
-				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{},
+				Running: &provisionerpb.ProvisioningStatus_ProvisioningRunning{
+					ProvisioningToken: stackID,
+				},
 			},
-		},
-		ProvisioningToken: stackID,
+		}},
 	}), nil
 }
 

@@ -9,7 +9,9 @@ option go_package = "github.com/block/ftl/backend/protos/xyz/block/ftl/provision
 option java_multiple_files = true;
 
 message ProvisioningStatus {
-  message ProvisioningRunning {}
+  message ProvisioningRunning {
+    string provisioning_token = 1;
+  }
 
   message ProvisioningFailed {
     string error_message = 1;
@@ -35,8 +37,7 @@ message ProvisionRequest {
 }
 
 message ProvisionResponse {
-  string provisioning_token = 1;
-  ProvisioningStatus status = 2;
+  repeated ProvisioningStatus tasks = 1;
 }
 
 message StatusRequest {
