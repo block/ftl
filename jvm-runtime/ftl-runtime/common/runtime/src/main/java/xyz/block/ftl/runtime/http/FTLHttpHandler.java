@@ -22,6 +22,8 @@ import org.jboss.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 
+import io.grpc.Context;
+import io.grpc.Metadata;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.FileRegion;
@@ -38,6 +40,9 @@ import io.quarkus.netty.runtime.virtual.VirtualClientConnection;
 import io.quarkus.netty.runtime.virtual.VirtualResponseHandler;
 import io.quarkus.vertx.http.runtime.QuarkusHttpHeaders;
 import io.quarkus.vertx.http.runtime.VertxHttpRecorder;
+import io.vertx.core.Vertx;
+import xyz.block.ftl.runtime.CurrentRequestClientInterceptor;
+import xyz.block.ftl.runtime.CurrentRequestServerInterceptor;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.builtin.HttpRequest;
 import xyz.block.ftl.v1.CallRequest;
@@ -207,6 +212,17 @@ public class FTLHttpHandler {
     private xyz.block.ftl.runtime.builtin.HttpResponse nettyDispatch(InetSocketAddress clientAddress,
             HttpRequest request, boolean base64Encoded)
             throws Exception {
+        Vertx.currentContext().putLocal(Context.class, Context.current());
+        var md = CurrentRequestServerInterceptor.METADATA.get();
+        if (md != null) {
+            for (var entry : md.keys()) {
+                if (CurrentRequestClientInterceptor.PROTOCOL_HEADERS.contains(entry.toLowerCase(Locale.ENGLISH))) {
+                    continue;
+                }
+                Metadata.Key<String> key = Metadata.Key.of(entry, Metadata.ASCII_STRING_MARSHALLER);
+                request.getHeaders().put(key.name(), List.of(md.get(key)));
+            }
+        }
         QuarkusHttpHeaders quarkusHeaders = new QuarkusHttpHeaders();
         quarkusHeaders.setContextObject(xyz.block.ftl.runtime.builtin.HttpRequest.class, request);
         HttpMethod httpMethod = HttpMethod.valueOf(request.getMethod());

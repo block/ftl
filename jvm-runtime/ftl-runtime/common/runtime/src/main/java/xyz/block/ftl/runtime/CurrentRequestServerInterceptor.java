@@ -17,7 +17,7 @@ import io.quarkus.grpc.GlobalInterceptor;
 @GlobalInterceptor
 public class CurrentRequestServerInterceptor implements ServerInterceptor {
 
-    static final Context.Key<Metadata> METADATA = Context.key("ftl-metadata");
+    public static final Context.Key<Metadata> METADATA = Context.key("ftl-metadata");
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
