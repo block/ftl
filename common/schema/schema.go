@@ -14,11 +14,11 @@ import (
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 
+	"github.com/block/ftl/common/key"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	ftlreflect "github.com/block/ftl/common/reflect"
 	ftlslices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/iterops"
-	"github.com/block/ftl/internal/key"
 )
 
 var ErrNotFound = errors.New("not found")

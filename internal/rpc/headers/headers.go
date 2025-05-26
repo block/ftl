@@ -7,8 +7,8 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 )
 
 // Headers used by the internal RPC system.

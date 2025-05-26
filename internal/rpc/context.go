@@ -12,9 +12,9 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/rpc/headers"
 )
 

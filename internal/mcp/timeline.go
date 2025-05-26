@@ -12,7 +12,7 @@ import (
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/common/key"
 )
 
 type timelineOutput struct {

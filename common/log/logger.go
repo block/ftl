@@ -12,7 +12,7 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/benbjohnson/clock"
 
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/common/key"
 )
 
 var _ Interface = (*Logger)(nil)

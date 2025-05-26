@@ -6,7 +6,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/common/key"
 )
 
 // TODO: these should be moved to the schema service package once go2proto supports referring to proto messages from other packages

@@ -6,9 +6,9 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/key"
 )
 
 // LogSink is a log sink that sends logs to the timeline client.

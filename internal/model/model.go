@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/key"
 )
 
 type Deployment struct {

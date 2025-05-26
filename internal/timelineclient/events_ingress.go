@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 )
 
 type Ingress struct {

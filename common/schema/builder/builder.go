@@ -4,8 +4,8 @@ import (
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/must"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 )
 
 type SchemaBuilder struct{ s *schema.Schema }

@@ -6,8 +6,8 @@ import (
 	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/internal/download"
-	"github.com/block/ftl/internal/key"
 )
 
 type downloadCmd struct {
