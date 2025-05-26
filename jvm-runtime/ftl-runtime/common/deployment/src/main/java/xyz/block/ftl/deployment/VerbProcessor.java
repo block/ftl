@@ -54,10 +54,10 @@ public class VerbProcessor {
 
     @BuildStep
     VerbClientBuildItem handleVerbClients(CombinedIndexBuildItem index,
-                                          BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
-                                          BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
-                                          ModuleNameBuildItem moduleNameBuildItem,
-                                          LaunchModeBuildItem launchModeBuildItem) {
+            BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+            BuildProducer<BytecodeTransformerBuildItem> bytecodeTransformerBuildItemBuildProducer,
+            ModuleNameBuildItem moduleNameBuildItem,
+            LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(VerbClient.class);
         log.debugf("Processing %d verb clients", clientDefinitions.size());
         Map<DotName, VerbClientBuildItem.DiscoveredClients> clients = new HashMap<>();
@@ -264,8 +264,8 @@ public class VerbProcessor {
 
                                             @Override
                                             public void visit(int version, int access, String name, String signature,
-                                                              String superName,
-                                                              String[] interfaces) {
+                                                    String superName,
+                                                    String[] interfaces) {
                                                 super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
                                                         interfaces);
                                                 MethodVisitor ctor = visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC,
@@ -295,8 +295,8 @@ public class VerbProcessor {
                                         return new ClassVisitor(Gizmo.ASM_API_VERSION, classVisitor) {
                                             @Override
                                             public void visit(int version, int access, String name, String signature,
-                                                              String superName,
-                                                              String[] interfaces) {
+                                                    String superName,
+                                                    String[] interfaces) {
                                                 super.visit(version, access & (~Modifier.FINAL), name, signature, superName,
                                                         interfaces);
                                             }
@@ -390,10 +390,10 @@ public class VerbProcessor {
 
     @BuildStep
     SQLQueryClientBuildItem handleSQLQueryClients(CombinedIndexBuildItem index,
-                                                  BuildProducer<GeneratedClassBuildItem> generatedClients,
-                                                  BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
-                                                  ModuleNameBuildItem moduleNameBuildItem,
-                                                  LaunchModeBuildItem launchModeBuildItem) {
+            BuildProducer<GeneratedClassBuildItem> generatedClients,
+            BuildProducer<GeneratedBeanBuildItem> generatedBeanBuildItemBuildProducer,
+            ModuleNameBuildItem moduleNameBuildItem,
+            LaunchModeBuildItem launchModeBuildItem) {
         var clientDefinitions = index.getComputingIndex().getAnnotations(SQLQueryClient.class);
 
         if (clientDefinitions.isEmpty()) {
@@ -566,9 +566,9 @@ public class VerbProcessor {
 
     @BuildStep
     public void verbsAndCron(CombinedIndexBuildItem index,
-                             BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
-                             BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
-                             List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
+            BuildProducer<AdditionalBeanBuildItem> additionalBeanBuildItem,
+            BuildProducer<SchemaContributorBuildItem> schemaContributorBuildItemBuildProducer,
+            List<TypeAliasBuildItem> typeAliasBuildItems // included to force typealias processing before this
     ) {
         Collection<AnnotationInstance> verbAnnotations = index.getIndex().getAnnotations(FTLDotNames.VERB);
         log.debugf("Processing %d verb annotations into decls", verbAnnotations.size());
@@ -664,8 +664,8 @@ public class VerbProcessor {
             var returnType = callMethod.returnType();
             final var actualReturnType = returnType.name().toString().startsWith("java.util.List")
                     && returnType.kind() == Type.Kind.PARAMETERIZED_TYPE
-                    ? returnType.asParameterizedType().arguments().get(0)
-                    : returnType;
+                            ? returnType.asParameterizedType().arguments().get(0)
+                            : returnType;
 
             AnnotationValue moduleValue = clientDefinition.value("module");
             String module = moduleValue == null || moduleValue.asString().isEmpty() ? null : moduleValue.asString();
