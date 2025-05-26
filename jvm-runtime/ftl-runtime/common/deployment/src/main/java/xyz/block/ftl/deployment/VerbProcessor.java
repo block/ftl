@@ -82,10 +82,7 @@ public class VerbProcessor {
                         var paramType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<Map.Entry<String, String>> signatures = new LinkedHashSet<>();
                             signatures.add(Map.entry(returnType.name().toString(), paramType.name().toString()));
                             signatures.add(Map.entry(Object.class.getName(), Object.class.getName()));
@@ -95,6 +92,14 @@ public class VerbProcessor {
                                             method.parameters().get(0).type().name().toString()));
                                 }
                             }
+                            var isList = returnType.name().toString().equals("java.util.List");
+                            var isMap = returnType.name().toString().equals("java.util.Map");
+                            if (isList) {
+                                returnType = returnType.asParameterizedType().arguments().get(0);
+                            } else if (isMap) {
+                                returnType = returnType.asParameterizedType().arguments().get(1);
+                            }
+
                             for (var sig : signatures) {
 
                                 var publish = cc.getMethodCreator("call", sig.getKey(),
@@ -105,8 +110,8 @@ public class VerbProcessor {
                                         MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
                                                 String.class, Object.class, Class.class, boolean.class, boolean.class),
                                         helper, publish.load(name), publish.load(module), publish.getMethodParam(0),
-                                        publish.loadClass(returnType.name().toString()), publish.load(false),
-                                        publish.load(false));
+                                        publish.loadClass(returnType.name().toString()), publish.load(isList),
+                                        publish.load(isMap));
                                 publish.returnValue(results);
                             }
 
@@ -125,10 +130,7 @@ public class VerbProcessor {
                         var paramType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(paramType.name().toString());
                             signatures.add(Object.class.getName());
@@ -163,10 +165,7 @@ public class VerbProcessor {
                         var returnType = i.asParameterizedType().arguments().get(0);
                         try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                                 Object.class.getName(), iface.name().toString())) {
-                            if (launchModeBuildItem.isTest()) {
-                                cc.addAnnotation(TEST_ANNOTATION);
-                                cc.addAnnotation(Singleton.class);
-                            }
+                            cc.addAnnotation(Singleton.class);
                             LinkedHashSet<String> signatures = new LinkedHashSet<>();
                             signatures.add(returnType.name().toString());
                             signatures.add(Object.class.getName());
@@ -174,6 +173,13 @@ public class VerbProcessor {
                                 if (method.name().equals("call") && method.parameters().size() == 0) {
                                     signatures.add(method.returnType().name().toString());
                                 }
+                            }
+                            var isList = returnType.name().toString().equals("java.util.List");
+                            var isMap = returnType.name().toString().equals("java.util.Map");
+                            if (isList) {
+                                returnType = returnType.asParameterizedType().arguments().get(0);
+                            } else if (isMap) {
+                                returnType = returnType.asParameterizedType().arguments().get(1);
                             }
                             for (var sig : signatures) {
                                 var publish = cc.getMethodCreator("call", sig);
@@ -183,8 +189,8 @@ public class VerbProcessor {
                                         MethodDescriptor.ofMethod(VerbClientHelper.class, "call", Object.class, String.class,
                                                 String.class, Object.class, Class.class, boolean.class, boolean.class),
                                         helper, publish.load(name), publish.load(module), publish.loadNull(),
-                                        publish.loadClass(returnType.name().toString()), publish.load(false),
-                                        publish.load(false));
+                                        publish.loadClass(returnType.name().toString()), publish.load(isList),
+                                        publish.load(isMap));
                                 publish.returnValue(results);
                             }
 
@@ -201,10 +207,7 @@ public class VerbProcessor {
                 } else if (i.name().equals(VERB_CLIENT_EMPTY)) {
                     try (ClassCreator cc = new ClassCreator(classOutput, iface.name().toString() + "_fit_verbclient", null,
                             Object.class.getName(), iface.name().toString())) {
-                        if (launchModeBuildItem.isTest()) {
-                            cc.addAnnotation(TEST_ANNOTATION);
-                            cc.addAnnotation(Singleton.class);
-                        }
+                        cc.addAnnotation(Singleton.class);
                         var publish = cc.getMethodCreator("call", void.class);
                         var helper = publish.invokeStaticMethod(
                                 MethodDescriptor.ofMethod(VerbClientHelper.class, "instance", VerbClientHelper.class));
