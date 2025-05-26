@@ -3,6 +3,7 @@ package console
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -97,13 +98,21 @@ func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*c
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
-func visitNode(sch *schema.Schema, n schema.Node, verbString *string) error {
+func visitNode(sch *schema.Schema, n schema.Node, verbString *string, visited map[string]bool) error {
 	return errors.WithStack(schema.Visit(n, func(n schema.Node, next func() error) error {
 		switch n := n.(type) {
 		case *schema.Ref:
+			refKey := fmt.Sprintf("%s.%s", n.Module, n.Name)
+			if visited[refKey] {
+				// Skip already visited refs
+				return nil
+			}
+
+			visited[refKey] = true
+
 			if decl, ok := sch.Resolve(n).Get(); ok {
 				*verbString += decl.String() + "\n\n"
-				err := visitNode(sch, decl, verbString)
+				err := visitNode(sch, decl, verbString, visited)
 				if err != nil {
 					return errors.WithStack(err)
 				}
@@ -117,13 +126,14 @@ func visitNode(sch *schema.Schema, n schema.Node, verbString *string) error {
 
 func verbSchemaString(sch *schema.Schema, verb *schema.Verb) (string, error) {
 	var verbString string
-	err := visitNode(sch, verb.Request, &verbString)
+	visited := make(map[string]bool)
+	err := visitNode(sch, verb.Request, &verbString, visited)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
 	// Don't print the response if it's the same as the request.
 	if !verb.Response.Equal(verb.Request) {
-		err = visitNode(sch, verb.Response, &verbString)
+		err = visitNode(sch, verb.Response, &verbString, visited)
 		if err != nil {
 			return "", errors.WithStack(err)
 		}
