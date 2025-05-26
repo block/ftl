@@ -8,10 +8,10 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 

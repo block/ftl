@@ -11,9 +11,9 @@ import (
 	pubsubpb "github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/pubsub/v1/pubsubpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
 	sl "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/timelineclient"
 )
 

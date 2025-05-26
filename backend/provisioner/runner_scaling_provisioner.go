@@ -7,9 +7,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/block/ftl/backend/provisioner/scaling"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/key"
 )
 
 // NewRunnerScalingProvisioner creates a new provisioner that provisions resources locally when running FTL in dev mode

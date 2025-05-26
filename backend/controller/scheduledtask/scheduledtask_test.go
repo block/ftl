@@ -12,8 +12,8 @@ import (
 	"github.com/jpillora/backoff"
 
 	"github.com/block/ftl/backend/controller/leases"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/key"
 )
 
 func TestScheduledTask(t *testing.T) {

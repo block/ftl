@@ -14,7 +14,7 @@ import (
 	"github.com/block/ftl/cmd/go2proto/testdata"
 	"github.com/block/ftl/cmd/go2proto/testdata/external"
 	"github.com/block/ftl/cmd/go2proto/testdata/testdatapb"
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/common/key"
 )
 
 func TestModel(t *testing.T) {

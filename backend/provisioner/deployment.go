@@ -6,11 +6,11 @@ import (
 	errors "github.com/alecthomas/errors"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/key"
 )
 
 // Task is a unit of work for a deployment

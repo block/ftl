@@ -4,7 +4,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/internal/key"
+	"github.com/block/ftl/common/key"
 )
 
 //protobuf:export

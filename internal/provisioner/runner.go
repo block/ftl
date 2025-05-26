@@ -8,8 +8,8 @@ import (
 	errors "github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/provisioner/state"
 )
 

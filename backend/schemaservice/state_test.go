@@ -5,10 +5,10 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/schema/builder"
-	"github.com/block/ftl/internal/key"
 )
 
 func TestMarshalling(t *testing.T) {

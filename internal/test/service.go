@@ -8,8 +8,8 @@ import (
 	testpb "github.com/block/ftl/backend/protos/xyz/block/ftl/test/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/test/v1/testpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/internal/dev"
-	"github.com/block/ftl/internal/key"
 	"github.com/block/ftl/internal/rpc"
 )
 

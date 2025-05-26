@@ -11,8 +11,8 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/common/key"
 	sliceop "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/key"
 )
 
 type Realm struct {
