@@ -48,27 +48,28 @@ type SharedCLI struct {
 	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
 
-	Ping      pingCmd      `cmd:"" help:"Ping the FTL cluster."`
-	Init      initCmd      `cmd:"" help:"Initialize a new FTL project."`
-	Profile   profileCmd   `cmd:"" help:"Manage profiles."`
-	Module    moduleCmd    `cmd:"" help:"Manage modules."`
-	PS        psCmd        `cmd:"" help:"List deployments."`
-	Call      callCmd      `cmd:"" help:"Call an FTL verb."`
-	Changeset changesetCmd `cmd:"" help:"Work with changesets."`
-	Bench     benchCmd     `cmd:"" help:"Benchmark an FTL verb."`
-	Replay    replayCmd    `cmd:"" help:"Call an FTL verb with the same request body as the last invocation."`
-	Update    updateCmd    `cmd:"" help:"Update a deployment."`
-	Kill      killCmd      `cmd:"" help:"Kill a deployment."`
-	Schema    schemaCmd    `cmd:"" help:"FTL schema commands."`
-	Download  downloadCmd  `cmd:"" help:"Download a deployment."`
-	Secret    secretCmd    `cmd:"" help:"Manage secrets."`
-	Config    configCmd    `cmd:"" help:"Manage configuration."`
-	Pubsub    pubsubCmd    `cmd:"" help:"Manage pub/sub."`
-	Goose     gooseCmd     `cmd:"" help:"Run a goose command."`
-	Mysql     mySQLCmd     `cmd:"" help:"Manage MySQL databases."`
-	Postgres  postgresCmd  `cmd:"" help:"Manage PostgreSQL databases."`
-	Edit      editCmd      `cmd:"" help:"Edit a declaration in an IDE."`
-	Realm     realmCmd     `cmd:"" help:"Manage realms." hidden:""`
+	Ping       pingCmd       `cmd:"" help:"Ping the FTL cluster."`
+	Init       initCmd       `cmd:"" help:"Initialize a new FTL project."`
+	Profile    profileCmd    `cmd:"" help:"Manage profiles."`
+	Module     moduleCmd     `cmd:"" help:"Manage modules."`
+	PS         psCmd         `cmd:"" help:"List deployments."`
+	Call       callCmd       `cmd:"" help:"Call an FTL verb."`
+	Changeset  changesetCmd  `cmd:"" help:"Work with changesets."`
+	Bench      benchCmd      `cmd:"" help:"Benchmark an FTL verb."`
+	Replay     replayCmd     `cmd:"" help:"Call an FTL verb with the same request body as the last invocation."`
+	Update     updateCmd     `cmd:"" help:"Update a deployment."`
+	Kill       killCmd       `cmd:"" help:"Kill a deployment."`
+	Schema     schemaCmd     `cmd:"" help:"FTL schema commands."`
+	Download   downloadCmd   `cmd:"" help:"Download a deployment."`
+	Secret     secretCmd     `cmd:"" help:"Manage secrets."`
+	Config     configCmd     `cmd:"" help:"Manage configuration."`
+	Pubsub     pubsubCmd     `cmd:"" help:"Manage pub/sub."`
+	Goose      gooseCmd      `cmd:"" help:"Run a goose command."`
+	Mysql      mySQLCmd      `cmd:"" help:"Manage MySQL databases."`
+	Postgres   postgresCmd   `cmd:"" help:"Manage PostgreSQL databases."`
+	Edit       editCmd       `cmd:"" help:"Edit a declaration in an IDE."`
+	Realm      realmCmd      `cmd:"" help:"Manage realms." hidden:""`
+	BuildImage buildImageCmd `cmd:"" help:"Build (and optionally push) a FTL OCI image"`
 }
 
 type BuildAndDeploy struct {

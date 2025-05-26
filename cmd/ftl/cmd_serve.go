@@ -20,8 +20,6 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/console"
-	"github.com/block/ftl/backend/controller"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"

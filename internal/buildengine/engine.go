@@ -373,9 +373,20 @@ func (e *Engine) Import(ctx context.Context, realmName string, moduleSch *schema
 
 // Build attempts to build all local modules.
 func (e *Engine) Build(ctx context.Context) error {
+	return e.BuildWithCallback(ctx, nil)
+}
+
+// Build attempts to build all local modules.
+func (e *Engine) BuildWithCallback(ctx context.Context, callback func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error) error {
 	schemas := make(chan *schema.Module, e.moduleMetas.Size())
 	if err := e.buildWithCallback(ctx, func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
 		schemas <- moduleSch
+		if callback != nil {
+			err := callback(ctx, module, moduleSch, tmpDeployDir, deployPaths)
+			if err != nil {
+				return errors.Wrapf(err, "build callback failed")
+			}
+		}
 		return nil
 	}); err != nil {
 		return errors.WithStack(err)

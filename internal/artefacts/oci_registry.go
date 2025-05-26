@@ -1,12 +1,15 @@
 package artefacts
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -17,7 +20,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/daemon"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -27,14 +35,12 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"oras.land/oras-go/v2/registry/remote/retry"
 
+	"github.com/block/ftl/common/log"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
-	"github.com/block/ftl/internal/log"
 )
 
-type DeploymentArtefactProvider interface {
-	// Provide will return the path to an extracted deployment, ready to be run
-	Provide() (string, error)
-}
+type DeploymentArtefactProvider func() (string, error)
 
 type ArtefactReader interface {
 	io.ReadCloser
@@ -71,7 +77,7 @@ type ReleaseArtefact struct {
 }
 
 type RegistryConfig struct {
-	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY" required:""`
+	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY"`
 	Username      string `help:"OCI container registry username" env:"FTL_ARTEFACT_REGISTRY_USERNAME"`
 	Password      string `help:"OCI container registry password" env:"FTL_ARTEFACT_REGISTRY_PASSWORD"`
 	AllowInsecure bool   `help:"Allows the use of insecure HTTP based registries." env:"FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE"`
@@ -349,4 +355,192 @@ func generateManifestContent(config ocispec.Descriptor, layers ...ocispec.Descri
 		return nil, errors.Wrap(err, "unable to marshal manifest content")
 	}
 	return json, nil // Get json content
+}
+
+// DownloadArtifacts downloads artefacts for a deployment from an OCI registry.
+func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string, artifacts []*schema.MetadataArtefact) error {
+	logger := log.FromContext(ctx)
+	start := time.Now()
+	count := 0
+	for _, artefact := range artifacts {
+		res, err := s.Download(ctx, artefact.Digest)
+		if err != nil {
+			return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
+		}
+		count++
+		if !filepath.IsLocal(artefact.Path) {
+			return errors.Errorf("path %q is not local", artefact.Path)
+		}
+		logger.Debugf("Downloading %s", filepath.Join(dest, artefact.Path))
+		err = os.MkdirAll(filepath.Join(dest, filepath.Dir(artefact.Path)), 0700)
+		if err != nil {
+			return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
+		}
+		var mode os.FileMode = 0600
+		if artefact.Executable {
+			mode = 0700
+		}
+		w, err := os.OpenFile(filepath.Join(dest, artefact.Path), os.O_CREATE|os.O_WRONLY, mode)
+		if err != nil {
+			return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
+		}
+		defer w.Close()
+		buf := make([]byte, 1024)
+		read := 0
+		for {
+			read, err = res.Read(buf)
+			if read > 0 {
+				_, e2 := w.Write(buf[:read])
+				if e2 != nil {
+					return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
+				}
+			}
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
+			}
+		}
+	}
+	logger.Debugf("Downloaded %d artefacts in %s", count, time.Since(start))
+	return nil
+}
+
+func WithRemotePush() ImageTarget {
+	return func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error {
+		logger := log.FromContext(ctx)
+		if err := googleremote.WriteIndex(targetImage, imageIndex); err != nil {
+			return fmt.Errorf("writing layout: %w", err)
+		}
+		logger.Infof("Wrote image %s to remote repository", targetImage)
+		return nil
+	}
+}
+
+func WithLocalDeamon() ImageTarget {
+	return func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error {
+
+		logger := log.FromContext(ctx)
+		if _, err := daemon.Write(targetImage, image); err != nil {
+			return fmt.Errorf("writing layout: %w", err)
+		}
+		logger.Infof("Wrote image %s to local daemon", targetImage)
+		return nil
+	}
+}
+
+type ImageTarget func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error
+
+func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+	logger := log.FromContext(ctx)
+	logger.Infof("Building %s with %s as a base image from remote", targetImage, baseImage)
+	target, err := os.MkdirTemp(tempDir, "ftl-image-")
+	if err != nil {
+		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
+	}
+	defer os.RemoveAll(target)
+	err = s.DownloadArtifacts(ctx, tempDir, artifacts)
+	if err != nil {
+		return err
+	}
+	return s.BuildOCIImage(ctx, baseImage, targetImage, target, artifacts, targets...)
+
+}
+
+func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+
+	logger := log.FromContext(ctx)
+	logger.Infof("Building %s with %s as a base image", targetImage, baseImage)
+	ref, err := name.ParseReference(baseImage)
+	if err != nil {
+		return err
+	}
+	targetRef, err := name.NewTag(targetImage)
+	if err != nil {
+		return err
+	}
+
+	auth := s.auth.Load()
+
+	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
+	if err != nil {
+		return fmt.Errorf("getting base image metadata: %w", err)
+	}
+
+	base, err := desc.Image()
+	if err != nil {
+		return fmt.Errorf("loading base image: %w", err)
+	}
+
+	layer, err := createLayer(apath, artifacts)
+	if err != nil {
+		return fmt.Errorf("creating layer: %w", err)
+	}
+
+	// Append the layer to the base image
+	newImg, err := mutate.AppendLayers(base, layer)
+	if err != nil {
+		return fmt.Errorf("appending layer: %w", err)
+	}
+
+	idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: newImg})
+
+	for _, i := range targets {
+		i(ctx, targetRef, idx, newImg)
+	}
+
+	return nil
+}
+
+// createLayer returns a v1.Layer with a single text file.
+func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, error) {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, a := range artifacts {
+		addFileToTar(tw, path, a.Path, a.Executable)
+	}
+	if err := tw.Close(); err != nil {
+		return nil, err
+	}
+
+	// TODO: use a file
+	return tarball.LayerFromReader(&buf)
+}
+
+// addFileToTar adds a single file to the tar writer.
+func addFileToTar(tw *tar.Writer, basepath string, path string, execuable bool) error {
+	file, err := os.Open(filepath.Join(basepath, path))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if stat.IsDir() {
+		return fmt.Errorf("directories not supported: %s", path)
+	}
+
+	mode := int64(0644)
+	if execuable {
+		mode = 755
+	}
+
+	// TODO: hard coded deployments path
+	hdr := &tar.Header{
+		Name:    "/deployments/" + path,
+		Mode:    mode,
+		Size:    stat.Size(),
+		ModTime: time.Now(),
+	}
+
+	if err := tw.WriteHeader(hdr); err != nil {
+		return err
+	}
+
+	_, err = io.Copy(tw, file)
+	return err
 }

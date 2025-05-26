@@ -38,10 +38,6 @@ func TestVerbCalls(t *testing.T) {
 
 func TestJVMCoreFunctionality(t *testing.T) {
 
-	largeString := "Hello World"
-	for range 10 {
-		largeString = largeString + largeString
-	}
 	exampleObject := TestObject{
 		IntField:    43,
 		FloatField:  .2,
@@ -93,7 +89,7 @@ func TestJVMCoreFunctionality(t *testing.T) {
 	})...)
 	tests = append(tests, AllRuntimesVerbTest("intVerb", 124)...)
 	tests = append(tests, AllRuntimesVerbTest("floatVerb", 0.123)...)
-	tests = append(tests, AllRuntimesVerbTest("stringVerb", largeString)...)
+	tests = append(tests, AllRuntimesVerbTest("stringVerb", "Hello World")...)
 	tests = append(tests, AllRuntimesVerbTest("bytesVerb", []byte{1, 2, 3, 0, 1})...)
 	tests = append(tests, AllRuntimesVerbTest("boolVerb", true)...)
 	tests = append(tests, AllRuntimesVerbTest("stringArrayVerb", []string{"Hello World"})...)

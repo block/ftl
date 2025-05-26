@@ -43,7 +43,6 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/deploymentcontext"
-	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
 	ftlobservability "github.com/block/ftl/internal/observability"
@@ -113,17 +112,16 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider artefa
 	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
 
 	svc := &Service{
-		key:                  runnerKey,
-		config:               config,
-		storage:              storage,
-		deploymentProvider:   deploymentArtifactProvider,
-		schemaClient:         schemaClient,
-		timelineClient:       timelineClient,
-		timelineLogSink:      timeline.NewLogSink(timelineClient, log.Debug),
-		labels:               labels,
-		cancelFunc:           doneFunc,
-		devEndpoint:          config.DevEndpoint,
-		devHotReloadEndpoint: config.DevHotReloadEndpoint,
+		key:                       runnerKey,
+		config:                    config,
+		deploymentProvider:        deploymentArtifactProvider,
+		schemaClient:              schemaClient,
+		timelineClient:            timelineClient,
+		timelineLogSink:           timeline.NewLogSink(timelineClient, log.Debug),
+		labels:                    labels,
+		cancelFunc:                doneFunc,
+		devEndpoint:               config.DevEndpoint,
+		devHotReloadEndpoint:      config.DevHotReloadEndpoint,
 		deploymentContextProvider: deploymentContextProvider,
 	}
 
@@ -209,12 +207,12 @@ type Service struct {
 	deployment atomic.Value[optional.Option[*deployment]]
 	readyTime  atomic.Value[time.Time]
 
-	config           Config
-	deploymentProvider artefacts.DeploymentArtefactProvider
+	config                    Config
+	deploymentProvider        artefacts.DeploymentArtefactProvider
 	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
-	schemaClient     ftlv1connect.SchemaServiceClient
-	timelineClient   *timeline.Client
-	timelineLogSink  *timeline.LogSink
+	schemaClient              ftlv1connect.SchemaServiceClient
+	timelineClient            *timeline.Client
+	timelineLogSink           *timeline.LogSink
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]
 	labels               *structpb.Struct
@@ -399,8 +397,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return errors.Wrap(err, "failed to ping dev endpoint")
 		}
 	} else {
-		//err := download.ArtefactsFromOCI(ctx, s.schemaClient, key, deploymentDir, s.storage)
-		deploymentDir, err := s.deploymentProvider.Provide()
+
+		deploymentDir, err := s.deploymentProvider()
 		if err != nil {
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return errors.Wrap(err, "failed to download artefacts")
