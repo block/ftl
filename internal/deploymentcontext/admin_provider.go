@@ -28,7 +28,6 @@ func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routi
 	ret := make(chan DeploymentContext)
 	logger := log.FromContext(ctx)
 	updates := routeTable.Subscribe()
-	defer routeTable.Unsubscribe(updates)
 	deployment, err := getDeployment(ctx, key, schemaClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get deployment")
@@ -65,6 +64,7 @@ func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routi
 	callableModuleNames = slices.Sort(callableModuleNames)
 	logger.Debugf("Modules %s can call %v", module, callableModuleNames)
 	go func() {
+		defer routeTable.Unsubscribe(updates)
 
 		for {
 			h := sha.New()
