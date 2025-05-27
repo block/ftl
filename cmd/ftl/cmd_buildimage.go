@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	goslices "slices"
+	"os"
+	"path/filepath"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
@@ -11,7 +12,6 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/projectconfig"
@@ -68,7 +68,21 @@ func (b *buildImageCmd) Run(
 		return errors.Wrapf(err, "failed to init OCI")
 	}
 	if err := engine.BuildWithCallback(ctx, func(ctx context.Context, module buildengine.Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
-		variants := goslices.Collect(slices.FilterVariants[*schema.MetadataArtefact](moduleSch.Metadata))
+		artifacts := []*schema.MetadataArtefact{}
+
+		for _, i := range deployPaths {
+			s, err := os.Stat(i)
+			if err != nil {
+				return errors.Wrapf(err, "failed to stat file")
+			}
+
+			path, err := filepath.Rel(tmpDeployDir, i)
+			if err != nil {
+				return errors.Wrapf(err, "failed to resolve file")
+			}
+			executable := s.Mode().Perm()&0111 != 0
+			artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable})
+		}
 		var image string
 		if b.RunnerImage != "" {
 			image = b.RunnerImage
@@ -98,7 +112,7 @@ func (b *buildImageCmd) Run(
 		if b.Push {
 			targets = append(targets, artefacts.WithRemotePush())
 		}
-		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, variants, targets...)
+		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, artifacts, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}
