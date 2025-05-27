@@ -167,6 +167,10 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 	return o, nil
 }
 
+func (s *OCIArtefactService) GetRegistry() string {
+	return s.registry
+}
+
 func getECRCredentials(ctx context.Context) (string, string, error) {
 	// Load AWS Config
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)

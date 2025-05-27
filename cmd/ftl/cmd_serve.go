@@ -238,6 +238,7 @@ func (s *serveCommonConfig) run(
 					schema.ResourceTypePostgres,
 					schema.ResourceTypeTopic,
 					schema.ResourceTypeSubscription,
+					schema.ResourceTypeImage,
 				},
 				ID: "dev",
 			},
