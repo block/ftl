@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	goslices "slices"
+	"strings"
 
 	errors "github.com/alecthomas/errors"
 
@@ -20,8 +21,8 @@ type buildImageCmd struct {
 	Parallelism    int                      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
 	Dirs           []string                 `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
 	BuildEnv       []string                 `help:"Environment variables to set for the build."`
-	ImageBase      string                   `help:"The image to build"`
 	RegistryConfig artefacts.RegistryConfig `embed:""`
+	Tag            string                   `help:"The image tag" default:"latest"`
 }
 
 func (b *buildImageCmd) Run(
@@ -68,7 +69,14 @@ func (b *buildImageCmd) Run(
 		if moduleSch.ModRuntime().Base.Image != "" {
 			image = moduleSch.ModRuntime().Base.Image
 		}
-		err := service.BuildOCIImage(ctx, image, b.ImageBase+"-"+moduleSch.Name, tmpDeployDir, variants, artefacts.WithLocalDeamon())
+		tgt := b.RegistryConfig.Registry
+		if !strings.HasSuffix(tgt, "/") {
+			tgt = tgt + "/"
+		}
+		tgt += moduleSch.Name
+		tgt += ":"
+		tgt += b.Tag
+		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, variants, artefacts.WithLocalDeamon())
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}

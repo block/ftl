@@ -77,7 +77,7 @@ type ReleaseArtefact struct {
 }
 
 type RegistryConfig struct {
-	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY"`
+	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY" required:""`
 	Username      string `help:"OCI container registry username" env:"FTL_ARTEFACT_REGISTRY_USERNAME"`
 	Password      string `help:"OCI container registry password" env:"FTL_ARTEFACT_REGISTRY_PASSWORD"`
 	AllowInsecure bool   `help:"Allows the use of insecure HTTP based registries." env:"FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE"`
@@ -434,7 +434,7 @@ type ImageTarget func(ctx context.Context, targetImage name.Tag, imageIndex v1.I
 
 func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 	logger := log.FromContext(ctx)
-	logger.Infof("Building %s with %s as a base image from remote", targetImage, baseImage)
+	logger.Infof("Building %s with %s as a base image from remte", targetImage, baseImage)
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
 	if err != nil {
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)

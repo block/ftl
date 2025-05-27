@@ -11,7 +11,6 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner"
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -21,12 +20,11 @@ import (
 )
 
 var cli struct {
-	Version             kong.VersionFlag         `help:"Show version."`
-	LogConfig           log.Config               `prefix:"log-" embed:""`
-	RegistryConfig      artefacts.RegistryConfig `prefix:"oci-" embed:""`
-	ObservabilityConfig observability.Config     `prefix:"o11y-" embed:""`
-	RunnerConfig        runner.Config            `embed:""`
-	DeploymentDir       string                   `help:"Directory to store deployments in." default:"/deployments"`
+	Version             kong.VersionFlag     `help:"Show version."`
+	LogConfig           log.Config           `prefix:"log-" embed:""`
+	ObservabilityConfig observability.Config `prefix:"o11y-" embed:""`
+	RunnerConfig        runner.Config        `embed:""`
+	DeploymentDir       string               `help:"Directory to store deployments in." default:"/deployments"`
 }
 
 func main() {
