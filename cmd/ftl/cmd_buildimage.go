@@ -78,7 +78,11 @@ func (b *buildImageCmd) Run(
 				image = moduleSch.ModRuntime().Base.Image
 			}
 			image += ":"
-			image += ftl.Version
+			if ftl.IsRelease(ftl.Version) && ftl.Version == ftl.BaseVersion(ftl.Version) {
+				image += ftl.Version
+			} else {
+				image += "latest"
+			}
 		}
 		tgt := b.RegistryConfig.Registry
 		if !strings.HasSuffix(tgt, "/") {
