@@ -25,6 +25,8 @@ func (x *RuntimeElement) ApplyToModule(state *Module) error {
 		state.Runtime.Scaling = v
 	case *ModuleRuntimeRunner:
 		state.Runtime.Runner = v
+	case *ModuleRuntimeImage:
+		state.Runtime.Image = v
 	case SubscriptionConnector:
 		d, err := findDecl[*Verb](state, x)
 		if err != nil {

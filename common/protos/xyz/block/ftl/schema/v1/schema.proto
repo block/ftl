@@ -472,6 +472,7 @@ message ModuleRuntime {
   optional ModuleRuntimeScaling scaling = 2;
   optional ModuleRuntimeDeployment deployment = 3;
   optional ModuleRuntimeRunner runner = 4;
+  optional ModuleRuntimeImage image = 5;
 }
 
 message ModuleRuntimeBase {
@@ -487,6 +488,10 @@ message ModuleRuntimeDeployment {
   google.protobuf.Timestamp created_at = 3;
   optional google.protobuf.Timestamp activated_at = 4;
   DeploymentState state = 5;
+}
+
+message ModuleRuntimeImage {
+  string image = 2;
 }
 
 message ModuleRuntimeRunner {
@@ -557,6 +562,7 @@ message Runtime {
     DatabaseRuntime database_runtime = 6;
     EgressRuntime egress_runtime = 7;
     ModuleRuntimeDeployment module_runtime_deployment = 1;
+    ModuleRuntimeImage module_runtime_image = 4;
     ModuleRuntimeRunner module_runtime_runner = 3;
     ModuleRuntimeScaling module_runtime_scaling = 2;
     PlaintextKafkaSubscriptionConnector plaintext_kafka_subscription_connector = 8;

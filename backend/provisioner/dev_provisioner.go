@@ -30,7 +30,14 @@ func NewDevProvisioner(postgresPort int, mysqlPort int, recreate bool) *InMemPro
 		schema.ResourceTypeMysql:        provisionMysql(mysqlPort, recreate),
 		schema.ResourceTypeTopic:        provisionTopic(),
 		schema.ResourceTypeSubscription: provisionSubscription(),
+		schema.ResourceTypeImage:        provisionDummyImage(),
 	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
+}
+
+func provisionDummyImage() InMemResourceProvisionerFn {
+	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
+		return &schema.RuntimeElement{Element: &schema.ModuleRuntimeImage{Image: "n/a"}, Deployment: deployment}, nil
+	}
 }
 func provisionMysql(mysqlPort int, recreate bool) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, res schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {

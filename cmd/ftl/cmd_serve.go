@@ -20,7 +20,6 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/console"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/cron"
 	"github.com/block/ftl/backend/ingress"
 	"github.com/block/ftl/backend/lease"
@@ -35,6 +34,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	consolefrontend "github.com/block/ftl/frontend/console"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
@@ -238,6 +238,7 @@ func (s *serveCommonConfig) run(
 					schema.ResourceTypePostgres,
 					schema.ResourceTypeTopic,
 					schema.ResourceTypeSubscription,
+					schema.ResourceTypeImage,
 				},
 				ID: "dev",
 			},

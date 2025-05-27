@@ -3,7 +3,6 @@ package download
 import (
 	"bytes"
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,14 +10,14 @@ import (
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/backend/controller/artefacts"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/common/sha256"
+	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/artefacts"
 )
 
 // Artefacts downloads artefacts for a deployment from the Controller.
@@ -84,52 +83,19 @@ func ArtefactsFromOCI(ctx context.Context, client ftlv1connect.SchemaServiceClie
 	}
 	start := time.Now()
 	count := 0
+	mlist := []*schema.MetadataArtefact{}
 	for _, metadata := range response.Msg.Schema.Metadata {
 		if artefact := metadata.GetArtefact(); artefact != nil {
-			parseSHA256, err := sha256.ParseSHA256(artefact.Digest)
+			md, err := schema.MetadataArtefactFromProto(artefact)
 			if err != nil {
-				return errors.Wrapf(err, "failed to parse SHA256 %q", artefact.Digest)
+				return errors.Wrapf(err, "failed to parse metadata")
 			}
-			res, err := service.Download(ctx, parseSHA256)
-			if err != nil {
-				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
-			}
-			count++
-			if !filepath.IsLocal(artefact.Path) {
-				return errors.Errorf("path %q is not local", artefact.Path)
-			}
-			logger.Debugf("Downloading %s", filepath.Join(dest, artefact.Path))
-			err = os.MkdirAll(filepath.Join(dest, filepath.Dir(artefact.Path)), 0700)
-			if err != nil {
-				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
-			}
-			var mode os.FileMode = 0600
-			if artefact.Executable {
-				mode = 0700
-			}
-			w, err := os.OpenFile(filepath.Join(dest, artefact.Path), os.O_CREATE|os.O_WRONLY, mode)
-			if err != nil {
-				return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
-			}
-			defer w.Close()
-			buf := make([]byte, 1024)
-			read := 0
-			for {
-				read, err = res.Read(buf)
-				if read > 0 {
-					_, e2 := w.Write(buf[:read])
-					if e2 != nil {
-						return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
-					}
-				}
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				if err != nil {
-					return errors.Wrapf(err, "failed to download artifact %q", artefact.Digest)
-				}
-			}
+			mlist = append(mlist, md)
 		}
+	}
+	err = service.DownloadArtifacts(ctx, dest, mlist)
+	if err != nil {
+		return errors.Wrapf(err, "failed to download artifacts")
 	}
 	logger.Debugf("Downloaded %d artefacts in %s", count, time.Since(start))
 	return nil

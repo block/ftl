@@ -74,6 +74,11 @@ func (m *Module) GetProvisioned() ResourceSet {
 			Config:             struct{}{},
 			DeploymentSpecific: true,
 		},
+		{
+			Kind:               ResourceTypeImage,
+			Config:             struct{}{},
+			DeploymentSpecific: true,
+		},
 	}
 }
 

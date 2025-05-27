@@ -4758,6 +4758,7 @@ type ModuleRuntime struct {
 	Scaling       *ModuleRuntimeScaling    `protobuf:"bytes,2,opt,name=scaling,proto3,oneof" json:"scaling,omitempty"`
 	Deployment    *ModuleRuntimeDeployment `protobuf:"bytes,3,opt,name=deployment,proto3,oneof" json:"deployment,omitempty"`
 	Runner        *ModuleRuntimeRunner     `protobuf:"bytes,4,opt,name=runner,proto3,oneof" json:"runner,omitempty"`
+	Image         *ModuleRuntimeImage      `protobuf:"bytes,5,opt,name=image,proto3,oneof" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4816,6 +4817,13 @@ func (x *ModuleRuntime) GetDeployment() *ModuleRuntimeDeployment {
 func (x *ModuleRuntime) GetRunner() *ModuleRuntimeRunner {
 	if x != nil {
 		return x.Runner
+	}
+	return nil
+}
+
+func (x *ModuleRuntime) GetImage() *ModuleRuntimeImage {
+	if x != nil {
+		return x.Image
 	}
 	return nil
 }
@@ -4964,6 +4972,50 @@ func (x *ModuleRuntimeDeployment) GetState() DeploymentState {
 	return DeploymentState_DEPLOYMENT_STATE_UNSPECIFIED
 }
 
+type ModuleRuntimeImage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModuleRuntimeImage) Reset() {
+	*x = ModuleRuntimeImage{}
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModuleRuntimeImage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleRuntimeImage) ProtoMessage() {}
+
+func (x *ModuleRuntimeImage) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleRuntimeImage.ProtoReflect.Descriptor instead.
+func (*ModuleRuntimeImage) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *ModuleRuntimeImage) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
 type ModuleRuntimeRunner struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Endpoint          string                 `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
@@ -4974,7 +5026,7 @@ type ModuleRuntimeRunner struct {
 
 func (x *ModuleRuntimeRunner) Reset() {
 	*x = ModuleRuntimeRunner{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4986,7 +5038,7 @@ func (x *ModuleRuntimeRunner) String() string {
 func (*ModuleRuntimeRunner) ProtoMessage() {}
 
 func (x *ModuleRuntimeRunner) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[71]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4999,7 +5051,7 @@ func (x *ModuleRuntimeRunner) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeRunner.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeRunner) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{71}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ModuleRuntimeRunner) GetEndpoint() string {
@@ -5025,7 +5077,7 @@ type ModuleRuntimeScaling struct {
 
 func (x *ModuleRuntimeScaling) Reset() {
 	*x = ModuleRuntimeScaling{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5037,7 +5089,7 @@ func (x *ModuleRuntimeScaling) String() string {
 func (*ModuleRuntimeScaling) ProtoMessage() {}
 
 func (x *ModuleRuntimeScaling) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[72]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5050,7 +5102,7 @@ func (x *ModuleRuntimeScaling) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModuleRuntimeScaling.ProtoReflect.Descriptor instead.
 func (*ModuleRuntimeScaling) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{72}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ModuleRuntimeScaling) GetMinReplicas() int32 {
@@ -5080,7 +5132,7 @@ type Notification struct {
 
 func (x *Notification) Reset() {
 	*x = Notification{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5092,7 +5144,7 @@ func (x *Notification) String() string {
 func (*Notification) ProtoMessage() {}
 
 func (x *Notification) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5105,7 +5157,7 @@ func (x *Notification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Notification.ProtoReflect.Descriptor instead.
 func (*Notification) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{73}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *Notification) GetValue() isNotification_Value {
@@ -5265,7 +5317,7 @@ type Optional struct {
 
 func (x *Optional) Reset() {
 	*x = Optional{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5277,7 +5329,7 @@ func (x *Optional) String() string {
 func (*Optional) ProtoMessage() {}
 
 func (x *Optional) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5290,7 +5342,7 @@ func (x *Optional) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Optional.ProtoReflect.Descriptor instead.
 func (*Optional) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{74}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *Optional) GetPos() *Position {
@@ -5317,7 +5369,7 @@ type PlaintextKafkaSubscriptionConnector struct {
 
 func (x *PlaintextKafkaSubscriptionConnector) Reset() {
 	*x = PlaintextKafkaSubscriptionConnector{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5329,7 +5381,7 @@ func (x *PlaintextKafkaSubscriptionConnector) String() string {
 func (*PlaintextKafkaSubscriptionConnector) ProtoMessage() {}
 
 func (x *PlaintextKafkaSubscriptionConnector) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5342,7 +5394,7 @@ func (x *PlaintextKafkaSubscriptionConnector) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use PlaintextKafkaSubscriptionConnector.ProtoReflect.Descriptor instead.
 func (*PlaintextKafkaSubscriptionConnector) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{75}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *PlaintextKafkaSubscriptionConnector) GetKafkaBrokers() []string {
@@ -5363,7 +5415,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5375,7 +5427,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[76]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5388,7 +5440,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{76}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *Position) GetFilename() string {
@@ -5424,7 +5476,7 @@ type Realm struct {
 
 func (x *Realm) Reset() {
 	*x = Realm{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5436,7 +5488,7 @@ func (x *Realm) String() string {
 func (*Realm) ProtoMessage() {}
 
 func (x *Realm) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[77]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5449,7 +5501,7 @@ func (x *Realm) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Realm.ProtoReflect.Descriptor instead.
 func (*Realm) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{77}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *Realm) GetPos() *Position {
@@ -5493,7 +5545,7 @@ type RealmChange struct {
 
 func (x *RealmChange) Reset() {
 	*x = RealmChange{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5505,7 +5557,7 @@ func (x *RealmChange) String() string {
 func (*RealmChange) ProtoMessage() {}
 
 func (x *RealmChange) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[78]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5518,7 +5570,7 @@ func (x *RealmChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RealmChange.ProtoReflect.Descriptor instead.
 func (*RealmChange) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{78}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *RealmChange) GetName() string {
@@ -5569,7 +5621,7 @@ type Ref struct {
 
 func (x *Ref) Reset() {
 	*x = Ref{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5581,7 +5633,7 @@ func (x *Ref) String() string {
 func (*Ref) ProtoMessage() {}
 
 func (x *Ref) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5594,7 +5646,7 @@ func (x *Ref) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ref.ProtoReflect.Descriptor instead.
 func (*Ref) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{79}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *Ref) GetPos() *Position {
@@ -5632,6 +5684,7 @@ type Runtime struct {
 	//	*Runtime_DatabaseRuntime
 	//	*Runtime_EgressRuntime
 	//	*Runtime_ModuleRuntimeDeployment
+	//	*Runtime_ModuleRuntimeImage
 	//	*Runtime_ModuleRuntimeRunner
 	//	*Runtime_ModuleRuntimeScaling
 	//	*Runtime_PlaintextKafkaSubscriptionConnector
@@ -5643,7 +5696,7 @@ type Runtime struct {
 
 func (x *Runtime) Reset() {
 	*x = Runtime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5655,7 +5708,7 @@ func (x *Runtime) String() string {
 func (*Runtime) ProtoMessage() {}
 
 func (x *Runtime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5668,7 +5721,7 @@ func (x *Runtime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Runtime.ProtoReflect.Descriptor instead.
 func (*Runtime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{80}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *Runtime) GetValue() isRuntime_Value {
@@ -5700,6 +5753,15 @@ func (x *Runtime) GetModuleRuntimeDeployment() *ModuleRuntimeDeployment {
 	if x != nil {
 		if x, ok := x.Value.(*Runtime_ModuleRuntimeDeployment); ok {
 			return x.ModuleRuntimeDeployment
+		}
+	}
+	return nil
+}
+
+func (x *Runtime) GetModuleRuntimeImage() *ModuleRuntimeImage {
+	if x != nil {
+		if x, ok := x.Value.(*Runtime_ModuleRuntimeImage); ok {
+			return x.ModuleRuntimeImage
 		}
 	}
 	return nil
@@ -5757,6 +5819,10 @@ type Runtime_ModuleRuntimeDeployment struct {
 	ModuleRuntimeDeployment *ModuleRuntimeDeployment `protobuf:"bytes,1,opt,name=module_runtime_deployment,json=moduleRuntimeDeployment,proto3,oneof"`
 }
 
+type Runtime_ModuleRuntimeImage struct {
+	ModuleRuntimeImage *ModuleRuntimeImage `protobuf:"bytes,4,opt,name=module_runtime_image,json=moduleRuntimeImage,proto3,oneof"`
+}
+
 type Runtime_ModuleRuntimeRunner struct {
 	ModuleRuntimeRunner *ModuleRuntimeRunner `protobuf:"bytes,3,opt,name=module_runtime_runner,json=moduleRuntimeRunner,proto3,oneof"`
 }
@@ -5779,6 +5845,8 @@ func (*Runtime_EgressRuntime) isRuntime_Value() {}
 
 func (*Runtime_ModuleRuntimeDeployment) isRuntime_Value() {}
 
+func (*Runtime_ModuleRuntimeImage) isRuntime_Value() {}
+
 func (*Runtime_ModuleRuntimeRunner) isRuntime_Value() {}
 
 func (*Runtime_ModuleRuntimeScaling) isRuntime_Value() {}
@@ -5798,7 +5866,7 @@ type RuntimeElement struct {
 
 func (x *RuntimeElement) Reset() {
 	*x = RuntimeElement{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5810,7 +5878,7 @@ func (x *RuntimeElement) String() string {
 func (*RuntimeElement) ProtoMessage() {}
 
 func (x *RuntimeElement) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5823,7 +5891,7 @@ func (x *RuntimeElement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeElement.ProtoReflect.Descriptor instead.
 func (*RuntimeElement) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{81}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *RuntimeElement) GetElement() *Runtime {
@@ -5857,7 +5925,7 @@ type Schema struct {
 
 func (x *Schema) Reset() {
 	*x = Schema{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5869,7 +5937,7 @@ func (x *Schema) String() string {
 func (*Schema) ProtoMessage() {}
 
 func (x *Schema) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5882,7 +5950,7 @@ func (x *Schema) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Schema.ProtoReflect.Descriptor instead.
 func (*Schema) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{82}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *Schema) GetPos() *Position {
@@ -5912,7 +5980,7 @@ type SchemaState struct {
 
 func (x *SchemaState) Reset() {
 	*x = SchemaState{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5924,7 +5992,7 @@ func (x *SchemaState) String() string {
 func (*SchemaState) ProtoMessage() {}
 
 func (x *SchemaState) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5937,7 +6005,7 @@ func (x *SchemaState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SchemaState.ProtoReflect.Descriptor instead.
 func (*SchemaState) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{83}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *SchemaState) GetSchema() *Schema {
@@ -5980,7 +6048,7 @@ type Secret struct {
 
 func (x *Secret) Reset() {
 	*x = Secret{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5992,7 +6060,7 @@ func (x *Secret) String() string {
 func (*Secret) ProtoMessage() {}
 
 func (x *Secret) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6005,7 +6073,7 @@ func (x *Secret) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Secret.ProtoReflect.Descriptor instead.
 func (*Secret) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{84}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *Secret) GetPos() *Position {
@@ -6045,7 +6113,7 @@ type String struct {
 
 func (x *String) Reset() {
 	*x = String{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6057,7 +6125,7 @@ func (x *String) String() string {
 func (*String) ProtoMessage() {}
 
 func (x *String) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6070,7 +6138,7 @@ func (x *String) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use String.ProtoReflect.Descriptor instead.
 func (*String) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{85}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *String) GetPos() *Position {
@@ -6090,7 +6158,7 @@ type StringValue struct {
 
 func (x *StringValue) Reset() {
 	*x = StringValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[86]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6102,7 +6170,7 @@ func (x *StringValue) String() string {
 func (*StringValue) ProtoMessage() {}
 
 func (x *StringValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[86]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6115,7 +6183,7 @@ func (x *StringValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StringValue.ProtoReflect.Descriptor instead.
 func (*StringValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{86}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *StringValue) GetPos() *Position {
@@ -6145,7 +6213,7 @@ type SubscriptionConnector struct {
 
 func (x *SubscriptionConnector) Reset() {
 	*x = SubscriptionConnector{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6157,7 +6225,7 @@ func (x *SubscriptionConnector) String() string {
 func (*SubscriptionConnector) ProtoMessage() {}
 
 func (x *SubscriptionConnector) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6170,7 +6238,7 @@ func (x *SubscriptionConnector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscriptionConnector.ProtoReflect.Descriptor instead.
 func (*SubscriptionConnector) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{87}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *SubscriptionConnector) GetValue() isSubscriptionConnector_Value {
@@ -6208,7 +6276,7 @@ type Time struct {
 
 func (x *Time) Reset() {
 	*x = Time{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6220,7 +6288,7 @@ func (x *Time) String() string {
 func (*Time) ProtoMessage() {}
 
 func (x *Time) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6233,7 +6301,7 @@ func (x *Time) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Time.ProtoReflect.Descriptor instead.
 func (*Time) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{88}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *Time) GetPos() *Position {
@@ -6258,7 +6326,7 @@ type Topic struct {
 
 func (x *Topic) Reset() {
 	*x = Topic{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[89]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6270,7 +6338,7 @@ func (x *Topic) String() string {
 func (*Topic) ProtoMessage() {}
 
 func (x *Topic) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[89]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6283,7 +6351,7 @@ func (x *Topic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Topic.ProtoReflect.Descriptor instead.
 func (*Topic) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{89}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *Topic) GetPos() *Position {
@@ -6345,7 +6413,7 @@ type TopicRuntime struct {
 
 func (x *TopicRuntime) Reset() {
 	*x = TopicRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6357,7 +6425,7 @@ func (x *TopicRuntime) String() string {
 func (*TopicRuntime) ProtoMessage() {}
 
 func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6370,7 +6438,7 @@ func (x *TopicRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicRuntime.ProtoReflect.Descriptor instead.
 func (*TopicRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{90}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *TopicRuntime) GetKafkaBrokers() []string {
@@ -6414,7 +6482,7 @@ type Type struct {
 
 func (x *Type) Reset() {
 	*x = Type{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[91]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6426,7 +6494,7 @@ func (x *Type) String() string {
 func (*Type) ProtoMessage() {}
 
 func (x *Type) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[91]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6439,7 +6507,7 @@ func (x *Type) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Type.ProtoReflect.Descriptor instead.
 func (*Type) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{91}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *Type) GetValue() isType_Value {
@@ -6692,7 +6760,7 @@ type TypeAlias struct {
 
 func (x *TypeAlias) Reset() {
 	*x = TypeAlias{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6704,7 +6772,7 @@ func (x *TypeAlias) String() string {
 func (*TypeAlias) ProtoMessage() {}
 
 func (x *TypeAlias) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6717,7 +6785,7 @@ func (x *TypeAlias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeAlias.ProtoReflect.Descriptor instead.
 func (*TypeAlias) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{92}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *TypeAlias) GetPos() *Position {
@@ -6772,7 +6840,7 @@ type TypeParameter struct {
 
 func (x *TypeParameter) Reset() {
 	*x = TypeParameter{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[93]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6784,7 +6852,7 @@ func (x *TypeParameter) String() string {
 func (*TypeParameter) ProtoMessage() {}
 
 func (x *TypeParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[93]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6797,7 +6865,7 @@ func (x *TypeParameter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeParameter.ProtoReflect.Descriptor instead.
 func (*TypeParameter) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{93}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *TypeParameter) GetPos() *Position {
@@ -6824,7 +6892,7 @@ type TypeValue struct {
 
 func (x *TypeValue) Reset() {
 	*x = TypeValue{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[94]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6836,7 +6904,7 @@ func (x *TypeValue) String() string {
 func (*TypeValue) ProtoMessage() {}
 
 func (x *TypeValue) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[94]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6849,7 +6917,7 @@ func (x *TypeValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeValue.ProtoReflect.Descriptor instead.
 func (*TypeValue) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{94}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *TypeValue) GetPos() *Position {
@@ -6875,7 +6943,7 @@ type Unit struct {
 
 func (x *Unit) Reset() {
 	*x = Unit{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[95]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6887,7 +6955,7 @@ func (x *Unit) String() string {
 func (*Unit) ProtoMessage() {}
 
 func (x *Unit) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[95]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6900,7 +6968,7 @@ func (x *Unit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Unit.ProtoReflect.Descriptor instead.
 func (*Unit) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{95}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *Unit) GetPos() *Position {
@@ -6925,7 +6993,7 @@ type Value struct {
 
 func (x *Value) Reset() {
 	*x = Value{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6937,7 +7005,7 @@ func (x *Value) String() string {
 func (*Value) ProtoMessage() {}
 
 func (x *Value) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6950,7 +7018,7 @@ func (x *Value) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Value.ProtoReflect.Descriptor instead.
 func (*Value) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{96}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *Value) GetValue() isValue_Value {
@@ -7025,7 +7093,7 @@ type Verb struct {
 
 func (x *Verb) Reset() {
 	*x = Verb{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7037,7 +7105,7 @@ func (x *Verb) String() string {
 func (*Verb) ProtoMessage() {}
 
 func (x *Verb) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7050,7 +7118,7 @@ func (x *Verb) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Verb.ProtoReflect.Descriptor instead.
 func (*Verb) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{97}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *Verb) GetPos() *Position {
@@ -7119,7 +7187,7 @@ type VerbRuntime struct {
 
 func (x *VerbRuntime) Reset() {
 	*x = VerbRuntime{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7131,7 +7199,7 @@ func (x *VerbRuntime) String() string {
 func (*VerbRuntime) ProtoMessage() {}
 
 func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7144,7 +7212,7 @@ func (x *VerbRuntime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerbRuntime.ProtoReflect.Descriptor instead.
 func (*VerbRuntime) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{98}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *VerbRuntime) GetSubscriptionConnector() *SubscriptionConnector {
@@ -7172,7 +7240,7 @@ type YAMLFileCredentialsConnector struct {
 
 func (x *YAMLFileCredentialsConnector) Reset() {
 	*x = YAMLFileCredentialsConnector{}
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7184,7 +7252,7 @@ func (x *YAMLFileCredentialsConnector) String() string {
 func (*YAMLFileCredentialsConnector) ProtoMessage() {}
 
 func (x *YAMLFileCredentialsConnector) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99]
+	mi := &file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7197,7 +7265,7 @@ func (x *YAMLFileCredentialsConnector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use YAMLFileCredentialsConnector.ProtoReflect.Descriptor instead.
 func (*YAMLFileCredentialsConnector) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{99}
+	return file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *YAMLFileCredentialsConnector) GetPos() *Position {
@@ -7570,18 +7638,20 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\bmetadata\x18\x06 \x03(\v2!.xyz.block.ftl.schema.v1.MetadataR\bmetadata\x123\n" +
 	"\x05decls\x18\x05 \x03(\v2\x1d.xyz.block.ftl.schema.v1.DeclR\x05decls\x12B\n" +
 	"\aruntime\x18\x92\xf7\x01 \x01(\v2&.xyz.block.ftl.schema.v1.ModuleRuntimeR\aruntimeB\x06\n" +
-	"\x04_pos\"\xe5\x02\n" +
+	"\x04_pos\"\xb7\x03\n" +
 	"\rModuleRuntime\x12>\n" +
 	"\x04base\x18\x01 \x01(\v2*.xyz.block.ftl.schema.v1.ModuleRuntimeBaseR\x04base\x12L\n" +
 	"\ascaling\x18\x02 \x01(\v2-.xyz.block.ftl.schema.v1.ModuleRuntimeScalingH\x00R\ascaling\x88\x01\x01\x12U\n" +
 	"\n" +
 	"deployment\x18\x03 \x01(\v20.xyz.block.ftl.schema.v1.ModuleRuntimeDeploymentH\x01R\n" +
 	"deployment\x88\x01\x01\x12I\n" +
-	"\x06runner\x18\x04 \x01(\v2,.xyz.block.ftl.schema.v1.ModuleRuntimeRunnerH\x02R\x06runner\x88\x01\x01B\n" +
+	"\x06runner\x18\x04 \x01(\v2,.xyz.block.ftl.schema.v1.ModuleRuntimeRunnerH\x02R\x06runner\x88\x01\x01\x12F\n" +
+	"\x05image\x18\x05 \x01(\v2+.xyz.block.ftl.schema.v1.ModuleRuntimeImageH\x03R\x05image\x88\x01\x01B\n" +
 	"\n" +
 	"\b_scalingB\r\n" +
 	"\v_deploymentB\t\n" +
-	"\a_runner\"\xcf\x01\n" +
+	"\a_runnerB\b\n" +
+	"\x06_image\"\xcf\x01\n" +
 	"\x11ModuleRuntimeBase\x12;\n" +
 	"\vcreate_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"createTime\x12\x1a\n" +
@@ -7598,7 +7668,9 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12B\n" +
 	"\factivated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\vactivatedAt\x88\x01\x01\x12>\n" +
 	"\x05state\x18\x05 \x01(\x0e2(.xyz.block.ftl.schema.v1.DeploymentStateR\x05stateB\x0f\n" +
-	"\r_activated_at\"a\n" +
+	"\r_activated_at\"*\n" +
+	"\x12ModuleRuntimeImage\x12\x14\n" +
+	"\x05image\x18\x02 \x01(\tR\x05image\"a\n" +
 	"\x13ModuleRuntimeRunner\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12.\n" +
 	"\x13runner_not_required\x18\x02 \x01(\bR\x11runnerNotRequired\"9\n" +
@@ -7642,11 +7714,12 @@ const file_xyz_block_ftl_schema_v1_schema_proto_rawDesc = "" +
 	"\x06module\x18\x03 \x01(\tR\x06module\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12F\n" +
 	"\x0ftype_parameters\x18\x04 \x03(\v2\x1d.xyz.block.ftl.schema.v1.TypeR\x0etypeParametersB\x06\n" +
-	"\x04_pos\"\xd9\x05\n" +
+	"\x04_pos\"\xba\x06\n" +
 	"\aRuntime\x12U\n" +
 	"\x10database_runtime\x18\x06 \x01(\v2(.xyz.block.ftl.schema.v1.DatabaseRuntimeH\x00R\x0fdatabaseRuntime\x12O\n" +
 	"\x0eegress_runtime\x18\a \x01(\v2&.xyz.block.ftl.schema.v1.EgressRuntimeH\x00R\regressRuntime\x12n\n" +
-	"\x19module_runtime_deployment\x18\x01 \x01(\v20.xyz.block.ftl.schema.v1.ModuleRuntimeDeploymentH\x00R\x17moduleRuntimeDeployment\x12b\n" +
+	"\x19module_runtime_deployment\x18\x01 \x01(\v20.xyz.block.ftl.schema.v1.ModuleRuntimeDeploymentH\x00R\x17moduleRuntimeDeployment\x12_\n" +
+	"\x14module_runtime_image\x18\x04 \x01(\v2+.xyz.block.ftl.schema.v1.ModuleRuntimeImageH\x00R\x12moduleRuntimeImage\x12b\n" +
 	"\x15module_runtime_runner\x18\x03 \x01(\v2,.xyz.block.ftl.schema.v1.ModuleRuntimeRunnerH\x00R\x13moduleRuntimeRunner\x12e\n" +
 	"\x16module_runtime_scaling\x18\x02 \x01(\v2-.xyz.block.ftl.schema.v1.ModuleRuntimeScalingH\x00R\x14moduleRuntimeScaling\x12\x93\x01\n" +
 	"&plaintext_kafka_subscription_connector\x18\b \x01(\v2<.xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnectorH\x00R#plaintextKafkaSubscriptionConnector\x12L\n" +
@@ -7821,7 +7894,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_schema_v1_schema_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
+var file_xyz_block_ftl_schema_v1_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 101)
 var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(AliasKind)(0),                              // 0: xyz.block.ftl.schema.v1.AliasKind
 	(ChangesetState)(0),                         // 1: xyz.block.ftl.schema.v1.ChangesetState
@@ -7899,65 +7972,66 @@ var file_xyz_block_ftl_schema_v1_schema_proto_goTypes = []any{
 	(*ModuleRuntime)(nil),                       // 73: xyz.block.ftl.schema.v1.ModuleRuntime
 	(*ModuleRuntimeBase)(nil),                   // 74: xyz.block.ftl.schema.v1.ModuleRuntimeBase
 	(*ModuleRuntimeDeployment)(nil),             // 75: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	(*ModuleRuntimeRunner)(nil),                 // 76: xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	(*ModuleRuntimeScaling)(nil),                // 77: xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	(*Notification)(nil),                        // 78: xyz.block.ftl.schema.v1.Notification
-	(*Optional)(nil),                            // 79: xyz.block.ftl.schema.v1.Optional
-	(*PlaintextKafkaSubscriptionConnector)(nil), // 80: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
-	(*Position)(nil),                            // 81: xyz.block.ftl.schema.v1.Position
-	(*Realm)(nil),                               // 82: xyz.block.ftl.schema.v1.Realm
-	(*RealmChange)(nil),                         // 83: xyz.block.ftl.schema.v1.RealmChange
-	(*Ref)(nil),                                 // 84: xyz.block.ftl.schema.v1.Ref
-	(*Runtime)(nil),                             // 85: xyz.block.ftl.schema.v1.Runtime
-	(*RuntimeElement)(nil),                      // 86: xyz.block.ftl.schema.v1.RuntimeElement
-	(*Schema)(nil),                              // 87: xyz.block.ftl.schema.v1.Schema
-	(*SchemaState)(nil),                         // 88: xyz.block.ftl.schema.v1.SchemaState
-	(*Secret)(nil),                              // 89: xyz.block.ftl.schema.v1.Secret
-	(*String)(nil),                              // 90: xyz.block.ftl.schema.v1.String
-	(*StringValue)(nil),                         // 91: xyz.block.ftl.schema.v1.StringValue
-	(*SubscriptionConnector)(nil),               // 92: xyz.block.ftl.schema.v1.SubscriptionConnector
-	(*Time)(nil),                                // 93: xyz.block.ftl.schema.v1.Time
-	(*Topic)(nil),                               // 94: xyz.block.ftl.schema.v1.Topic
-	(*TopicRuntime)(nil),                        // 95: xyz.block.ftl.schema.v1.TopicRuntime
-	(*Type)(nil),                                // 96: xyz.block.ftl.schema.v1.Type
-	(*TypeAlias)(nil),                           // 97: xyz.block.ftl.schema.v1.TypeAlias
-	(*TypeParameter)(nil),                       // 98: xyz.block.ftl.schema.v1.TypeParameter
-	(*TypeValue)(nil),                           // 99: xyz.block.ftl.schema.v1.TypeValue
-	(*Unit)(nil),                                // 100: xyz.block.ftl.schema.v1.Unit
-	(*Value)(nil),                               // 101: xyz.block.ftl.schema.v1.Value
-	(*Verb)(nil),                                // 102: xyz.block.ftl.schema.v1.Verb
-	(*VerbRuntime)(nil),                         // 103: xyz.block.ftl.schema.v1.VerbRuntime
-	(*YAMLFileCredentialsConnector)(nil),        // 104: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
-	(*timestamppb.Timestamp)(nil),               // 105: google.protobuf.Timestamp
+	(*ModuleRuntimeImage)(nil),                  // 76: xyz.block.ftl.schema.v1.ModuleRuntimeImage
+	(*ModuleRuntimeRunner)(nil),                 // 77: xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	(*ModuleRuntimeScaling)(nil),                // 78: xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	(*Notification)(nil),                        // 79: xyz.block.ftl.schema.v1.Notification
+	(*Optional)(nil),                            // 80: xyz.block.ftl.schema.v1.Optional
+	(*PlaintextKafkaSubscriptionConnector)(nil), // 81: xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+	(*Position)(nil),                            // 82: xyz.block.ftl.schema.v1.Position
+	(*Realm)(nil),                               // 83: xyz.block.ftl.schema.v1.Realm
+	(*RealmChange)(nil),                         // 84: xyz.block.ftl.schema.v1.RealmChange
+	(*Ref)(nil),                                 // 85: xyz.block.ftl.schema.v1.Ref
+	(*Runtime)(nil),                             // 86: xyz.block.ftl.schema.v1.Runtime
+	(*RuntimeElement)(nil),                      // 87: xyz.block.ftl.schema.v1.RuntimeElement
+	(*Schema)(nil),                              // 88: xyz.block.ftl.schema.v1.Schema
+	(*SchemaState)(nil),                         // 89: xyz.block.ftl.schema.v1.SchemaState
+	(*Secret)(nil),                              // 90: xyz.block.ftl.schema.v1.Secret
+	(*String)(nil),                              // 91: xyz.block.ftl.schema.v1.String
+	(*StringValue)(nil),                         // 92: xyz.block.ftl.schema.v1.StringValue
+	(*SubscriptionConnector)(nil),               // 93: xyz.block.ftl.schema.v1.SubscriptionConnector
+	(*Time)(nil),                                // 94: xyz.block.ftl.schema.v1.Time
+	(*Topic)(nil),                               // 95: xyz.block.ftl.schema.v1.Topic
+	(*TopicRuntime)(nil),                        // 96: xyz.block.ftl.schema.v1.TopicRuntime
+	(*Type)(nil),                                // 97: xyz.block.ftl.schema.v1.Type
+	(*TypeAlias)(nil),                           // 98: xyz.block.ftl.schema.v1.TypeAlias
+	(*TypeParameter)(nil),                       // 99: xyz.block.ftl.schema.v1.TypeParameter
+	(*TypeValue)(nil),                           // 100: xyz.block.ftl.schema.v1.TypeValue
+	(*Unit)(nil),                                // 101: xyz.block.ftl.schema.v1.Unit
+	(*Value)(nil),                               // 102: xyz.block.ftl.schema.v1.Value
+	(*Verb)(nil),                                // 103: xyz.block.ftl.schema.v1.Verb
+	(*VerbRuntime)(nil),                         // 104: xyz.block.ftl.schema.v1.VerbRuntime
+	(*YAMLFileCredentialsConnector)(nil),        // 105: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
+	(*timestamppb.Timestamp)(nil),               // 106: google.protobuf.Timestamp
 }
 var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
-	81,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 1: xyz.block.ftl.schema.v1.Any.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 2: xyz.block.ftl.schema.v1.Array.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	105, // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
-	83,  // 7: xyz.block.ftl.schema.v1.Changeset.realm_changes:type_name -> xyz.block.ftl.schema.v1.RealmChange
+	82,  // 0: xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 1: xyz.block.ftl.schema.v1.Any.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 2: xyz.block.ftl.schema.v1.Array.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 3: xyz.block.ftl.schema.v1.Array.element:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 4: xyz.block.ftl.schema.v1.Bool.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 5: xyz.block.ftl.schema.v1.Bytes.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	106, // 6: xyz.block.ftl.schema.v1.Changeset.created_at:type_name -> google.protobuf.Timestamp
+	84,  // 7: xyz.block.ftl.schema.v1.Changeset.realm_changes:type_name -> xyz.block.ftl.schema.v1.RealmChange
 	1,   // 8: xyz.block.ftl.schema.v1.Changeset.state:type_name -> xyz.block.ftl.schema.v1.ChangesetState
 	10,  // 9: xyz.block.ftl.schema.v1.ChangesetCommittedNotification.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
 	10,  // 10: xyz.block.ftl.schema.v1.ChangesetCreatedEvent.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
 	10,  // 11: xyz.block.ftl.schema.v1.ChangesetCreatedNotification.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
 	10,  // 12: xyz.block.ftl.schema.v1.ChangesetRollingBackNotification.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
-	81,  // 13: xyz.block.ftl.schema.v1.Config.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 14: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 15: xyz.block.ftl.schema.v1.DSNDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 16: xyz.block.ftl.schema.v1.Data.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 13: xyz.block.ftl.schema.v1.Config.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 14: xyz.block.ftl.schema.v1.Config.type:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 15: xyz.block.ftl.schema.v1.DSNDatabaseConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 16: xyz.block.ftl.schema.v1.Data.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	4,   // 17: xyz.block.ftl.schema.v1.Data.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	98,  // 18: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
+	99,  // 18: xyz.block.ftl.schema.v1.Data.type_parameters:type_name -> xyz.block.ftl.schema.v1.TypeParameter
 	49,  // 19: xyz.block.ftl.schema.v1.Data.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	40,  // 20: xyz.block.ftl.schema.v1.Data.fields:type_name -> xyz.block.ftl.schema.v1.Field
-	81,  // 21: xyz.block.ftl.schema.v1.Database.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 21: xyz.block.ftl.schema.v1.Database.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	30,  // 22: xyz.block.ftl.schema.v1.Database.runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
 	49,  // 23: xyz.block.ftl.schema.v1.Database.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	5,   // 24: xyz.block.ftl.schema.v1.DatabaseConnector.awsiam_auth_database_connector:type_name -> xyz.block.ftl.schema.v1.AWSIAMAuthDatabaseConnector
 	26,  // 25: xyz.block.ftl.schema.v1.DatabaseConnector.dsn_database_connector:type_name -> xyz.block.ftl.schema.v1.DSNDatabaseConnector
-	104, // 26: xyz.block.ftl.schema.v1.DatabaseConnector.yaml_file_credentials_connector:type_name -> xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
+	105, // 26: xyz.block.ftl.schema.v1.DatabaseConnector.yaml_file_credentials_connector:type_name -> xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector
 	31,  // 27: xyz.block.ftl.schema.v1.DatabaseRuntime.connections:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntimeConnections
 	29,  // 28: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.read:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
 	29,  // 29: xyz.block.ftl.schema.v1.DatabaseRuntimeConnections.write:type_name -> xyz.block.ftl.schema.v1.DatabaseConnector
@@ -7965,19 +8039,19 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	27,  // 31: xyz.block.ftl.schema.v1.Decl.data:type_name -> xyz.block.ftl.schema.v1.Data
 	28,  // 32: xyz.block.ftl.schema.v1.Decl.database:type_name -> xyz.block.ftl.schema.v1.Database
 	37,  // 33: xyz.block.ftl.schema.v1.Decl.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	89,  // 34: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
-	94,  // 35: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
-	97,  // 36: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	102, // 37: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
-	86,  // 38: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	86,  // 39: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	90,  // 34: xyz.block.ftl.schema.v1.Decl.secret:type_name -> xyz.block.ftl.schema.v1.Secret
+	95,  // 35: xyz.block.ftl.schema.v1.Decl.topic:type_name -> xyz.block.ftl.schema.v1.Topic
+	98,  // 36: xyz.block.ftl.schema.v1.Decl.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	103, // 37: xyz.block.ftl.schema.v1.Decl.verb:type_name -> xyz.block.ftl.schema.v1.Verb
+	87,  // 38: xyz.block.ftl.schema.v1.DeploymentRuntimeEvent.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	87,  // 39: xyz.block.ftl.schema.v1.DeploymentRuntimeNotification.payload:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
 	36,  // 40: xyz.block.ftl.schema.v1.EgressRuntime.targets:type_name -> xyz.block.ftl.schema.v1.EgressTarget
-	81,  // 41: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 41: xyz.block.ftl.schema.v1.Enum.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	4,   // 42: xyz.block.ftl.schema.v1.Enum.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 43: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
+	97,  // 43: xyz.block.ftl.schema.v1.Enum.type:type_name -> xyz.block.ftl.schema.v1.Type
 	38,  // 44: xyz.block.ftl.schema.v1.Enum.variants:type_name -> xyz.block.ftl.schema.v1.EnumVariant
-	81,  // 45: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	101, // 46: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
+	82,  // 45: xyz.block.ftl.schema.v1.EnumVariant.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	102, // 46: xyz.block.ftl.schema.v1.EnumVariant.value:type_name -> xyz.block.ftl.schema.v1.Value
 	11,  // 47: xyz.block.ftl.schema.v1.Event.changeset_committed_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedEvent
 	13,  // 48: xyz.block.ftl.schema.v1.Event.changeset_created_event:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedEvent
 	15,  // 49: xyz.block.ftl.schema.v1.Event.changeset_drained_event:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedEvent
@@ -7986,21 +8060,21 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	21,  // 52: xyz.block.ftl.schema.v1.Event.changeset_prepared_event:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedEvent
 	23,  // 53: xyz.block.ftl.schema.v1.Event.changeset_rolling_back_event:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackEvent
 	33,  // 54: xyz.block.ftl.schema.v1.Event.deployment_runtime_event:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	81,  // 55: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 56: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 55: xyz.block.ftl.schema.v1.Field.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 56: xyz.block.ftl.schema.v1.Field.type:type_name -> xyz.block.ftl.schema.v1.Type
 	49,  // 57: xyz.block.ftl.schema.v1.Field.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	81,  // 58: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	87,  // 59: xyz.block.ftl.schema.v1.FullSchemaNotification.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	82,  // 58: xyz.block.ftl.schema.v1.Float.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	88,  // 59: xyz.block.ftl.schema.v1.FullSchemaNotification.schema:type_name -> xyz.block.ftl.schema.v1.Schema
 	10,  // 60: xyz.block.ftl.schema.v1.FullSchemaNotification.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
 	44,  // 61: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_literal:type_name -> xyz.block.ftl.schema.v1.IngressPathLiteral
 	45,  // 62: xyz.block.ftl.schema.v1.IngressPathComponent.ingress_path_parameter:type_name -> xyz.block.ftl.schema.v1.IngressPathParameter
-	81,  // 63: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 64: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 65: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 66: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 67: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 68: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
-	96,  // 69: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 63: xyz.block.ftl.schema.v1.IngressPathLiteral.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 64: xyz.block.ftl.schema.v1.IngressPathParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 65: xyz.block.ftl.schema.v1.Int.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 66: xyz.block.ftl.schema.v1.IntValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 67: xyz.block.ftl.schema.v1.Map.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 68: xyz.block.ftl.schema.v1.Map.key:type_name -> xyz.block.ftl.schema.v1.Type
+	97,  // 69: xyz.block.ftl.schema.v1.Map.value:type_name -> xyz.block.ftl.schema.v1.Type
 	50,  // 70: xyz.block.ftl.schema.v1.Metadata.alias:type_name -> xyz.block.ftl.schema.v1.MetadataAlias
 	51,  // 71: xyz.block.ftl.schema.v1.Metadata.artefact:type_name -> xyz.block.ftl.schema.v1.MetadataArtefact
 	52,  // 72: xyz.block.ftl.schema.v1.Metadata.calls:type_name -> xyz.block.ftl.schema.v1.MetadataCalls
@@ -8023,132 +8097,134 @@ var file_xyz_block_ftl_schema_v1_schema_proto_depIdxs = []int32{
 	69,  // 89: xyz.block.ftl.schema.v1.Metadata.subscriber:type_name -> xyz.block.ftl.schema.v1.MetadataSubscriber
 	70,  // 90: xyz.block.ftl.schema.v1.Metadata.transaction:type_name -> xyz.block.ftl.schema.v1.MetadataTransaction
 	71,  // 91: xyz.block.ftl.schema.v1.Metadata.type_map:type_name -> xyz.block.ftl.schema.v1.MetadataTypeMap
-	81,  // 92: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 92: xyz.block.ftl.schema.v1.MetadataAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	0,   // 93: xyz.block.ftl.schema.v1.MetadataAlias.kind:type_name -> xyz.block.ftl.schema.v1.AliasKind
-	81,  // 94: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 95: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 96: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 97: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 98: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 99: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 100: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 101: xyz.block.ftl.schema.v1.MetadataDatabases.uses:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 102: xyz.block.ftl.schema.v1.MetadataEgress.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 103: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 104: xyz.block.ftl.schema.v1.MetadataFixture.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 105: xyz.block.ftl.schema.v1.MetadataGenerated.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 106: xyz.block.ftl.schema.v1.MetadataGit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 107: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 94: xyz.block.ftl.schema.v1.MetadataArtefact.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 95: xyz.block.ftl.schema.v1.MetadataCalls.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 96: xyz.block.ftl.schema.v1.MetadataCalls.calls:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 97: xyz.block.ftl.schema.v1.MetadataConfig.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 98: xyz.block.ftl.schema.v1.MetadataConfig.config:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 99: xyz.block.ftl.schema.v1.MetadataCronJob.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 100: xyz.block.ftl.schema.v1.MetadataDatabases.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 101: xyz.block.ftl.schema.v1.MetadataDatabases.uses:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 102: xyz.block.ftl.schema.v1.MetadataEgress.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 103: xyz.block.ftl.schema.v1.MetadataEncoding.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 104: xyz.block.ftl.schema.v1.MetadataFixture.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 105: xyz.block.ftl.schema.v1.MetadataGenerated.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 106: xyz.block.ftl.schema.v1.MetadataGit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 107: xyz.block.ftl.schema.v1.MetadataIngress.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	43,  // 108: xyz.block.ftl.schema.v1.MetadataIngress.path:type_name -> xyz.block.ftl.schema.v1.IngressPathComponent
-	81,  // 109: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 110: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 111: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 112: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 113: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 114: xyz.block.ftl.schema.v1.MetadataSQLColumn.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 115: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 116: xyz.block.ftl.schema.v1.MetadataSQLQuery.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 117: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 118: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
-	81,  // 119: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	84,  // 120: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 109: xyz.block.ftl.schema.v1.MetadataPartitions.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 110: xyz.block.ftl.schema.v1.MetadataPublisher.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 111: xyz.block.ftl.schema.v1.MetadataPublisher.topics:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 112: xyz.block.ftl.schema.v1.MetadataRetry.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 113: xyz.block.ftl.schema.v1.MetadataRetry.catch:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 114: xyz.block.ftl.schema.v1.MetadataSQLColumn.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 115: xyz.block.ftl.schema.v1.MetadataSQLMigration.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 116: xyz.block.ftl.schema.v1.MetadataSQLQuery.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 117: xyz.block.ftl.schema.v1.MetadataSecrets.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 118: xyz.block.ftl.schema.v1.MetadataSecrets.secrets:type_name -> xyz.block.ftl.schema.v1.Ref
+	82,  // 119: xyz.block.ftl.schema.v1.MetadataSubscriber.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	85,  // 120: xyz.block.ftl.schema.v1.MetadataSubscriber.topic:type_name -> xyz.block.ftl.schema.v1.Ref
 	3,   // 121: xyz.block.ftl.schema.v1.MetadataSubscriber.from_offset:type_name -> xyz.block.ftl.schema.v1.FromOffset
-	81,  // 122: xyz.block.ftl.schema.v1.MetadataTransaction.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 123: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 124: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 122: xyz.block.ftl.schema.v1.MetadataTransaction.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 123: xyz.block.ftl.schema.v1.MetadataTypeMap.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 124: xyz.block.ftl.schema.v1.Module.pos:type_name -> xyz.block.ftl.schema.v1.Position
 	49,  // 125: xyz.block.ftl.schema.v1.Module.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
 	32,  // 126: xyz.block.ftl.schema.v1.Module.decls:type_name -> xyz.block.ftl.schema.v1.Decl
 	73,  // 127: xyz.block.ftl.schema.v1.Module.runtime:type_name -> xyz.block.ftl.schema.v1.ModuleRuntime
 	74,  // 128: xyz.block.ftl.schema.v1.ModuleRuntime.base:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeBase
-	77,  // 129: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	78,  // 129: xyz.block.ftl.schema.v1.ModuleRuntime.scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
 	75,  // 130: xyz.block.ftl.schema.v1.ModuleRuntime.deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	76,  // 131: xyz.block.ftl.schema.v1.ModuleRuntime.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	105, // 132: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
-	105, // 133: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
-	105, // 134: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
-	2,   // 135: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
-	12,  // 136: xyz.block.ftl.schema.v1.Notification.changeset_committed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedNotification
-	14,  // 137: xyz.block.ftl.schema.v1.Notification.changeset_created_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedNotification
-	16,  // 138: xyz.block.ftl.schema.v1.Notification.changeset_drained_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedNotification
-	18,  // 139: xyz.block.ftl.schema.v1.Notification.changeset_failed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedNotification
-	20,  // 140: xyz.block.ftl.schema.v1.Notification.changeset_finalized_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedNotification
-	22,  // 141: xyz.block.ftl.schema.v1.Notification.changeset_prepared_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedNotification
-	24,  // 142: xyz.block.ftl.schema.v1.Notification.changeset_rolling_back_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
-	34,  // 143: xyz.block.ftl.schema.v1.Notification.deployment_runtime_notification:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
-	42,  // 144: xyz.block.ftl.schema.v1.Notification.full_schema_notification:type_name -> xyz.block.ftl.schema.v1.FullSchemaNotification
-	81,  // 145: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 146: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 147: xyz.block.ftl.schema.v1.Realm.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	72,  // 148: xyz.block.ftl.schema.v1.Realm.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	72,  // 149: xyz.block.ftl.schema.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
-	72,  // 150: xyz.block.ftl.schema.v1.RealmChange.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
-	81,  // 151: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 152: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
-	30,  // 153: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
-	35,  // 154: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
-	75,  // 155: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
-	76,  // 156: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
-	77,  // 157: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
-	80,  // 158: xyz.block.ftl.schema.v1.Runtime.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
-	95,  // 159: xyz.block.ftl.schema.v1.Runtime.topic_runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	85,  // 160: xyz.block.ftl.schema.v1.RuntimeElement.element:type_name -> xyz.block.ftl.schema.v1.Runtime
-	81,  // 161: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	82,  // 162: xyz.block.ftl.schema.v1.Schema.realms:type_name -> xyz.block.ftl.schema.v1.Realm
-	87,  // 163: xyz.block.ftl.schema.v1.SchemaState.schema:type_name -> xyz.block.ftl.schema.v1.Schema
-	10,  // 164: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
-	33,  // 165: xyz.block.ftl.schema.v1.SchemaState.changeset_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	33,  // 166: xyz.block.ftl.schema.v1.SchemaState.deployment_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
-	81,  // 167: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 168: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 169: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 170: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	80,  // 171: xyz.block.ftl.schema.v1.SubscriptionConnector.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
-	81,  // 172: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 173: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	95,  // 174: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
-	4,   // 175: xyz.block.ftl.schema.v1.Topic.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 176: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 177: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	6,   // 178: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
-	7,   // 179: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
-	8,   // 180: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
-	9,   // 181: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
-	27,  // 182: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
-	37,  // 183: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
-	41,  // 184: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
-	46,  // 185: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
-	48,  // 186: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
-	79,  // 187: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
-	84,  // 188: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
-	90,  // 189: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
-	93,  // 190: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
-	97,  // 191: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
-	100, // 192: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
-	81,  // 193: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 194: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 195: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 196: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	81,  // 197: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	81,  // 198: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	96,  // 199: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
-	81,  // 200: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	47,  // 201: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
-	91,  // 202: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
-	99,  // 203: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
-	81,  // 204: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	4,   // 205: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
-	96,  // 206: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
-	96,  // 207: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
-	49,  // 208: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
-	103, // 209: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
-	92,  // 210: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
-	35,  // 211: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
-	81,  // 212: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
-	213, // [213:213] is the sub-list for method output_type
-	213, // [213:213] is the sub-list for method input_type
-	213, // [213:213] is the sub-list for extension type_name
-	213, // [213:213] is the sub-list for extension extendee
-	0,   // [0:213] is the sub-list for field type_name
+	77,  // 131: xyz.block.ftl.schema.v1.ModuleRuntime.runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	76,  // 132: xyz.block.ftl.schema.v1.ModuleRuntime.image:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeImage
+	106, // 133: xyz.block.ftl.schema.v1.ModuleRuntimeBase.create_time:type_name -> google.protobuf.Timestamp
+	106, // 134: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.created_at:type_name -> google.protobuf.Timestamp
+	106, // 135: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.activated_at:type_name -> google.protobuf.Timestamp
+	2,   // 136: xyz.block.ftl.schema.v1.ModuleRuntimeDeployment.state:type_name -> xyz.block.ftl.schema.v1.DeploymentState
+	12,  // 137: xyz.block.ftl.schema.v1.Notification.changeset_committed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCommittedNotification
+	14,  // 138: xyz.block.ftl.schema.v1.Notification.changeset_created_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetCreatedNotification
+	16,  // 139: xyz.block.ftl.schema.v1.Notification.changeset_drained_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetDrainedNotification
+	18,  // 140: xyz.block.ftl.schema.v1.Notification.changeset_failed_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFailedNotification
+	20,  // 141: xyz.block.ftl.schema.v1.Notification.changeset_finalized_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetFinalizedNotification
+	22,  // 142: xyz.block.ftl.schema.v1.Notification.changeset_prepared_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetPreparedNotification
+	24,  // 143: xyz.block.ftl.schema.v1.Notification.changeset_rolling_back_notification:type_name -> xyz.block.ftl.schema.v1.ChangesetRollingBackNotification
+	34,  // 144: xyz.block.ftl.schema.v1.Notification.deployment_runtime_notification:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeNotification
+	42,  // 145: xyz.block.ftl.schema.v1.Notification.full_schema_notification:type_name -> xyz.block.ftl.schema.v1.FullSchemaNotification
+	82,  // 146: xyz.block.ftl.schema.v1.Optional.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 147: xyz.block.ftl.schema.v1.Optional.type:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 148: xyz.block.ftl.schema.v1.Realm.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	72,  // 149: xyz.block.ftl.schema.v1.Realm.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	72,  // 150: xyz.block.ftl.schema.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	72,  // 151: xyz.block.ftl.schema.v1.RealmChange.removing_modules:type_name -> xyz.block.ftl.schema.v1.Module
+	82,  // 152: xyz.block.ftl.schema.v1.Ref.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 153: xyz.block.ftl.schema.v1.Ref.type_parameters:type_name -> xyz.block.ftl.schema.v1.Type
+	30,  // 154: xyz.block.ftl.schema.v1.Runtime.database_runtime:type_name -> xyz.block.ftl.schema.v1.DatabaseRuntime
+	35,  // 155: xyz.block.ftl.schema.v1.Runtime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	75,  // 156: xyz.block.ftl.schema.v1.Runtime.module_runtime_deployment:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeDeployment
+	76,  // 157: xyz.block.ftl.schema.v1.Runtime.module_runtime_image:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeImage
+	77,  // 158: xyz.block.ftl.schema.v1.Runtime.module_runtime_runner:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeRunner
+	78,  // 159: xyz.block.ftl.schema.v1.Runtime.module_runtime_scaling:type_name -> xyz.block.ftl.schema.v1.ModuleRuntimeScaling
+	81,  // 160: xyz.block.ftl.schema.v1.Runtime.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+	96,  // 161: xyz.block.ftl.schema.v1.Runtime.topic_runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	86,  // 162: xyz.block.ftl.schema.v1.RuntimeElement.element:type_name -> xyz.block.ftl.schema.v1.Runtime
+	82,  // 163: xyz.block.ftl.schema.v1.Schema.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	83,  // 164: xyz.block.ftl.schema.v1.Schema.realms:type_name -> xyz.block.ftl.schema.v1.Realm
+	88,  // 165: xyz.block.ftl.schema.v1.SchemaState.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	10,  // 166: xyz.block.ftl.schema.v1.SchemaState.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
+	33,  // 167: xyz.block.ftl.schema.v1.SchemaState.changeset_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
+	33,  // 168: xyz.block.ftl.schema.v1.SchemaState.deployment_events:type_name -> xyz.block.ftl.schema.v1.DeploymentRuntimeEvent
+	82,  // 169: xyz.block.ftl.schema.v1.Secret.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 170: xyz.block.ftl.schema.v1.Secret.type:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 171: xyz.block.ftl.schema.v1.String.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 172: xyz.block.ftl.schema.v1.StringValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	81,  // 173: xyz.block.ftl.schema.v1.SubscriptionConnector.plaintext_kafka_subscription_connector:type_name -> xyz.block.ftl.schema.v1.PlaintextKafkaSubscriptionConnector
+	82,  // 174: xyz.block.ftl.schema.v1.Time.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 175: xyz.block.ftl.schema.v1.Topic.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	96,  // 176: xyz.block.ftl.schema.v1.Topic.runtime:type_name -> xyz.block.ftl.schema.v1.TopicRuntime
+	4,   // 177: xyz.block.ftl.schema.v1.Topic.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 178: xyz.block.ftl.schema.v1.Topic.event:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 179: xyz.block.ftl.schema.v1.Topic.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	6,   // 180: xyz.block.ftl.schema.v1.Type.any:type_name -> xyz.block.ftl.schema.v1.Any
+	7,   // 181: xyz.block.ftl.schema.v1.Type.array:type_name -> xyz.block.ftl.schema.v1.Array
+	8,   // 182: xyz.block.ftl.schema.v1.Type.bool:type_name -> xyz.block.ftl.schema.v1.Bool
+	9,   // 183: xyz.block.ftl.schema.v1.Type.bytes:type_name -> xyz.block.ftl.schema.v1.Bytes
+	27,  // 184: xyz.block.ftl.schema.v1.Type.data:type_name -> xyz.block.ftl.schema.v1.Data
+	37,  // 185: xyz.block.ftl.schema.v1.Type.enum:type_name -> xyz.block.ftl.schema.v1.Enum
+	41,  // 186: xyz.block.ftl.schema.v1.Type.float:type_name -> xyz.block.ftl.schema.v1.Float
+	46,  // 187: xyz.block.ftl.schema.v1.Type.int:type_name -> xyz.block.ftl.schema.v1.Int
+	48,  // 188: xyz.block.ftl.schema.v1.Type.map:type_name -> xyz.block.ftl.schema.v1.Map
+	80,  // 189: xyz.block.ftl.schema.v1.Type.optional:type_name -> xyz.block.ftl.schema.v1.Optional
+	85,  // 190: xyz.block.ftl.schema.v1.Type.ref:type_name -> xyz.block.ftl.schema.v1.Ref
+	91,  // 191: xyz.block.ftl.schema.v1.Type.string:type_name -> xyz.block.ftl.schema.v1.String
+	94,  // 192: xyz.block.ftl.schema.v1.Type.time:type_name -> xyz.block.ftl.schema.v1.Time
+	98,  // 193: xyz.block.ftl.schema.v1.Type.type_alias:type_name -> xyz.block.ftl.schema.v1.TypeAlias
+	101, // 194: xyz.block.ftl.schema.v1.Type.unit:type_name -> xyz.block.ftl.schema.v1.Unit
+	82,  // 195: xyz.block.ftl.schema.v1.TypeAlias.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 196: xyz.block.ftl.schema.v1.TypeAlias.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 197: xyz.block.ftl.schema.v1.TypeAlias.type:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 198: xyz.block.ftl.schema.v1.TypeAlias.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	82,  // 199: xyz.block.ftl.schema.v1.TypeParameter.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	82,  // 200: xyz.block.ftl.schema.v1.TypeValue.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	97,  // 201: xyz.block.ftl.schema.v1.TypeValue.value:type_name -> xyz.block.ftl.schema.v1.Type
+	82,  // 202: xyz.block.ftl.schema.v1.Unit.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	47,  // 203: xyz.block.ftl.schema.v1.Value.int_value:type_name -> xyz.block.ftl.schema.v1.IntValue
+	92,  // 204: xyz.block.ftl.schema.v1.Value.string_value:type_name -> xyz.block.ftl.schema.v1.StringValue
+	100, // 205: xyz.block.ftl.schema.v1.Value.type_value:type_name -> xyz.block.ftl.schema.v1.TypeValue
+	82,  // 206: xyz.block.ftl.schema.v1.Verb.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	4,   // 207: xyz.block.ftl.schema.v1.Verb.visibility:type_name -> xyz.block.ftl.schema.v1.Visibility
+	97,  // 208: xyz.block.ftl.schema.v1.Verb.request:type_name -> xyz.block.ftl.schema.v1.Type
+	97,  // 209: xyz.block.ftl.schema.v1.Verb.response:type_name -> xyz.block.ftl.schema.v1.Type
+	49,  // 210: xyz.block.ftl.schema.v1.Verb.metadata:type_name -> xyz.block.ftl.schema.v1.Metadata
+	104, // 211: xyz.block.ftl.schema.v1.Verb.runtime:type_name -> xyz.block.ftl.schema.v1.VerbRuntime
+	93,  // 212: xyz.block.ftl.schema.v1.VerbRuntime.subscription_connector:type_name -> xyz.block.ftl.schema.v1.SubscriptionConnector
+	35,  // 213: xyz.block.ftl.schema.v1.VerbRuntime.egress_runtime:type_name -> xyz.block.ftl.schema.v1.EgressRuntime
+	82,  // 214: xyz.block.ftl.schema.v1.YAMLFileCredentialsConnector.pos:type_name -> xyz.block.ftl.schema.v1.Position
+	215, // [215:215] is the sub-list for method output_type
+	215, // [215:215] is the sub-list for method input_type
+	215, // [215:215] is the sub-list for extension type_name
+	215, // [215:215] is the sub-list for extension extendee
+	0,   // [0:215] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_schema_v1_schema_proto_init() }
@@ -8255,7 +8331,7 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[68].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[69].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[70].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[73].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74].OneofWrappers = []any{
 		(*Notification_ChangesetCommittedNotification)(nil),
 		(*Notification_ChangesetCreatedNotification)(nil),
 		(*Notification_ChangesetDrainedNotification)(nil),
@@ -8266,28 +8342,29 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Notification_DeploymentRuntimeNotification)(nil),
 		(*Notification_FullSchemaNotification)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[74].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[79].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[75].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[80].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81].OneofWrappers = []any{
 		(*Runtime_DatabaseRuntime)(nil),
 		(*Runtime_EgressRuntime)(nil),
 		(*Runtime_ModuleRuntimeDeployment)(nil),
+		(*Runtime_ModuleRuntimeImage)(nil),
 		(*Runtime_ModuleRuntimeRunner)(nil),
 		(*Runtime_ModuleRuntimeScaling)(nil),
 		(*Runtime_PlaintextKafkaSubscriptionConnector)(nil),
 		(*Runtime_TopicRuntime)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[81].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[82].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[84].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[83].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[85].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[86].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[87].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88].OneofWrappers = []any{
 		(*SubscriptionConnector_PlaintextKafkaSubscriptionConnector)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[88].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[89].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[91].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[90].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92].OneofWrappers = []any{
 		(*Type_Any)(nil),
 		(*Type_Array)(nil),
 		(*Type_Bool)(nil),
@@ -8304,25 +8381,25 @@ func file_xyz_block_ftl_schema_v1_schema_proto_init() {
 		(*Type_TypeAlias)(nil),
 		(*Type_Unit)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[92].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[93].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[94].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[95].OneofWrappers = []any{}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96].OneofWrappers = []any{
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[96].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97].OneofWrappers = []any{
 		(*Value_IntValue)(nil),
 		(*Value_StringValue)(nil),
 		(*Value_TypeValue)(nil),
 	}
-	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[97].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[98].OneofWrappers = []any{}
 	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[99].OneofWrappers = []any{}
+	file_xyz_block_ftl_schema_v1_schema_proto_msgTypes[100].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_schema_v1_schema_proto_rawDesc), len(file_xyz_block_ftl_schema_v1_schema_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   100,
+			NumMessages:   101,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

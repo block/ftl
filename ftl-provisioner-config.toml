@@ -1,4 +1,5 @@
 plugins = [
     { id = "cloudformation", resources = ["postgres"] },
     { id = "kubernetes", resources = ["runner"] },
+    { id = "oci-image", resources = ["image"] },
 ]

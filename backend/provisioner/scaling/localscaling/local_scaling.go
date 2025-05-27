@@ -14,7 +14,6 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
@@ -24,9 +23,11 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dev"
+	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/localdebug"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -235,6 +236,8 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	default:
 	}
 
+	var deploymentProvider artefacts.DeploymentArtefactProvider
+
 	module := info.key.Payload.Module
 	devEndpoint := l.devModeEndpoints[module]
 	devURI := optional.None[string]()
@@ -255,6 +258,9 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		l.runnerCounts[deploymentKey.Payload.Module] = runnerSeq + 1
 		schemaSeq = devEndpoint.scehamVersion
 		logger.Debugf("Starting runner with schema version %d and runner sequence %d", schemaSeq, runnerSeq)
+		deploymentProvider = func() (string, error) {
+			return "", nil
+		}
 	} else if ide, ok := l.ideSupport.Get(); ok {
 		var debug *localdebug.DebugInfo
 		debugBind, err := plugin.AllocatePort()
@@ -268,6 +274,17 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 		l.debugPorts[module] = debug
 		ide.SyncIDEDebugIntegrations(ctx, l.debugPorts)
 		debugPort = debug.Port
+
+		deploymentProvider = func() (string, error) {
+
+			deploymentDir := filepath.Join(l.cacheDir, deploymentKey.String())
+			err = download.ArtefactsFromOCI(ctx, l.schemaClient, deploymentKey, deploymentDir, l.storage)
+			if err != nil {
+				return "", errors.Wrapf(err, "failed to download artifacts")
+			}
+			return deploymentDir, nil
+		}
+		// Download the required artifacts
 	}
 
 	bind, err := plugin.AllocatePort()
@@ -316,8 +333,9 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create deployment context provider")
 	}
+
 	go func() {
-		err := runner.Start(runnerCtx, config, l.storage, dcproc, l.schemaClient)
+		err := runner.Start(runnerCtx, config, deploymentProvider, dcproc, l.schemaClient)
 		cancel(errors.Wrap(err, "runner exited"))
 		l.lock.Lock()
 		defer l.lock.Unlock()

@@ -7,7 +7,6 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/backend/controller/artefacts"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/provisioner"
@@ -15,6 +14,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
@@ -35,6 +35,7 @@ var cli struct {
 	ConsoleServiceAccount string                   `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
 	AdminServiceAccount   string                   `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
 	HTTPServiceAccount    string                   `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
+	DefaultRunnerImage    string                   `help:"Default image to use for a runner." env:"FTL_DEFAULT_RUNNER_IMAGE" default:"ftl0/ftl-runner"`
 }
 
 func main() {
@@ -73,16 +74,26 @@ func main() {
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
+	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
+	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
+
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeSQLMigration)
 	}); !ok {
-		storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
-		kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(storage)
 		sqlMigrationBinding := registry.Register("in-mem-sql-migration", sqlMigrationProvisioner, schema.ResourceTypeSQLMigration)
 		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
+	}
+
+	// Use default image provisioner
+	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
+		return slices.Contains(binding.Types, schema.ResourceTypeImage)
+	}); !ok {
+		ociProvisioner := provisioner.NewOCIImageProvisioner(storage, cli.DefaultRunnerImage)
+		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
+		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
 	}
 
 	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered

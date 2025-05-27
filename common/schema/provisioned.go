@@ -23,6 +23,7 @@ const (
 	ResourceTypeEgress       ResourceType = "egress"
 	ResourceTypeRunner       ResourceType = "runner"
 	ResourceTypeFixture      ResourceType = "fixture"
+	ResourceTypeImage        ResourceType = "image"
 )
 
 // ProvisionedResource is metadata of a resource that can be provisioned

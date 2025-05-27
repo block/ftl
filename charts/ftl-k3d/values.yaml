@@ -10,9 +10,10 @@ ftl:
         port: 8892
         targetPort: 8892
   registry:
-    repository: "ftl-registry.default:5000/ftl-artefacts"
+    repository: "k3d-ftl-registry.localhost:5000/ftl-artefacts"
     allowInsecure: "true"
   provisioner:
+    defaultRunnerImage: "k3d-ftl-registry.localhost:5000/ftl-runner"
     env:
       - name: FTL_SANDBOX_KAFKA_BROKERS
         value: "redpanda.default:19092"
