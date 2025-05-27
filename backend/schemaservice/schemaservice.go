@@ -490,23 +490,24 @@ func (s *Service) pushSchema(ctx context.Context) {
 		// create stream and send empty message to initiate the stream
 		logger.Tracef("Attempting to push schema to receiver")
 		stream := client.PushSchema(ctx)
-		stream.Send(nil)
-
-		err := s.watchModuleChanges(ctx, "push-schema", func(response *ftlv1.PullSchemaResponse) error {
-			return errors.WithStack(stream.Send(&ftlv1.PushSchemaRequest{
-				Event: response.Event,
-			}))
-		})
-		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
-			// This is expected if the receiver is already receiving schema updates.
-			logger.Tracef("Could not begin pushing schema to receiver: %s", err)
-		} else if err != nil {
-			logger.Errorf(err, "Error while pushing schema to receiver")
+		if err := stream.Send(nil); err != nil {
+			logger.Errorf(err, "Error while pushing initial schema to receiver")
 		} else {
-			logger.Logf(log.Error, "Ended pushing schema to receiver without an error")
+			err := s.watchModuleChanges(ctx, "push-schema", func(response *ftlv1.PullSchemaResponse) error {
+				return errors.WithStack(stream.Send(&ftlv1.PushSchemaRequest{
+					Event: response.Event,
+				}))
+			})
+			if connect.CodeOf(err) == connect.CodeFailedPrecondition {
+				// This is expected if the receiver is already receiving schema updates.
+				logger.Tracef("Could not begin pushing schema to receiver: %s", err)
+			} else if err != nil {
+				logger.Errorf(err, "Error while pushing schema to receiver")
+			} else {
+				logger.Logf(log.Error, "Ended pushing schema to receiver without an error")
+			}
+			_, _ = stream.CloseAndReceive() //nolint:errcheck
 		}
-		_, _ = stream.CloseAndReceive() //nolint:errcheck
-
 		select {
 		case <-ctx.Done():
 			return

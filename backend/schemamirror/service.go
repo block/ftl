@@ -81,22 +81,19 @@ func (s *Service) PushSchema(ctx context.Context, stream *connect.ClientStream[f
 		}
 	}
 	if err := stream.Err(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to receive schema push stream")
 	}
 	return connect.NewResponse(&ftlv1.PushSchemaResponse{}), nil
 }
 
-// Get the full schema.
+// GetSchema gets the full schema.
 func (s *Service) GetSchema(context.Context, *connect.Request[ftlv1.GetSchemaRequest]) (*connect.Response[ftlv1.GetSchemaResponse], error) {
 	return connect.NewResponse(&ftlv1.GetSchemaResponse{
 		Schema: s.eventSource.CanonicalView().ToProto(),
 	}), nil
 }
 
-// Pull schema changes.
-//
-// Note that if there are no deployments this will block indefinitely, making it unsuitable for
-// just retrieving the schema. Use GetSchema for that.
+// PullSchema streams changes to the schema.
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], stream *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
 	updates := s.eventSource.Subscribe(ctx)
 	if err := stream.Send(&ftlv1.PullSchemaResponse{
@@ -114,11 +111,13 @@ func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.Pul
 		return errors.Wrap(err, "failed to send initial schema")
 	}
 	for event := range channels.IterContext(ctx, updates) {
-		stream.Send(&ftlv1.PullSchemaResponse{
+		if err := stream.Send(&ftlv1.PullSchemaResponse{
 			Event: schema.NotificationToProto(event),
-		})
+		}); err != nil {
+			return errors.Wrap(err, "failed to send schema update")
+		}
 	}
-	return ctx.Err()
+	return errors.WithStack(ctx.Err())
 }
 
 // GetDeployments is used to get the schema for all deployments.

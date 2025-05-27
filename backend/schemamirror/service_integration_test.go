@@ -27,7 +27,7 @@ func TestMirror(t *testing.T) {
 	// Find a free port.
 	hostAddr, err := plugin.AllocatePort()
 	assert.NoError(t, err, "failed to allocate port for mirror service")
-	hostUrl, err := url.Parse("http://" + hostAddr.String())
+	hostURL, err := url.Parse("http://" + hostAddr.String())
 	assert.NoError(t, err, "failed to parse address for mirror service")
 
 	svc := schemamirror.New(ctx)
@@ -37,11 +37,11 @@ func TestMirror(t *testing.T) {
 			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
 			rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, svc),
 		}
-		assert.NoError(t, rpc.Serve(ctx, hostUrl, opts...), "mirror service failed")
+		assert.NoError(t, rpc.Serve(ctx, hostURL, opts...), "mirror service failed")
 	}()
 
-	client := rpc.Dial(ftlv1connect.NewSchemaServiceClient, hostUrl.String(), log.Debug)
-	receiverClient := rpc.Dial(ftlv1connect.NewSchemaMirrorServiceClient, hostUrl.String(), log.Debug)
+	client := rpc.Dial(ftlv1connect.NewSchemaServiceClient, hostURL.String(), log.Debug)
+	receiverClient := rpc.Dial(ftlv1connect.NewSchemaMirrorServiceClient, hostURL.String(), log.Debug)
 
 	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, client), "failed to connect to mirror service")
 	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, receiverClient), "failed to connect to mirror receiver service")
@@ -52,13 +52,13 @@ func TestMirror(t *testing.T) {
 	assert.NoError(t, err, "failed to create PullSchema stream")
 
 	// We receive an initial empty schema when mirror service doesn't have any schema yet
-	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 
 	// Send schema and an update. Make sure mirror passes it along
 	sendInitialSchema(t, stream)
-	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 	sendChangesetCreatedNotification(t, stream)
-	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](t, ctx, pullSchemaStream)
+	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](ctx, t, pullSchemaStream)
 
 	// Should only allow one stream pushing schema at a time
 	badStream := receiverClient.PushSchema(ctx)
@@ -71,9 +71,9 @@ func TestMirror(t *testing.T) {
 	time.Sleep(time.Second) // Give some time for the stream to close
 	stream = receiverClient.PushSchema(ctx)
 	sendInitialSchema(t, stream)
-	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 	sendChangesetCreatedNotification(t, stream)
-	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](t, ctx, pullSchemaStream)
+	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](ctx, t, pullSchemaStream)
 }
 
 func sendInitialSchema(t *testing.T, stream *connect.ClientStreamForClient[ftlv1.PushSchemaRequest, ftlv1.PushSchemaResponse]) {
@@ -128,7 +128,7 @@ func sendChangesetCreatedNotification(t *testing.T, stream *connect.ClientStream
 	}), "initial schema push failed")
 }
 
-func receiveSchemaUpdate[E any](t *testing.T, ctx context.Context, stream *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) {
+func receiveSchemaUpdate[E any](ctx context.Context, t *testing.T, stream *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) {
 	resultChan := make(chan result.Result[*ftlv1.PullSchemaResponse])
 	go func() {
 		if stream.Receive() {
