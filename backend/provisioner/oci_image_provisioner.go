@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/alecthomas/errors"
-	"github.com/block/ftl"
-	"github.com/block/ftl/internal/artefacts"
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/block/ftl"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 )
 
 // NewRunnerScalingProvisioner creates a new provisioner that provisions resources locally when running FTL in dev mode
