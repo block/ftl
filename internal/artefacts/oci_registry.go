@@ -440,9 +440,6 @@ func WithRemotePush() ImageTarget {
 		if err := googleremote.Write(targetImage, image, authOpt); err != nil {
 			return errors.Errorf("writing image: %w", err)
 		}
-		if err := googleremote.WriteIndex(targetImage, imageIndex, authOpt); err != nil {
-			return errors.Errorf("writing image index: %w", err)
-		}
 		logger.Infof("Wrote image %s to remote repository", targetImage) //nolint
 		return nil
 	}
@@ -463,14 +460,12 @@ func WithLocalDeamon() ImageTarget {
 type ImageTarget func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error
 
 func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
-	logger := log.FromContext(ctx)
-	logger.Infof("Building %s with %s as a base image from remote", targetImage, baseImage) //nolint
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
 	if err != nil {
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
 	}
 	defer os.RemoveAll(target)
-	err = s.DownloadArtifacts(ctx, tempDir, artifacts)
+	err = s.DownloadArtifacts(ctx, target, artifacts)
 	if err != nil {
 		return err
 	}
@@ -480,9 +475,13 @@ func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseIm
 
 func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 
+	opts := []name.Option{}
+	if s.allowInsecure {
+		opts = append(opts, name.Insecure)
+	}
 	logger := log.FromContext(ctx)
 	logger.Infof("Building %s with %s as a base image", targetImage, baseImage) //nolint
-	ref, err := name.ParseReference(baseImage)
+	ref, err := name.ParseReference(baseImage, opts...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse image name")
 	}
@@ -492,7 +491,6 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 	}
 
 	auth := s.auth.Load()
-
 	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
 	if err != nil {
 		return errors.Errorf("getting base image metadata: %w", err)

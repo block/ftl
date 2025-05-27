@@ -35,6 +35,7 @@ var cli struct {
 	ConsoleServiceAccount string                   `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
 	AdminServiceAccount   string                   `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
 	HTTPServiceAccount    string                   `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
+	DefaultRunnerImage    string                   `help:"Default image to use for a runner." env:"FTL_DEFAULT_RUNNER_IMAGE" default:"ftl0/ftl-runner"`
 }
 
 func main() {
@@ -90,7 +91,7 @@ func main() {
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeImage)
 	}); !ok {
-		ociProvisioner := provisioner.NewOCIImageProvisioner(storage)
+		ociProvisioner := provisioner.NewOCIImageProvisioner(storage, cli.DefaultRunnerImage)
 		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
 		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
 	}

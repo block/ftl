@@ -424,7 +424,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 	}
 
 	deployment.Spec.Template.Spec.ServiceAccountName = module
-	changes, err := r.syncDeployment(ctx, deployment, sch.Runtime.Scaling.MinReplicas)
+	changes, err := r.syncDeployment(deployment, sch.Runtime.Scaling.MinReplicas)
 
 	if err != nil {
 		return errors.WithStack(err)
@@ -468,7 +468,7 @@ func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
 
 func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *kubeapps.Deployment, replicas int32) error {
 
-	changes, err := r.syncDeployment(ctx, deployment, replicas)
+	changes, err := r.syncDeployment(deployment, replicas)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -488,7 +488,7 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 	return nil
 }
 
-func (r *k8sScaling) syncDeployment(ctx context.Context, deployment *kubeapps.Deployment, replicas int32) ([]func(*kubeapps.Deployment), error) {
+func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas int32) ([]func(*kubeapps.Deployment), error) {
 	changes := []func(*kubeapps.Deployment){}
 
 	// For now we just make sure the number of replicas match
