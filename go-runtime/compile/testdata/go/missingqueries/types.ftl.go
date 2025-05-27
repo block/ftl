@@ -21,7 +21,6 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			SavePrice,
-			server.SinkClient[InsertPriceClient, InsertPriceQuery](),
 		),
 	)
 }

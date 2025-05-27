@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
-	// Import the FTL SDK.
+
+	"ftl/missingqueries/db"
 )
 
 type Price struct {
@@ -15,8 +16,8 @@ type Price struct {
 }
 
 //ftl:verb export
-func SavePrice(ctx context.Context, price Price, client InsertPriceClient) error {
-	return client(ctx, InsertPriceQuery{
+func SavePrice(ctx context.Context, price Price, client db.InsertPriceClient) error {
+	return client(ctx, db.InsertPriceQuery{
 		Code:     price.Code,
 		Price:    fmt.Sprintf("%.2f", price.Price),
 		Time:     price.Time,

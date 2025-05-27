@@ -3,6 +3,7 @@ package mysql
 
 import (
 	"context"
+	ftldb "ftl/mysql/db"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
@@ -25,18 +26,18 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			Fixture,
-			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
-			server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
+			server.SinkClient[ftldb.CreateRequestClient, ftl.Option[string]](),
+			server.SourceClient[ftldb.GetRequestDataClient, []ftl.Option[string]](),
 		),
 
 		reflection.ProvideResourcesForVerb(
 			Insert,
-			server.SinkClient[CreateRequestClient, ftl.Option[string]](),
+			server.SinkClient[ftldb.CreateRequestClient, ftl.Option[string]](),
 		),
 
 		reflection.ProvideResourcesForVerb(
 			Query,
-			server.SourceClient[GetRequestDataClient, []ftl.Option[string]](),
+			server.SourceClient[ftldb.GetRequestDataClient, []ftl.Option[string]](),
 		),
 	)
 }

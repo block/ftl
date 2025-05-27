@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"ftl/mysql/db"
 
 	errors "github.com/alecthomas/errors" // Import the FTL SDK.
 
@@ -15,7 +16,7 @@ type InsertRequest struct {
 type InsertResponse struct{}
 
 //ftl:verb export
-func Insert(ctx context.Context, req InsertRequest, insert CreateRequestClient) (InsertResponse, error) {
+func Insert(ctx context.Context, req InsertRequest, insert db.CreateRequestClient) (InsertResponse, error) {
 	err := insert(ctx, ftl.Some(req.Data))
 	if err != nil {
 		return InsertResponse{}, errors.WithStack(err)
@@ -25,7 +26,7 @@ func Insert(ctx context.Context, req InsertRequest, insert CreateRequestClient) 
 }
 
 //ftl:verb export
-func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
+func Query(ctx context.Context, query db.GetRequestDataClient) ([]string, error) {
 	rows, err := query(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -40,7 +41,7 @@ func Query(ctx context.Context, query GetRequestDataClient) ([]string, error) {
 }
 
 //ftl:fixture
-func Fixture(ctx context.Context, insert CreateRequestClient, query GetRequestDataClient) error {
+func Fixture(ctx context.Context, insert db.CreateRequestClient, query db.GetRequestDataClient) error {
 	rows, err := query(ctx)
 	if err != nil {
 		return errors.WithStack(err)
