@@ -131,8 +131,6 @@ securityContext:
           - "ALL"
   seccompProfile:
     type: RuntimeDefault
-  runAsUser: 1000
-  runAsGroup: 1000
 {{- end -}}
 {{- define "ftl.resources" -}}
 resources:

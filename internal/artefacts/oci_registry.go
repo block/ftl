@@ -386,7 +386,7 @@ func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string,
 		}
 		var mode os.FileMode = 0600
 		if artefact.Executable {
-			mode = 0700
+			mode = 0755
 		}
 		w, err := os.OpenFile(filepath.Join(dest, artefact.Path), os.O_CREATE|os.O_WRONLY, mode)
 		if err != nil {
@@ -553,7 +553,6 @@ func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, e
 	if err := tw.Close(); err != nil {
 		return nil, errors.Wrapf(err, "failed to create layer")
 	}
-
 	// TODO: use a file
 	return tarball.LayerFromReader(&buf) //nolint
 }
@@ -576,15 +575,17 @@ func addFileToTar(tw *tar.Writer, basepath string, path string, execuable bool) 
 
 	mode := int64(0644)
 	if execuable {
-		mode = 755
+		mode = 0755
 	}
 
 	// TODO: hard coded deployments path
 	hdr := &tar.Header{
-		Name:    "/deployments/" + path,
+		Name:    "deployments/" + path,
 		Mode:    mode,
 		Size:    stat.Size(),
 		ModTime: time.Now(),
+		Uid:     1000,
+		Gid:     1000,
 	}
 
 	if err := tw.WriteHeader(hdr); err != nil {

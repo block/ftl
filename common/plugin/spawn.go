@@ -30,6 +30,7 @@ type pluginOptions struct {
 	envars            []string
 	additionalClients []func(baseURL string, opts ...connect.ClientOption)
 	startTimeout      time.Duration
+	noWorkingDir      bool
 }
 
 // Option used when creating a plugin.
@@ -47,6 +48,13 @@ func WithEnvars(envars ...string) Option {
 func WithStartTimeout(timeout time.Duration) Option {
 	return func(po *pluginOptions) error {
 		po.startTimeout = timeout
+		return nil
+	}
+}
+
+func WithNoWorkingDir() Option {
+	return func(po *pluginOptions) error {
+		po.noWorkingDir = true
 		return nil
 	}
 }
@@ -101,16 +109,18 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 		}
 	}
 	workingDir := filepath.Join(dir, ".ftl")
-	err = os.Mkdir(workingDir, 0700)
-	if err != nil && !errors.Is(err, os.ErrExist) {
-		return nil, nil, errors.WithStack(err)
-	}
-
-	// Clean up previous process.
 	pidFile := filepath.Join(workingDir, filepath.Base(exe)+".pid")
-	err = cleanup(logger, pidFile)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if !opts.noWorkingDir {
+		err = os.Mkdir(workingDir, 0700)
+		if err != nil && !errors.Is(err, os.ErrExist) {
+			return nil, nil, errors.WithStack(err)
+		}
+
+		// Clean up previous process.
+		err = cleanup(logger, pidFile)
+		if err != nil {
+			return nil, nil, errors.WithStack(err)
+		}
 	}
 
 	// Find a free port.
@@ -176,10 +186,12 @@ func Spawn[Client rpc.Pingable[Req, Resp, RespPtr], Req any, Resp any, RespPtr r
 		}
 	}()
 
-	// Write the PID file.
-	err = os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0600)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
+	if !opts.noWorkingDir {
+		// Write the PID file.
+		err = os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0600)
+		if err != nil {
+			return nil, nil, errors.WithStack(err)
+		}
 	}
 
 	// Wait for the plugin to start.
