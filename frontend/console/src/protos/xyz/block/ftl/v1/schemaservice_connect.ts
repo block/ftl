@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "./ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
+import { CommitChangesetRequest, CommitChangesetResponse, CreateChangesetRequest, CreateChangesetResponse, DrainChangesetRequest, DrainChangesetResponse, FailChangesetRequest, FailChangesetResponse, FinalizeChangesetRequest, FinalizeChangesetResponse, GetDeploymentRequest, GetDeploymentResponse, GetDeploymentsRequest, GetDeploymentsResponse, GetSchemaRequest, GetSchemaResponse, PrepareChangesetRequest, PrepareChangesetResponse, PullSchemaRequest, PullSchemaResponse, PushSchemaRequest, PushSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse } from "./schemaservice_pb.js";
 
 /**
  * @generated from service xyz.block.ftl.v1.SchemaService
@@ -38,7 +38,7 @@ export const SchemaService = {
       idempotency: MethodIdempotency.NoSideEffects,
     },
     /**
-     * Pull schema changes from the Controller.
+     * Pull schema changes.
      *
      * Note that if there are no deployments this will block indefinitely, making it unsuitable for
      * just retrieving the schema. Use GetSchema for that.
@@ -157,6 +157,38 @@ export const SchemaService = {
       I: GetDeploymentRequest,
       O: GetDeploymentResponse,
       kind: MethodKind.Unary,
+    },
+  }
+} as const;
+
+/**
+ * @generated from service xyz.block.ftl.v1.SchemaMirrorService
+ */
+export const SchemaMirrorService = {
+  typeName: "xyz.block.ftl.v1.SchemaMirrorService",
+  methods: {
+    /**
+     * Ping service for readiness.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaMirrorService.Ping
+     */
+    ping: {
+      name: "Ping",
+      I: PingRequest,
+      O: PingResponse,
+      kind: MethodKind.Unary,
+      idempotency: MethodIdempotency.NoSideEffects,
+    },
+    /**
+     * PushSchema is used to push schema changes to the mirror service.
+     *
+     * @generated from rpc xyz.block.ftl.v1.SchemaMirrorService.PushSchema
+     */
+    pushSchema: {
+      name: "PushSchema",
+      I: PushSchemaRequest,
+      O: PushSchemaResponse,
+      kind: MethodKind.ClientStreaming,
     },
   }
 } as const;

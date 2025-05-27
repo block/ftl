@@ -1,0 +1,153 @@
+package schemamirror_test
+
+import (
+	"context"
+	"net/url"
+	"testing"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/alecthomas/assert/v2"
+	"github.com/alecthomas/types/result"
+	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/backend/schemamirror"
+	"github.com/block/ftl/common/key"
+	"github.com/block/ftl/common/log"
+	"github.com/block/ftl/common/plugin"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/rpc"
+	"github.com/jpillora/backoff"
+)
+
+func TestMirror(t *testing.T) {
+	ctx := log.ContextWithNewDefaultLogger(t.Context())
+
+	// Find a free port.
+	hostAddr, err := plugin.AllocatePort()
+	assert.NoError(t, err, "failed to allocate port for mirror service")
+	hostUrl, err := url.Parse("http://" + hostAddr.String())
+	assert.NoError(t, err, "failed to parse address for mirror service")
+
+	svc := schemamirror.New(ctx)
+
+	go func() {
+		opts := []rpc.Option{
+			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
+			rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, svc),
+		}
+		assert.NoError(t, rpc.Serve(ctx, hostUrl, opts...), "mirror service failed")
+	}()
+
+	client := rpc.Dial(ftlv1connect.NewSchemaServiceClient, hostUrl.String(), log.Debug)
+	receiverClient := rpc.Dial(ftlv1connect.NewSchemaMirrorServiceClient, hostUrl.String(), log.Debug)
+
+	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, client), "failed to connect to mirror service")
+	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, receiverClient), "failed to connect to mirror receiver service")
+
+	stream := receiverClient.PushSchema(ctx)
+
+	pullSchemaStream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	assert.NoError(t, err, "failed to create PullSchema stream")
+
+	// We receive an initial empty schema when mirror service doesn't have any schema yet
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+
+	// Send schema and an update. Make sure mirror passes it along
+	sendInitialSchema(t, stream)
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+	sendChangesetCreatedNotification(t, stream)
+	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](t, ctx, pullSchemaStream)
+
+	// Should only allow one stream pushing schema at a time
+	badStream := receiverClient.PushSchema(ctx)
+	_, err = badStream.CloseAndReceive()
+	assert.True(t, connect.CodeOf(err) == connect.CodeFailedPrecondition, "stream should fail because one is still active")
+
+	// Disconnect push stream and connect another one
+	_, err = stream.CloseAndReceive()
+	assert.NoError(t, err, "failed to close PushSchema stream")
+	time.Sleep(time.Second) // Give some time for the stream to close
+	stream = receiverClient.PushSchema(ctx)
+	sendInitialSchema(t, stream)
+	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](t, ctx, pullSchemaStream)
+	sendChangesetCreatedNotification(t, stream)
+	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](t, ctx, pullSchemaStream)
+}
+
+func sendInitialSchema(t *testing.T, stream *connect.ClientStreamForClient[ftlv1.PushSchemaRequest, ftlv1.PushSchemaResponse]) {
+	sch := &schema.Schema{
+		Realms: []*schema.Realm{
+			{
+				External: false,
+				Name:     "test",
+				Modules: []*schema.Module{
+					{
+						Name:  "testmodule1",
+						Decls: []schema.Decl{},
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, stream.Send(&ftlv1.PushSchemaRequest{
+		Event: &schemapb.Notification{
+			Value: &schemapb.Notification_FullSchemaNotification{
+				FullSchemaNotification: &schemapb.FullSchemaNotification{
+					Schema: sch.ToProto(),
+				},
+			},
+		},
+	}), "initial schema push failed")
+}
+
+func sendChangesetCreatedNotification(t *testing.T, stream *connect.ClientStreamForClient[ftlv1.PushSchemaRequest, ftlv1.PushSchemaResponse]) {
+	changeset := &schema.Changeset{
+		Key: key.NewChangesetKey(),
+		RealmChanges: []*schema.RealmChange{
+			{
+				External: false,
+				Name:     "test",
+				Modules: []*schema.Module{
+					{
+						Name: "testmodule2",
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(t, stream.Send(&ftlv1.PushSchemaRequest{
+		Event: &schemapb.Notification{
+			Value: &schemapb.Notification_ChangesetCreatedNotification{
+				ChangesetCreatedNotification: &schemapb.ChangesetCreatedNotification{
+					Changeset: changeset.ToProto(),
+				},
+			},
+		},
+	}), "initial schema push failed")
+}
+
+func receiveSchemaUpdate[E any](t *testing.T, ctx context.Context, stream *connect.ServerStreamForClient[ftlv1.PullSchemaResponse]) {
+	resultChan := make(chan result.Result[*ftlv1.PullSchemaResponse])
+	go func() {
+		if stream.Receive() {
+			resultChan <- result.Ok(stream.Msg())
+		} else {
+			resultChan <- result.Err[*ftlv1.PullSchemaResponse](stream.Err())
+		}
+	}()
+	select {
+	case r := <-resultChan:
+		resp, err := r.Result()
+		assert.NoError(t, err, "failed to receive PullSchema response")
+		_, ok := resp.Event.Value.(E)
+		var expected E
+		assert.True(t, ok, "expected event to be of type %T but it was %T", expected, resp.Event.Value)
+
+	case <-time.After(time.Second * 5):
+		assert.True(t, false, "timeout waiting for PullSchema response")
+	case <-ctx.Done():
+		assert.NoError(t, ctx.Err(), "context cancelled while waiting for PullSchema response")
+	}
+}

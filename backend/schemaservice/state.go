@@ -124,10 +124,12 @@ func (r *SchemaState) GetDeployments() map[key.Deployment]*schema.Module {
 	}
 	if r.state.Changesets != nil {
 		for _, cs := range r.state.Changesets {
-			if cs.ModulesAreCanonical() {
-				for _, d := range cs.InternalRealm().Modules {
-					ret[d.GetRuntime().Deployment.DeploymentKey] = d
+			for _, m := range cs.InternalRealm().Modules {
+				d := m.GetRuntime().GetDeployment()
+				if d == nil {
+					continue
 				}
+				ret[d.DeploymentKey] = m
 			}
 		}
 	}
