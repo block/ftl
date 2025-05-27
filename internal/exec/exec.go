@@ -61,8 +61,8 @@ func CommandWithEnv(ctx context.Context, level log.Level, dir string, env []stri
 func (c *Cmd) RunBuffered(ctx context.Context) error {
 	outputBuffer := NewCircularBuffer(100)
 	output := outputBuffer.WriterAt(ctx, c.level)
-	c.Cmd.Stdout = output
-	c.Cmd.Stderr = output
+	c.Stdout = output
+	c.Stderr = output
 
 	err := c.Run()
 	if err != nil {
@@ -70,7 +70,7 @@ func (c *Cmd) RunBuffered(ctx context.Context) error {
 			// Don't log on context cancellation
 			log.FromContext(ctx).Errorf(err, "%s", outputBuffer.Bytes())
 		}
-		return errors.Wrap(err, "command failed")
+		return errors.Wrap(err, shellquote.Join(c.Args...))
 	}
 
 	return nil
@@ -80,11 +80,11 @@ func (c *Cmd) RunBuffered(ctx context.Context) error {
 func (c *Cmd) RunStderrError(ctx context.Context) error {
 	errorBuffer := NewCircularBuffer(100)
 
-	c.Cmd.Stdout = nil
-	c.Cmd.Stderr = errorBuffer.WriterAt(ctx, c.level)
+	c.Stdout = nil
+	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return errors.Errorf("%s: %s", shellquote.Join(c.Args...), strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return nil
@@ -99,7 +99,7 @@ func (c *Cmd) Capture(ctx context.Context) ([]byte, error) {
 	c.Stderr = errorBuffer.WriterAt(ctx, c.level)
 
 	if err := c.Run(); err != nil {
-		return nil, errors.WithStack(errors.New(strings.TrimSpace(string(errorBuffer.Bytes()))))
+		return nil, errors.Errorf("%s: %s", shellquote.Join(c.Args...), strings.TrimSpace(string(errorBuffer.Bytes())))
 	}
 
 	return outBuffer.Bytes(), nil

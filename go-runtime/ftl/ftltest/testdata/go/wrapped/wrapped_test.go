@@ -15,7 +15,7 @@ import (
 )
 
 func TestWrappedWithConfigEnvar(t *testing.T) {
-	absProjectPath1, err := filepath.Abs("ftl-project-test-1.toml")
+	absProjectPath1, err := filepath.Abs("test1/ftl-project.toml")
 	assert.NoError(t, err)
 	t.Setenv("FTL_CONFIG", absProjectPath1)
 

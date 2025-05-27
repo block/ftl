@@ -13,10 +13,12 @@ import (
 
 	"github.com/block/ftl/backend/admin"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
-	"github.com/block/ftl/internal/configuration"
+	configuration "github.com/block/ftl/internal/config"
 )
 
 type configCmd struct {
+	Migrate configMigrateCmd `cmd:"" help:"Migrate inline config from an ftl-project.toml file to JSON config stored in .ftl"`
+
 	List   configListCmd   `cmd:"" help:"List configuration."`
 	Get    configGetCmd    `cmd:"" help:"Get a configuration value."`
 	Set    configSetCmd    `cmd:"" help:"Set a configuration value."`
@@ -36,11 +38,7 @@ etc.
 }
 
 func configRefFromRef(ref configuration.Ref) *adminpb.ConfigRef {
-	module := ref.Module.Default("")
-	return &adminpb.ConfigRef{
-		Module: &module,
-		Name:   ref.Name,
-	}
+	return &adminpb.ConfigRef{Module: ref.Module.Ptr(), Name: ref.Name}
 }
 
 func (s *configCmd) provider() optional.Option[adminpb.ConfigProvider] {
@@ -182,10 +180,7 @@ func (s *configImportCmd) Run(ctx context.Context, cmd *configCmd, adminClient a
 		return errors.Wrap(err, "could not parse JSON")
 	}
 	for refPath, value := range entries {
-		ref, err := configuration.ParseRef(refPath)
-		if err != nil {
-			return errors.Wrapf(err, "could not parse ref %q", refPath)
-		}
+		ref := configuration.ParseRef(refPath)
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			return errors.Wrapf(err, "could not marshal value for %q", refPath)

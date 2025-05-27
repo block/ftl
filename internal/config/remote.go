@@ -63,11 +63,12 @@ func (s *RemoteProvider[R]) Delete(ctx context.Context, ref Ref) error {
 	}
 }
 
-func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool) ([]Value, error) {
+func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool, forModule optional.Option[string]) ([]Value, error) {
 	var r R
 	switch any(r).(type) {
 	case Configuration:
 		resp, err := s.client.ConfigList(ctx, connect.NewRequest(&adminpb.ConfigListRequest{
+			Module:        forModule.Ptr(),
 			IncludeValues: &withValues,
 		}))
 		if err != nil {
@@ -82,6 +83,7 @@ func (s *RemoteProvider[R]) List(ctx context.Context, withValues bool) ([]Value,
 
 	case Secrets:
 		resp, err := s.client.SecretsList(ctx, connect.NewRequest(&adminpb.SecretsListRequest{
+			Module:        forModule.Ptr(),
 			IncludeValues: &withValues,
 		}))
 		if err != nil {

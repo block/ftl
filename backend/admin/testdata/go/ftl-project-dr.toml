@@ -1,9 +1,7 @@
 name = "dr"
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"
 ftl-min-version = "dev"
-hermit = false
-no-git = false
-
-[global]
 
 [commands]
   startup = ["echo disk retreiver"]

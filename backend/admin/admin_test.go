@@ -15,22 +15,16 @@ import (
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
-	"github.com/block/ftl/internal/configuration/routers"
+	configuration "github.com/block/ftl/internal/config"
 )
 
 func TestAdminService(t *testing.T) {
 	t.Skip("This will be replaced soon")
-	config := tempConfigPath(t, "testdata/ftl-project.toml", "admin")
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cm, err := manager.New(ctx, routers.ProjectConfig[configuration.Configuration]{Config: config}, providers.Inline[configuration.Configuration]{})
-	assert.NoError(t, err)
+	cm := configuration.NewMemoryProvider[configuration.Configuration]()
 
-	sm, err := manager.New(ctx, routers.ProjectConfig[configuration.Secrets]{Config: config}, providers.Inline[configuration.Secrets]{})
-	assert.NoError(t, err)
+	sm := configuration.NewMemoryProvider[configuration.Secrets]()
 	admin := NewEnvironmentClient(cm, sm, &diskSchemaRetriever{})
 	assert.NotZero(t, admin)
 
@@ -202,14 +196,10 @@ func (d *mockSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 }
 
 func TestAdminValidation(t *testing.T) {
-	config := tempConfigPath(t, "testdata/ftl-project.toml", "admin")
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cm, err := manager.New(ctx, routers.ProjectConfig[configuration.Configuration]{Config: config}, providers.Inline[configuration.Configuration]{})
-	assert.NoError(t, err)
-
-	sm, err := manager.New(ctx, routers.ProjectConfig[configuration.Secrets]{Config: config}, providers.Inline[configuration.Secrets]{})
-	assert.NoError(t, err)
+	cm := configuration.NewMemoryProvider[configuration.Configuration]()
+	sm := configuration.NewMemoryProvider[configuration.Secrets]()
 	admin := NewEnvironmentClient(cm, sm, &mockSchemaRetriever{})
 
 	testSetConfig(t, ctx, admin, "batmobile", "color", "Black", "")

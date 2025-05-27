@@ -123,6 +123,10 @@ linters:
     spancheck:
       extra-start-span-signatures:
         - github.com/block/ftl/backend/controller/observability.BeginSpan:opentelemetry
+    staticcheck:
+      dot-import-whitelist:
+        - "github.com/alecthomas/types/optional"
+
     # exhaustruct:
     #   include:
     #     - '^github.com/block/ftl/common/schema\.Module$'

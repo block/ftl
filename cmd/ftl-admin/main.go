@@ -4,19 +4,17 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
-	cf "github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
-	"github.com/block/ftl/internal/configuration/routers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -34,8 +32,8 @@ var cli struct {
 	AdminConfig         admin.Config         `embed:"" prefix:"admin-"`
 	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
 	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Realm               string               `help:"Realm name." env:"FTL_REALM" required:""`
 	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	Secrets             string               `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
 	RegistryConfig      oci.RepositoryConfig `embed:"" prefix:"oci-"`
 }
 
@@ -53,17 +51,14 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-admin", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	configResolver := routers.NewFileRouter[cf.Configuration](cli.Config)
-	cm, err := manager.New(ctx, configResolver, providers.NewInline[cf.Configuration]())
+	cm, err := config.NewFileProvider[config.Configuration](filepath.Dir(cli.Config), filepath.Base(cli.Config))
 	kctx.FatalIfErrorf(err)
 
 	// FTL currently only supports AWS Secrets Manager as a secrets provider.
-	awsConfig, err := config.LoadDefaultConfig(ctx)
+	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
 	kctx.FatalIfErrorf(err)
-	asmSecretProvider := providers.NewASM(secretsmanager.NewFromConfig(awsConfig))
-	dbSecretResolver := routers.NewFileRouter[cf.Secrets](cli.Secrets)
-	sm, err := manager.New(ctx, dbSecretResolver, asmSecretProvider)
-	kctx.FatalIfErrorf(err)
+	asm := config.NewASM(cli.Realm, secretsmanager.NewFromConfig(awsConfig))
+	sm := config.NewCacheDecorator(ctx, asm)
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)

@@ -16,20 +16,9 @@ func TestProjectConfig(t *testing.T) {
 	expected := Config{
 		Name:            "testdata",
 		Path:            actual.Path,
-		ConfigProvider:  "inline",
-		SecretsProvider: "inline",
-		Modules: map[string]ConfigAndSecrets{
-			"module": {
-				Config: map[string]*URL{
-					"githubAccessToken": MustParseURL("keychain://githubAccessToken"),
-				},
-				Secrets: map[string]*URL{
-					"companyApiKey": MustParseURL("op://devel/yj3jfj2vzsbiwqabprflnl27lm/companyApiKey"),
-					"encryptionKey": MustParseURL("inline://notASensitiveSecret"),
-				},
-			},
-		},
-		ModuleDirs: []string{"a/b/c", "d"},
+		ConfigProvider:  "file:.ftl/configuration.json",
+		SecretsProvider: "file:.ftl/secrets.json",
+		ModuleDirs:      []string{"a/b/c", "d"},
 		Commands: Commands{
 			Startup: []string{"echo 'Executing global pre-build command'"},
 		},

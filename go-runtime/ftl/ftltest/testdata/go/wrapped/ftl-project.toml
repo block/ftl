@@ -1,12 +1,3 @@
 name = "testdata"
-ftl-min-version = ""
-secrets-provider = "inline"
-config-provider = "inline"
-
-[global]
-  [global.configuration]
-    config = "inline://ImJhemJheiI"
-  [global.secrets]
-    secret = "inline://ImJhemJheiI"
-
-[commands]
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"

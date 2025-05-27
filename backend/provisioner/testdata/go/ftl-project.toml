@@ -1,8 +1,3 @@
 name = "echo"
-
-secrets-provider = "inline"
-config-provider = "inline"
-
-[global]
-  [global.configuration]
-    url = "inline://Imh0dHBzOi8vZ2l0aHViLmNvbSI"
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"

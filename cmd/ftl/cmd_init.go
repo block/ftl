@@ -33,7 +33,7 @@ type initCmd struct {
 	ModuleDirs  []string `help:"Child directories of existing modules."`
 	ModuleRoots []string `help:"Root directories of existing modules."`
 	Git         bool     `help:"Commit generated files to git." negatable:"" default:"true"`
-	Startup     string   `help:"Command to run on startup."`
+	Startup     []string `help:"Commands to run on startup."`
 }
 
 func (i initCmd) Help() string {
@@ -71,7 +71,7 @@ func (i initCmd) Run(
 		FTLMinVersion: ftl.Version,
 		ModuleDirs:    i.ModuleDirs,
 		Commands: projectconfig.Commands{
-			Startup: []string{i.Startup},
+			Startup: i.Startup,
 		},
 	}
 	if err := projectconfig.Create(ctx, config, i.Dir); err != nil {

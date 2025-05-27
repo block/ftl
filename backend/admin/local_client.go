@@ -8,8 +8,7 @@ import (
 	"github.com/alecthomas/types/either"
 
 	"github.com/block/ftl/common/schema"
-	cf "github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	configuration "github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
@@ -23,7 +22,7 @@ func newDiskSchemaRetriever(projConfig projectconfig.Config) *diskSchemaRetrieve
 }
 
 // NewLocalClient creates a admin client that reads and writes from the provided config and secret managers
-func NewLocalClient(projConfig projectconfig.Config, cm *manager.Manager[cf.Configuration], sm *manager.Manager[cf.Secrets]) EnvironmentClient {
+func NewLocalClient(projConfig projectconfig.Config, cm configuration.Provider[configuration.Configuration], sm configuration.Provider[configuration.Secrets]) EnvironmentClient {
 	return NewEnvironmentClient(cm, sm, newDiskSchemaRetriever(projConfig))
 }
 

@@ -25,8 +25,7 @@ import (
 	"github.com/block/ftl/go-runtime/server"
 	queryclient "github.com/block/ftl/go-runtime/server/query"
 	"github.com/block/ftl/go-runtime/server/rpccontext"
-	cf "github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/deploymentcontext"
 	pc "github.com/block/ftl/internal/projectconfig"
 	mcu "github.com/block/ftl/internal/testutils/modulecontext"
@@ -153,11 +152,13 @@ func WithProjectFile(path string) Option {
 			if err != nil {
 				return errors.Wrap(err, "project")
 			}
-			cm, err := cf.NewDefaultConfigurationManagerFromConfig(ctx, providers.NewDefaultConfigRegistry(), projectConfig)
+
+			cr := config.NewConfigurationRegistry(nil)
+			cm, err := cr.Get(ctx, projectConfig.Root(), projectConfig.ConfigProvider)
 			if err != nil {
 				return errors.Wrap(err, "could not set up configs")
 			}
-			configs, err := cm.MapForModule(ctx, moduleGetter())
+			configs, err := config.MapForModule(ctx, cm, moduleGetter())
 			if err != nil {
 				return errors.Wrap(err, "could not read configs")
 			}
@@ -169,11 +170,12 @@ func WithProjectFile(path string) Option {
 				}
 			}
 
-			sm, err := cf.NewDefaultSecretsManagerFromConfig(ctx, providers.NewDefaultSecretsRegistry(), projectConfig)
+			sr := config.NewSecretsRegistry(nil)
+			sm, err := sr.Get(ctx, projectConfig.Root(), projectConfig.SecretsProvider)
 			if err != nil {
 				return errors.Wrap(err, "could not set up secrets")
 			}
-			secrets, err := sm.MapForModule(ctx, moduleGetter())
+			secrets, err := config.MapForModule(ctx, sm, moduleGetter())
 			if err != nil {
 				return errors.Wrap(err, "could not read secrets")
 			}

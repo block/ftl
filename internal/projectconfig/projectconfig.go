@@ -13,7 +13,7 @@ import (
 	"github.com/block/ftl"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
-	"github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/config"
 )
 
 type Commands struct {
@@ -21,8 +21,8 @@ type Commands struct {
 }
 
 type ConfigAndSecrets struct {
-	Config  map[string]*URL `toml:"configuration"`
-	Secrets map[string]*URL `toml:"secrets"`
+	Config  map[string]string `toml:"configuration"`
+	Secrets map[string]string `toml:"secrets"`
 }
 
 type ExternalRealmConfig struct {
@@ -37,10 +37,8 @@ type Config struct {
 	Path string `toml:"-"`
 
 	Name                       string                         `toml:"name,omitempty"`
-	Global                     ConfigAndSecrets               `toml:"global,omitempty"`
-	SecretsProvider            configuration.ProviderKey      `toml:"secrets-provider,omitempty"`
-	ConfigProvider             configuration.ProviderKey      `toml:"config-provider,omitempty"`
-	Modules                    map[string]ConfigAndSecrets    `toml:"modules,omitempty"`
+	SecretsProvider            config.ProviderKey             `toml:"secrets-provider,omitempty"`
+	ConfigProvider             config.ProviderKey             `toml:"config-provider,omitempty"`
 	ModuleDirs                 []string                       `toml:"module-dirs,omitempty"`
 	Commands                   Commands                       `toml:"commands,omitempty"`
 	FTLMinVersion              string                         `toml:"ftl-min-version,omitempty"`
@@ -50,6 +48,11 @@ type Config struct {
 	DisableVSCodeIntegration   bool                           `toml:"disable-vscode-integration,omitempty"`
 	DisableIntellijIntegration bool                           `toml:"disable-intellij-integration,omitempty"`
 	ExternalRealms             map[string]ExternalRealmConfig `toml:"external-realms,omitempty"`
+
+	// Deprecated: Inline config has moved.
+	Global ConfigAndSecrets `toml:"global,omitempty"`
+	// Deprecated: Inline config has moved.
+	Modules map[string]ConfigAndSecrets `toml:"modules,omitempty"`
 }
 
 // Root directory of the project.
@@ -63,10 +66,10 @@ func (c Config) Root() string {
 // Validate checks that the configuration is valid.
 func (c *Config) Validate() error {
 	if c.SecretsProvider == "" {
-		c.SecretsProvider = "inline"
+		c.SecretsProvider = config.NewProviderKey(config.FileProviderKind, ".ftl/secrets.json")
 	}
 	if c.ConfigProvider == "" {
-		c.ConfigProvider = "inline"
+		c.ConfigProvider = config.NewProviderKey(config.FileProviderKind, ".ftl/configuration.json")
 	}
 	if c.Name == "" {
 		return errors.Errorf("project name is required: %s", c.Path)

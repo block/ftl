@@ -1,17 +1,13 @@
 name = "testdata"
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"
 module-dirs = ["a/b/c", "d"]
-
-[modules.module.configuration]
-  githubAccessToken = "keychain://githubAccessToken"
-
-[modules.module.secrets]
-  encryptionKey = "inline://notASensitiveSecret"
-  companyApiKey = "op://devel/yj3jfj2vzsbiwqabprflnl27lm/companyApiKey"
 
 [commands]
   startup = ["echo 'Executing global pre-build command'"]
 
-[external-realms.foo]
-  git-repo = "git@github.com:block/ftl.git"
-  git-branch = "main"
-  git-commit = "04d1eb9286891a292f50aa8553896e78a4811b4a"
+[external-realms]
+  [external-realms.foo]
+    git-repo = "git@github.com:block/ftl.git"
+    git-branch = "main"
+    git-commit = "04d1eb9286891a292f50aa8553896e78a4811b4a"

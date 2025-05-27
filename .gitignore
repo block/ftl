@@ -34,10 +34,6 @@ go-runtime/schema/testdata/test/test.go
 **/testdata/**/_ftl
 **/examples/**/_ftl
 **/smoketest/**/_ftl
-**/testdata/**/.ftl
-**/examples/**/.ftl
-**/smoketest/**/.ftl
-/.ftl
 
 buildengine/.gitignore
 go.work*
@@ -46,6 +42,9 @@ junit*.xml
 /docs/public
 .ftl.lock
 docker-build/
-**/.ftl
 charts/**/charts/
 charts/**/output/
+
+**/.ftl/
+# No clue why this isn't working
+!**/.ftl/configuration.json

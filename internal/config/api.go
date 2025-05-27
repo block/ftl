@@ -8,7 +8,7 @@ import (
 	"time"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/encoding"
 )
@@ -25,14 +25,20 @@ type Entry struct {
 // A Ref is a reference to a configuration value.
 type Ref struct {
 	// If [Module] is omitted the Ref is considered to be a global value.
-	Module optional.Option[string]
+	Module Option[string]
 	Name   string
+}
+
+// WithoutModule returns the Ref with its module removed.
+func (r Ref) WithoutModule() Ref {
+	r.Module = None[string]()
+	return r
 }
 
 // NewRef creates a new Ref.
 //
 // If [module] is empty, the Ref is considered to be a global configuration value.
-func NewRef(module optional.Option[string], name string) Ref {
+func NewRef(module Option[string], name string) Ref {
 	return Ref{Module: module, Name: name}
 }
 
@@ -53,7 +59,7 @@ func (k Ref) String() string {
 func (k *Ref) UnmarshalText(text []byte) error {
 	s := string(text)
 	if i := strings.Index(s, "."); i != -1 {
-		k.Module = optional.Some(s[:i])
+		k.Module = Some(s[:i])
 		k.Name = s[i+1:]
 	} else {
 		k.Name = s
@@ -78,7 +84,7 @@ func (Configuration) String() string { return "configuration" }
 // Value represents a configuration value with its reference.
 type Value struct {
 	Ref
-	Value optional.Option[[]byte]
+	Value Option[[]byte]
 }
 
 // BaseProvider is the base generic interface for storing and retrieving configuration and secrets.
@@ -105,9 +111,12 @@ type Provider[R Role] interface {
 	BaseProvider[R]
 
 	// Load a configuration value.
+	//
+	// This will only load the _exact_ reference specified, with no global fallback. Use [GlobalFallbackDecorator],
+	// which is automatically added by the [Registry], for this functionality.
 	Load(ctx context.Context, ref Ref) ([]byte, error)
 	// List all configuration keys.
-	List(ctx context.Context, withValues bool) ([]Value, error)
+	List(ctx context.Context, withValues bool, forModule Option[string]) ([]Value, error)
 }
 
 // AsynchronousProvider is an interface for Provider's that support syncing values.
@@ -135,7 +144,7 @@ type SyncedValue struct {
 	// it is nil when:
 	// - the owner of the cache is not using version tokens
 	// - the cache is updated after writing
-	VersionToken optional.Option[VersionToken]
+	VersionToken Option[VersionToken]
 }
 
 // Store a typed configuration value.
@@ -162,4 +171,26 @@ func Load[T any, R Role](ctx context.Context, provider Provider[R], ref Ref) (ou
 		return out, errors.Wrap(err, "failed to marshal value")
 	}
 	return out, nil
+}
+
+// MapForModule returns a map of configuration values for a given module.
+func MapForModule[R Role](ctx context.Context, provider Provider[R], module string) (map[string][]byte, error) {
+	values, err := provider.List(ctx, true, Some(module))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load values")
+	}
+	merged := make(map[string][]byte, len(values))
+	// First merge in globals
+	for _, value := range values {
+		if !value.Module.Ok() {
+			merged[value.Name] = value.Value.MustGet()
+		}
+	}
+	// Next overlay module vars.
+	for _, value := range values {
+		if value.Module.Ok() {
+			merged[value.Name] = value.Value.MustGet()
+		}
+	}
+	return merged, nil
 }

@@ -1,7 +1,3 @@
 name = "testdata"
-
-[global]
-  [global.configuration]
-    test = "inline://InRlc3Qi"
-  [global.secrets]
-    test = "inline://InRlc3Qi"
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"

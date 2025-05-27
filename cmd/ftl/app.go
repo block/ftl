@@ -27,9 +27,6 @@ import (
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/config"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/editor"
 	_ "github.com/block/ftl/internal/prodinit" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/profiles"
@@ -277,16 +274,6 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		})
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Configuration], error) {
-			return providers.NewDefaultConfigRegistry(), nil
-		})
-		kctx.FatalIfErrorf(err)
-
-		err = kctx.BindToProvider(func() (*providers.Registry[configuration.Secrets], error) {
-			return providers.NewDefaultSecretsRegistry(), nil
-		})
-		kctx.FatalIfErrorf(err)
-
 		err = kctx.BindToProvider(func(adminClient adminpbconnect.AdminServiceClient) (*schemaeventsource.EventSource, error) {
 			return schemaeventsource.New(ctx, "cli", adminClient), nil
 		})
@@ -299,16 +286,20 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))
 
-		err = kctx.BindToProvider(manager.NewDefaultConfigurationManagerFromConfig)
-		kctx.FatalIfErrorf(err)
-
-		err = kctx.BindToProvider(manager.NewDefaultSecretsManagerFromConfig)
-		kctx.FatalIfErrorf(err)
-
 		err = kctx.BindToProvider(config.NewConfigurationRegistry)
 		kctx.FatalIfErrorf(err)
 
 		err = kctx.BindToProvider(config.NewSecretsRegistry)
+		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(func(ctx context.Context, config projectconfig.Config, registry *config.Registry[config.Configuration]) (config.Provider[config.Configuration], error) {
+			return errors.WithStack2(registry.Get(ctx, config.Root(), config.ConfigProvider))
+		})
+		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(func(ctx context.Context, config projectconfig.Config, registry *config.Registry[config.Secrets]) (config.Provider[config.Secrets], error) {
+			return errors.WithStack2(registry.Get(ctx, config.Root(), config.SecretsProvider))
+		})
 		kctx.FatalIfErrorf(err)
 
 		err = kctx.BindToProvider(func(projectConfig projectconfig.Config, secretsRegistry *config.Registry[config.Secrets], configRegistry *config.Registry[config.Configuration]) (*profiles.Project, error) {
@@ -335,8 +326,8 @@ type currentStatusManager struct {
 func provideAdminClient(
 	ctx context.Context,
 	cli *SharedCLI,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm config.Provider[config.Configuration],
+	sm config.Provider[config.Secrets],
 	projectConfig projectconfig.Config,
 	adminClient adminpbconnect.AdminServiceClient,
 ) (client admin.EnvironmentClient, err error) {

@@ -35,8 +35,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	consolefrontend "github.com/block/ftl/frontend/console"
 	"github.com/block/ftl/internal/bind"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	configuration "github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/observability"
@@ -82,8 +81,8 @@ const ftlRunningErrorMsg = "FTL is already running. Use 'ftl serve --stop' to st
 
 func (s *serveCmd) Run(
 	ctx context.Context,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm configuration.Provider[configuration.Configuration],
+	sm configuration.Provider[configuration.Secrets],
 	projConfig projectconfig.Config,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
@@ -97,8 +96,8 @@ func (s *serveCmd) Run(
 func (s *serveCommonConfig) run(
 	ctx context.Context,
 	projConfig projectconfig.Config,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm configuration.Provider[configuration.Configuration],
+	sm configuration.Provider[configuration.Secrets],
 	initialised optional.Option[chan bool],
 	devMode bool,
 	bindAllocator *bind.BindAllocator,

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/log"
 )
@@ -46,10 +46,10 @@ func (c *CacheDecorator[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	value, ok := c.cache[ref]
-	if ok {
-		return value, nil
+	if !ok {
+		return nil, errors.Wrap(ErrNotFound, "cache")
 	}
-	return nil, errors.Wrap(ErrNotFound, "cache")
+	return value, nil
 }
 
 func (c *CacheDecorator[R]) Store(ctx context.Context, ref Ref, value []byte) error {
@@ -72,15 +72,18 @@ func (c *CacheDecorator[R]) Delete(ctx context.Context, ref Ref) error {
 	return nil
 }
 
-func (c *CacheDecorator[R]) List(ctx context.Context, withValues bool) ([]Value, error) {
+func (c *CacheDecorator[R]) List(ctx context.Context, withValues bool, forModule Option[string]) ([]Value, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	values := make([]Value, 0, len(c.cache))
 	for key, value := range c.cache {
-		values = append(values, Value{Ref: key, Value: optional.Some(value)})
+		if module, ok := forModule.Get(); ok && key.Module.Default(module) != module {
+			continue
+		}
+		values = append(values, Value{Ref: key, Value: Some(value)})
 	}
 	slices.SortFunc(values, func(a, b Value) int {
-		return strings.Compare(a.Ref.String(), b.Ref.String())
+		return strings.Compare(a.String(), b.String())
 	})
 	return values, nil
 }
