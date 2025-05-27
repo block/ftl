@@ -1438,7 +1438,7 @@ func (e *Engine) watchForPluginEvents(originalCtx context.Context) {
 					}
 
 				case languageplugin.AutoRebuildEndedEvent:
-					moduleSch, tmpDeployDir, deployPaths, err := handleBuildResult(ctx, e.projectConfig, meta.module, event.Result, e.devMode, e.devModeEndpointUpdates)
+					moduleSch, tmpDeployDir, deployPaths, err := handleBuildResult(ctx, e.projectConfig, meta.module, event.Result, e.devMode, e.devModeEndpointUpdates, optional.None[*schema.Schema]())
 					if err != nil {
 						if errors.Is(err, errInvalidateDependencies) {
 							e.rawEngineUpdates <- &buildenginepb.EngineEvent{
