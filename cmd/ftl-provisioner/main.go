@@ -86,15 +86,6 @@ func main() {
 		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
 	}
 
-	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
-	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
-		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
-	}); !ok {
-		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling, false)
-		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
-		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
-	}
-
 	// Use default image provisioner
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeImage)
@@ -102,6 +93,15 @@ func main() {
 		ociProvisioner := provisioner.NewOCIImageProvisioner(storage)
 		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
 		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
+	}
+
+	// Use k8s scaling as fallback for runner provisioning if no other provisioner is registered
+	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
+		return slices.Contains(binding.Types, schema.ResourceTypeRunner)
+	}); !ok {
+		runnerProvisioner := provisioner.NewRunnerScalingProvisioner(scaling, false)
+		runnerBinding := registry.Register("kubernetes", runnerProvisioner, schema.ResourceTypeRunner)
+		logger.Debugf("Registered provisioner %s as fallback for runner", runnerBinding)
 	}
 
 	err = provisioner.Start(ctx, registry, schemaClient, timelineClient)
