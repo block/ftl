@@ -480,6 +480,8 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         @Override
         public void onNext(GetDeploymentContextResponse moduleContextResponse) {
             synchronized (this) {
+                log.debugf("Received module context for %s: %s, waiters: %s", deploymentName, moduleContextResponse.getModule(),
+                        waiters);
                 currentError = null;
                 FTLRunnerConnectionImpl.this.moduleContextResponse = moduleContextResponse;
                 if (waiters) {
@@ -500,16 +502,18 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         @Override
         public void onCompleted() {
             synchronized (this) {
+                log.debug("Deployment context stream completed for " + deploymentName);
+                if (moduleContextResponse == null) {
+                    currentError = new RuntimeException("moduleContextResponse not received");
+                }
                 if (waiters) {
                     this.notifyAll();
                     waiters = false;
                 }
             }
-            if (failCount.incrementAndGet() < 5) {
-                deploymentService.getDeploymentContext(
-                        GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
-                        moduleObserver);
-            }
+            deploymentService.getDeploymentContext(
+                    GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
+                    moduleObserver);
         }
     }
 
