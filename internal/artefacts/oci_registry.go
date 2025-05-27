@@ -408,10 +408,40 @@ func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string,
 }
 
 func WithRemotePush() ImageTarget {
-	return func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error {
+	return func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
 		logger := log.FromContext(ctx)
-		if err := googleremote.WriteIndex(targetImage, imageIndex); err != nil {
-			return fmt.Errorf("writing layout: %w", err)
+		repo, err := name.NewRepository(s.registry)
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse repo")
+		}
+		auth := s.auth.Load()
+		authOpt := googleremote.WithAuth(authn.FromConfig(auth))
+
+		for _, l := range layers {
+			digest, _ := l.Digest()
+			logger.Infof("uploading layer %s", digest.String())
+			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
+				return errors.Errorf("writing layer: %w", err)
+			}
+		}
+		// Also push up any other layers
+		existing, err := image.Layers()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get image layers")
+		}
+
+		for _, l := range existing {
+			digest, _ := l.Digest()
+			logger.Infof("uploading layer %s", digest.String())
+			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
+				return errors.Errorf("writing layer: %w", err)
+			}
+		}
+		if err := googleremote.Write(targetImage, image, authOpt); err != nil {
+			return errors.Errorf("writing image: %w", err)
+		}
+		if err := googleremote.WriteIndex(targetImage, imageIndex, authOpt); err != nil {
+			return errors.Errorf("writing image index: %w", err)
 		}
 		logger.Infof("Wrote image %s to remote repository", targetImage)
 		return nil
@@ -419,18 +449,18 @@ func WithRemotePush() ImageTarget {
 }
 
 func WithLocalDeamon() ImageTarget {
-	return func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error {
+	return func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
 
 		logger := log.FromContext(ctx)
 		if _, err := daemon.Write(targetImage, image); err != nil {
-			return fmt.Errorf("writing layout: %w", err)
+			return errors.Errorf("writing layout: %w", err)
 		}
 		logger.Infof("Wrote image %s to local daemon", targetImage)
 		return nil
 	}
 }
 
-type ImageTarget func(ctx context.Context, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image) error
+type ImageTarget func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error
 
 func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 	logger := log.FromContext(ctx)
@@ -465,29 +495,32 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 
 	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
 	if err != nil {
-		return fmt.Errorf("getting base image metadata: %w", err)
+		return errors.Errorf("getting base image metadata: %w", err)
 	}
 
 	base, err := desc.Image()
 	if err != nil {
-		return fmt.Errorf("loading base image: %w", err)
+		return errors.Errorf("loading base image: %w", err)
 	}
 
 	layer, err := createLayer(apath, artifacts)
 	if err != nil {
-		return fmt.Errorf("creating layer: %w", err)
+		return errors.Errorf("creating layer: %w", err)
 	}
 
 	// Append the layer to the base image
 	newImg, err := mutate.AppendLayers(base, layer)
 	if err != nil {
-		return fmt.Errorf("appending layer: %w", err)
+		return errors.Errorf("appending layer: %w", err)
 	}
 
 	idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: newImg})
 
 	for _, i := range targets {
-		i(ctx, targetRef, idx, newImg)
+		err = i(ctx, s, targetRef, idx, newImg, []v1.Layer{layer})
+		if err != nil {
+			return errors.Wrapf(err, "failed to write image")
+		}
 	}
 
 	return nil
@@ -521,7 +554,7 @@ func addFileToTar(tw *tar.Writer, basepath string, path string, execuable bool) 
 		return err
 	}
 	if stat.IsDir() {
-		return fmt.Errorf("directories not supported: %s", path)
+		return errors.Errorf("directories not supported: %s", path)
 	}
 
 	mode := int64(0644)

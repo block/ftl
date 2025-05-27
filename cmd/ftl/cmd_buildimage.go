@@ -7,6 +7,7 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
+	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
@@ -18,11 +19,14 @@ import (
 )
 
 type buildImageCmd struct {
-	Parallelism    int                      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
-	Dirs           []string                 `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
-	BuildEnv       []string                 `help:"Environment variables to set for the build."`
-	RegistryConfig artefacts.RegistryConfig `embed:""`
-	Tag            string                   `help:"The image tag" default:"latest"`
+	Parallelism     int                      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
+	Dirs            []string                 `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
+	BuildEnv        []string                 `help:"Environment variables to set for the build."`
+	RegistryConfig  artefacts.RegistryConfig `embed:""`
+	Tag             string                   `help:"The image tag" default:"latest"`
+	RunnerImage     string                   `help:"An override of the runner base image"`
+	Push            bool                     `help:"Push the image to the registry after building." default:"false"`
+	SkipLocalDaemon bool                     `help:"Skip pushing to the local docker daemon." default:"false"`
 }
 
 func (b *buildImageCmd) Run(
@@ -65,9 +69,16 @@ func (b *buildImageCmd) Run(
 	}
 	if err := engine.BuildWithCallback(ctx, func(ctx context.Context, module buildengine.Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
 		variants := goslices.Collect(slices.FilterVariants[*schema.MetadataArtefact](moduleSch.Metadata))
-		image := "ftl0/ftl-runner"
-		if moduleSch.ModRuntime().Base.Image != "" {
-			image = moduleSch.ModRuntime().Base.Image
+		var image string
+		if b.RunnerImage != "" {
+			image = b.RunnerImage
+		} else {
+			image = "ftl0/ftl-runner"
+			if moduleSch.ModRuntime().Base.Image != "" {
+				image = moduleSch.ModRuntime().Base.Image
+			}
+			image += ":"
+			image += ftl.Version
 		}
 		tgt := b.RegistryConfig.Registry
 		if !strings.HasSuffix(tgt, "/") {
@@ -76,7 +87,14 @@ func (b *buildImageCmd) Run(
 		tgt += moduleSch.Name
 		tgt += ":"
 		tgt += b.Tag
-		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, variants, artefacts.WithLocalDeamon())
+		targets := []artefacts.ImageTarget{}
+		if !b.SkipLocalDaemon {
+			targets = append(targets, artefacts.WithLocalDeamon())
+		}
+		if b.Push {
+			targets = append(targets, artefacts.WithRemotePush())
+		}
+		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, variants, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}
