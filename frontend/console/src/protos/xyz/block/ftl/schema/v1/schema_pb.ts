@@ -3610,6 +3610,11 @@ export class ModuleRuntime extends Message<ModuleRuntime> {
    */
   runner?: ModuleRuntimeRunner;
 
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.ModuleRuntimeImage image = 5;
+   */
+  image?: ModuleRuntimeImage;
+
   constructor(data?: PartialMessage<ModuleRuntime>) {
     super();
     proto3.util.initPartial(data, this);
@@ -3622,6 +3627,7 @@ export class ModuleRuntime extends Message<ModuleRuntime> {
     { no: 2, name: "scaling", kind: "message", T: ModuleRuntimeScaling, opt: true },
     { no: 3, name: "deployment", kind: "message", T: ModuleRuntimeDeployment, opt: true },
     { no: 4, name: "runner", kind: "message", T: ModuleRuntimeRunner, opt: true },
+    { no: 5, name: "image", kind: "message", T: ModuleRuntimeImage, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntime {
@@ -3754,6 +3760,43 @@ export class ModuleRuntimeDeployment extends Message<ModuleRuntimeDeployment> {
 
   static equals(a: ModuleRuntimeDeployment | PlainMessage<ModuleRuntimeDeployment> | undefined, b: ModuleRuntimeDeployment | PlainMessage<ModuleRuntimeDeployment> | undefined): boolean {
     return proto3.util.equals(ModuleRuntimeDeployment, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.ModuleRuntimeImage
+ */
+export class ModuleRuntimeImage extends Message<ModuleRuntimeImage> {
+  /**
+   * @generated from field: string image = 2;
+   */
+  image = "";
+
+  constructor(data?: PartialMessage<ModuleRuntimeImage>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.ModuleRuntimeImage";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 2, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleRuntimeImage {
+    return new ModuleRuntimeImage().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ModuleRuntimeImage {
+    return new ModuleRuntimeImage().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ModuleRuntimeImage {
+    return new ModuleRuntimeImage().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ModuleRuntimeImage | PlainMessage<ModuleRuntimeImage> | undefined, b: ModuleRuntimeImage | PlainMessage<ModuleRuntimeImage> | undefined): boolean {
+    return proto3.util.equals(ModuleRuntimeImage, a, b);
   }
 }
 
@@ -4269,6 +4312,12 @@ export class Runtime extends Message<Runtime> {
     case: "moduleRuntimeDeployment";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeImage module_runtime_image = 4;
+     */
+    value: ModuleRuntimeImage;
+    case: "moduleRuntimeImage";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.ModuleRuntimeRunner module_runtime_runner = 3;
      */
     value: ModuleRuntimeRunner;
@@ -4304,6 +4353,7 @@ export class Runtime extends Message<Runtime> {
     { no: 6, name: "database_runtime", kind: "message", T: DatabaseRuntime, oneof: "value" },
     { no: 7, name: "egress_runtime", kind: "message", T: EgressRuntime, oneof: "value" },
     { no: 1, name: "module_runtime_deployment", kind: "message", T: ModuleRuntimeDeployment, oneof: "value" },
+    { no: 4, name: "module_runtime_image", kind: "message", T: ModuleRuntimeImage, oneof: "value" },
     { no: 3, name: "module_runtime_runner", kind: "message", T: ModuleRuntimeRunner, oneof: "value" },
     { no: 2, name: "module_runtime_scaling", kind: "message", T: ModuleRuntimeScaling, oneof: "value" },
     { no: 8, name: "plaintext_kafka_subscription_connector", kind: "message", T: PlaintextKafkaSubscriptionConnector, oneof: "value" },

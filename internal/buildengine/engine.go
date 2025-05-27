@@ -376,7 +376,7 @@ func (e *Engine) Build(ctx context.Context) error {
 	return e.BuildWithCallback(ctx, nil)
 }
 
-// Build attempts to build all local modules.
+// BuildWithCallback attempts to build all local modules, and calls back with the result
 func (e *Engine) BuildWithCallback(ctx context.Context, callback func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error) error {
 	schemas := make(chan *schema.Module, e.moduleMetas.Size())
 	if err := e.buildWithCallback(ctx, func(ctx context.Context, module Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {

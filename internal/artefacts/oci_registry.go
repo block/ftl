@@ -418,8 +418,6 @@ func WithRemotePush() ImageTarget {
 		authOpt := googleremote.WithAuth(authn.FromConfig(auth))
 
 		for _, l := range layers {
-			digest, _ := l.Digest()
-			logger.Infof("uploading layer %s", digest.String())
 			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
 				return errors.Errorf("writing layer: %w", err)
 			}
@@ -431,8 +429,6 @@ func WithRemotePush() ImageTarget {
 		}
 
 		for _, l := range existing {
-			digest, _ := l.Digest()
-			logger.Infof("uploading layer %s", digest.String())
 			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
 				return errors.Errorf("writing layer: %w", err)
 			}
@@ -443,7 +439,7 @@ func WithRemotePush() ImageTarget {
 		if err := googleremote.WriteIndex(targetImage, imageIndex, authOpt); err != nil {
 			return errors.Errorf("writing image index: %w", err)
 		}
-		logger.Infof("Wrote image %s to remote repository", targetImage)
+		logger.Infof("Wrote image %s to remote repository", targetImage) //nolint
 		return nil
 	}
 }
@@ -455,7 +451,7 @@ func WithLocalDeamon() ImageTarget {
 		if _, err := daemon.Write(targetImage, image); err != nil {
 			return errors.Errorf("writing layout: %w", err)
 		}
-		logger.Infof("Wrote image %s to local daemon", targetImage)
+		logger.Infof("Wrote image %s to local daemon", targetImage) //nolint
 		return nil
 	}
 }
@@ -464,7 +460,7 @@ type ImageTarget func(ctx context.Context, s *OCIArtefactService, targetImage na
 
 func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 	logger := log.FromContext(ctx)
-	logger.Infof("Building %s with %s as a base image from remte", targetImage, baseImage)
+	logger.Infof("Building %s with %s as a base image from remote", targetImage, baseImage) //nolint
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
 	if err != nil {
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
@@ -481,14 +477,14 @@ func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseIm
 func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 
 	logger := log.FromContext(ctx)
-	logger.Infof("Building %s with %s as a base image", targetImage, baseImage)
+	logger.Infof("Building %s with %s as a base image", targetImage, baseImage) //nolint
 	ref, err := name.ParseReference(baseImage)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to parse image name")
 	}
 	targetRef, err := name.NewTag(targetImage)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to parse target image")
 	}
 
 	auth := s.auth.Load()
@@ -531,27 +527,29 @@ func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, e
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	for _, a := range artifacts {
-		addFileToTar(tw, path, a.Path, a.Executable)
+		if err := addFileToTar(tw, path, a.Path, a.Executable); err != nil {
+			return nil, errors.Wrapf(err, "failed to add file to layer")
+		}
 	}
 	if err := tw.Close(); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create layer")
 	}
 
 	// TODO: use a file
-	return tarball.LayerFromReader(&buf)
+	return tarball.LayerFromReader(&buf) //nolint
 }
 
 // addFileToTar adds a single file to the tar writer.
 func addFileToTar(tw *tar.Writer, basepath string, path string, execuable bool) error {
 	file, err := os.Open(filepath.Join(basepath, path))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to open file")
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to stat file")
 	}
 	if stat.IsDir() {
 		return errors.Errorf("directories not supported: %s", path)
@@ -571,9 +569,9 @@ func addFileToTar(tw *tar.Writer, basepath string, path string, execuable bool) 
 	}
 
 	if err := tw.WriteHeader(hdr); err != nil {
-		return err
+		return errors.Wrap(err, "failed to write tar header")
 	}
 
 	_, err = io.Copy(tw, file)
-	return err
+	return errors.Wrap(err, "failed to copy files to tar")
 }

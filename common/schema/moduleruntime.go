@@ -26,6 +26,7 @@ type ModuleRuntime struct {
 	Scaling    *ModuleRuntimeScaling    `protobuf:"2,optional"`
 	Deployment *ModuleRuntimeDeployment `protobuf:"3,optional"`
 	Runner     *ModuleRuntimeRunner     `protobuf:"4,optional"`
+	Image      *ModuleRuntimeImage      `protobuf:"5,optional"`
 }
 
 func (m *ModuleRuntime) GetScaling() *ModuleRuntimeScaling {
@@ -47,6 +48,12 @@ func (m *ModuleRuntime) GetRunner() *ModuleRuntimeRunner {
 	}
 	return m.Runner
 }
+func (m *ModuleRuntime) GetImage() *ModuleRuntimeImage {
+	if m == nil {
+		return nil
+	}
+	return m.Image
+}
 func (m *ModuleRuntime) ModRunner() *ModuleRuntimeRunner {
 	if m.Runner == nil {
 		m.Runner = &ModuleRuntimeRunner{}
@@ -66,4 +73,11 @@ func (m *ModuleRuntime) ModScaling() *ModuleRuntimeScaling {
 		m.Scaling = &ModuleRuntimeScaling{}
 	}
 	return m.Scaling
+}
+
+func (m *ModuleRuntime) ModImage() *ModuleRuntimeImage {
+	if m.Image == nil {
+		m.Image = &ModuleRuntimeImage{}
+	}
+	return m.Image
 }

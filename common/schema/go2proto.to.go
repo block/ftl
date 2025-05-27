@@ -2314,6 +2314,7 @@ func (x *ModuleRuntime) ToProto() *destpb.ModuleRuntime {
 		Scaling:    x.Scaling.ToProto(),
 		Deployment: x.Deployment.ToProto(),
 		Runner:     x.Runner.ToProto(),
+		Image:      x.Image.ToProto(),
 	}
 }
 
@@ -2334,6 +2335,9 @@ func ModuleRuntimeFromProto(v *destpb.ModuleRuntime) (out *ModuleRuntime, err er
 	}
 	if out.Runner, err = result.From(ModuleRuntimeRunnerFromProto(v.Runner)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Runner")
+	}
+	if out.Image, err = result.From(ModuleRuntimeImageFromProto(v.Image)).Result(); err != nil {
+		return nil, errors.Wrap(err, "Image")
 	}
 	return out, nil
 }
@@ -2404,6 +2408,27 @@ func ModuleRuntimeDeploymentFromProto(v *destpb.ModuleRuntimeDeployment) (out *M
 	}
 	if out.State, err = orZeroR(ptrR(result.From(DeploymentStateFromProto(v.State)))).Result(); err != nil {
 		return nil, errors.Wrap(err, "State")
+	}
+	return out, nil
+}
+
+func (x *ModuleRuntimeImage) ToProto() *destpb.ModuleRuntimeImage {
+	if x == nil {
+		return nil
+	}
+	return &destpb.ModuleRuntimeImage{
+		Image: orZero(ptr(string(x.Image))),
+	}
+}
+
+func ModuleRuntimeImageFromProto(v *destpb.ModuleRuntimeImage) (out *ModuleRuntimeImage, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &ModuleRuntimeImage{}
+	if out.Image, err = orZeroR(result.From(ptr(string(v.Image)), nil)).Result(); err != nil {
+		return nil, errors.Wrap(err, "Image")
 	}
 	return out, nil
 }
@@ -2723,6 +2748,10 @@ func RuntimeToProto(value Runtime) *destpb.Runtime {
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_ModuleRuntimeDeployment{value.ToProto()},
 		}
+	case *ModuleRuntimeImage:
+		return &destpb.Runtime{
+			Value: &destpb.Runtime_ModuleRuntimeImage{value.ToProto()},
+		}
 	case *ModuleRuntimeRunner:
 		return &destpb.Runtime{
 			Value: &destpb.Runtime_ModuleRuntimeRunner{value.ToProto()},
@@ -2755,6 +2784,8 @@ func RuntimeFromProto(v *destpb.Runtime) (Runtime, error) {
 		return EgressRuntimeFromProto(v.GetEgressRuntime())
 	case *destpb.Runtime_ModuleRuntimeDeployment:
 		return ModuleRuntimeDeploymentFromProto(v.GetModuleRuntimeDeployment())
+	case *destpb.Runtime_ModuleRuntimeImage:
+		return ModuleRuntimeImageFromProto(v.GetModuleRuntimeImage())
 	case *destpb.Runtime_ModuleRuntimeRunner:
 		return ModuleRuntimeRunnerFromProto(v.GetModuleRuntimeRunner())
 	case *destpb.Runtime_ModuleRuntimeScaling:

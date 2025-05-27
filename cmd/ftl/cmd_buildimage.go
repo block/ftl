@@ -82,7 +82,7 @@ func (b *buildImageCmd) Run(
 		}
 		tgt := b.RegistryConfig.Registry
 		if !strings.HasSuffix(tgt, "/") {
-			tgt = tgt + "/"
+			tgt += "/"
 		}
 		tgt += moduleSch.Name
 		tgt += ":"
