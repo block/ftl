@@ -40,6 +40,10 @@ import (
 	"github.com/block/ftl/common/sha256"
 )
 
+const (
+	FTLFullSchemaPath = "ftl-full-schema.pb"
+)
+
 type DeploymentArtefactProvider func() (string, error)
 
 type ArtefactReader interface {
@@ -473,7 +477,16 @@ func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseIm
 
 }
 
-func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, allArtifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+	var artifacts []*schema.MetadataArtefact
+	var schemaArtifacts []*schema.MetadataArtefact
+	for _, i := range allArtifacts {
+		if i.Path == FTLFullSchemaPath {
+			schemaArtifacts = append(schemaArtifacts, i)
+		} else {
+			artifacts = append(artifacts, i)
+		}
+	}
 
 	opts := []name.Option{}
 	if s.allowInsecure {
@@ -505,9 +518,13 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 	if err != nil {
 		return errors.Errorf("creating layer: %w", err)
 	}
+	schLayer, err := createLayer(apath, schemaArtifacts)
+	if err != nil {
+		return errors.Errorf("creating layer: %w", err)
+	}
 
 	// Append the layer to the base image
-	newImg, err := mutate.AppendLayers(base, layer)
+	newImg, err := mutate.AppendLayers(base, layer, schLayer)
 	if err != nil {
 		return errors.Errorf("appending layer: %w", err)
 	}

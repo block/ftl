@@ -8,6 +8,7 @@ import (
 	"time"
 
 	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"google.golang.org/protobuf/proto"
 
@@ -20,6 +21,10 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sql"
+)
+
+const (
+	FTLFullSchemaPath = "ftl-full-schema.pb"
 )
 
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
@@ -39,7 +44,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, m Module, pl
 		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
 	}
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints)
+	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints, optional.Some(bctx.Schema))
 	if err != nil {
 		return nil, "", nil, errors.WithStack(err)
 	}
@@ -47,7 +52,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, m Module, pl
 }
 
 // handleBuildResult processes the result of a build
-func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint, schemaOpt optional.Option[*schema.Schema]) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx)
 	config := m.Config.Abs()
 
@@ -87,6 +92,19 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	}
 	result.Deploy = append(result.Deploy, migrationFiles...)
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
+
+	if schema, ok := schemaOpt.Get(); ok {
+		data, err := proto.Marshal(schema.ToProto())
+		if err != nil {
+			return nil, "", nil, errors.Wrap(err, "failed to marshal schema files")
+		}
+		path := filepath.Join(config.DeployDir, FTLFullSchemaPath)
+		err = os.WriteFile(path, data, 0644) //nolint
+		if err != nil {
+			return nil, "", nil, errors.Wrap(err, "failed to write full schema")
+		}
+		result.Deploy = append(result.Deploy, FTLFullSchemaPath)
+	}
 
 	tmpDeployDir, deployPaths, err = copyArtifacts(ctx, config.Module, config.DeployDir, result.Deploy)
 	if err != nil {
