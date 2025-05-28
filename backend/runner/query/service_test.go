@@ -55,26 +55,22 @@ func TestQueryService(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("QuerySlice", func(t *testing.T) {
-		response := &responseCollector{}
-		err := svc.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
-			RawSql:         `SELECT id FROM test_table WHERE name IN (/*SLICE:names*/?) AND value = ? AND id IN (/*SLICE:ids*/?)`,
-			CommandType:    querypb.CommandType_COMMAND_TYPE_MANY,
-			ParametersJson: `[["test1", "test3"], 100, [1]]`,
-			ResultColumns:  []*querypb.ResultColumn{{TypeName: "INT", SqlName: "id"}},
-		}), response)
+		jsonRows, _, err := svc.ExecuteQuery(ctx, ExecuteQueryRequest{
+			RawSQL:        `SELECT id FROM test_table WHERE name IN (/*SLICE:names*/?) AND value = ? AND id IN (/*SLICE:ids*/?)`,
+			CommandType:   Many,
+			Parameters:    []any{[]string{"test1", "test3"}, 100, []int{1}},
+			ResultColumns: []ResultColumn{{TypeName: "INT", SQLName: "id"}},
+		})
 		assert.NoError(t, err)
+		strRows := []string{}
+		for _, row := range jsonRows {
+			strRows = append(strRows, string(row))
+		}
 		assert.Equal(t,
-			[]*querypb.ExecuteQueryResponse{
-				{
-					Result: &querypb.ExecuteQueryResponse_RowResults{
-						RowResults: &querypb.RowResults{
-							JsonRows: "{\"int\":1}",
-							HasMore:  true,
-						},
-					},
-				},
+			[]string{
+				"{\"int\":1}",
 			},
-			response.responses,
+			strRows,
 		)
 	})
 
