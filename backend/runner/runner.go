@@ -424,6 +424,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			"./launch",
 			ftlv1connect.NewVerbServiceClient,
 			true,
+			plugin.WithNoWorkingDir(),
 			plugin.WithEnvars(
 				envVars...,
 			),

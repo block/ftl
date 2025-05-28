@@ -106,11 +106,16 @@ data:
                   containerPort: {{ .Values.runner.port }}
                   protocol: "TCP"
               {{- include "ftl.healthProbes" .Values.timeline | nindent 14 }}
+              {{- include "ftl.securityContext" .Values.cron | nindent 14 }}
               volumeMounts:
                 - mountPath: /home/ubuntu/.cache
                   name: cache
+                - mountPath: /tmp
+                  name: tmp
           volumes:
             - name: cache
+              emptyDir: {}
+            - name: tmp
               emptyDir: {}
       {{- include "ftl.commonPodConfig" .Values.runner | nindent 10 }}
   serviceAccountTemplate: |-
