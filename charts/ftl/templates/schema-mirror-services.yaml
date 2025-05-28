@@ -4,7 +4,7 @@ metadata:
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
   name: {{ include "ftl.fullname" . }}-schema-mirror
-  {{- if .Values.schema-mirror.services.schema.annotations }}
+  {{- if .Values.schema-mirror.services.schema-mirror.annotations }}
   annotations:
     {{- toYaml .Values.schema-mirror.services.schema-mirror.annotations | nindent 4 }}
   {{- end }}
