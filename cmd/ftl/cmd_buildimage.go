@@ -93,6 +93,7 @@ func (b *buildImageCmd) Run(
 			}
 			image += ":"
 			if ftl.IsRelease(ftl.Version) && ftl.Version == ftl.BaseVersion(ftl.Version) {
+				image += "v"
 				image += ftl.Version
 			} else {
 				image += "latest"

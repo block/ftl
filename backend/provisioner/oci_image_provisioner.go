@@ -45,6 +45,7 @@ func provisionOCIImage(storage *artefacts.OCIArtefactService, defaultImage strin
 		if !ftl.IsRelease(ftl.Version) || ftl.Version != ftl.BaseVersion(ftl.Version) {
 			image += "latest"
 		} else {
+			image += "v"
 			image += ftl.Version
 		}
 		logger.Debugf("Using base image %s from default %s", image, defaultImage)
