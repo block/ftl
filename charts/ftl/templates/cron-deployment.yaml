@@ -61,9 +61,9 @@ spec:
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
               value: {{ if $.Values.schemaMirror.service.enabled -}}
-                http://{{ include "ftl.fullname" . }}-schema-mirror:{{ $.Values.schemaMirror.service.port }}
+                http://{{ include "ftl.fullname" . }}-schema-mirror.{{ .Release.Namespace }}:{{ $.Values.schemaMirror.service.port }}
                 {{- else -}}
-                http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}
+                http://{{ include "ftl.fullname" . }}-schema.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}
                 {{- end }}
             - name: LOG_LEVEL
               value: "{{ .Values.cron.logLevel | default .Values.logLevel }}"

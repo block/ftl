@@ -79,9 +79,9 @@ data:
                   value: "{{ .Values.registry.repository }}"
                 - name: FTL_SCHEMA_ENDPOINT
                   value: {{ if $.Values.schemaMirror.service.enabled -}}
-                    http://{{ include "ftl.fullname" . }}-schema-mirror:{{ $.Values.schemaMirror.service.port }}
+                    http://{{ include "ftl.fullname" . }}-schema-mirror.{{ .Release.Namespace }}:{{ $.Values.schemaMirror.service.port }}
                     {{- else -}}
-                    http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}
+                    http://{{ include "ftl.fullname" . }}-schema.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}
                     {{- end }}
                 - name: FTL_LEASE_ENDPOINT
                   value: http://{{ include "ftl.fullname" . }}-lease.{{ .Release.Namespace }}:{{ .Values.lease.port }}
