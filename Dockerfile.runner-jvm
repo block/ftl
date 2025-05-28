@@ -13,7 +13,11 @@ RUN mvn -B --version
 FROM ftl0/ftl-runner:latest
 
 WORKDIR /jdk/
+USER root:root
 
 ENV PATH="/jdk/bin:$PATH"
 ENV JAVA_HOME="/jdk"
 COPY --from=builder /hermit/pkg/openjdk-21.0.3_9/ /jdk/
+RUN chown -R 1000:1000 /jdk
+
+USER 1000:1000
