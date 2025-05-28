@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alecthomas/atomic"
@@ -88,16 +89,12 @@ type RegistryConfig struct {
 }
 
 type OCIArtefactService struct {
-	auth          *atomic.Value[authn.AuthConfig]
-	puller        *googleremote.Puller
-	registry      string
-	allowInsecure bool
-	logger        *log.Logger
-}
-
-func (s *OCIArtefactService) Authorization() (*authn.AuthConfig, error) {
-	out := s.auth.Load()
-	return &out, nil
+	originalContext context.Context
+	puller          *googleremote.Puller
+	targetConfig    RegistryConfig
+	logger          *log.Logger
+	registries      map[string]*registryAuth
+	registryLock    sync.Mutex
 }
 
 type ArtefactRepository struct {
@@ -112,6 +109,25 @@ type ArtefactBlobs struct {
 	Digest    sha256.SHA256
 	MediaType string
 	Size      int64
+}
+
+type registryAuth struct {
+	delegate authn.Authenticator
+	auth     atomic.Value[*authn.AuthConfig]
+}
+
+// Authorization implements authn.Authenticator.
+func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
+	if r.delegate != nil {
+		auth, err := r.delegate.Authorization()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to authorize container registry")
+		}
+		if auth != nil {
+			return auth, nil
+		}
+	}
+	return r.auth.Load(), nil
 }
 
 func NewForTesting() *OCIArtefactService {
@@ -132,47 +148,81 @@ func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArte
 
 	logger := log.FromContext(ctx)
 	o := &OCIArtefactService{
-		auth:          &atomic.Value[authn.AuthConfig]{},
-		registry:      config.Registry,
-		allowInsecure: config.AllowInsecure,
-		logger:        logger,
+		originalContext: ctx,
+		registries:      map[string]*registryAuth{},
+		targetConfig:    config,
+		logger:          logger,
 	}
-	puller, err := googleremote.NewPuller(googleremote.WithAuth(o))
+
+	puller, err := googleremote.NewPuller(googleremote.WithAuthFromKeychain(o))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to create puller for registry '%s'", config.Registry)
+		return nil, errors.Wrapf(err, "unable to create puller")
 	}
 	o.puller = puller
-
-	if isECRRepository(config.Registry) {
-
-		username, password, err := getECRCredentials(ctx)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		logger.Debugf("Using ECR credentials for registry '%s'", config.Registry)
-		o.auth.Store(authn.AuthConfig{Username: username, Password: password})
-		go func() {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(time.Hour):
-					username, password, err := getECRCredentials(ctx)
-					if err != nil {
-						logger.Errorf(err, "failed to refresh ECR credentials")
-					}
-					o.auth.Store(authn.AuthConfig{Username: username, Password: password})
-				}
-			}
-		}()
-	} else {
-		o.auth.Store(authn.AuthConfig{Username: config.Username, Password: config.Password})
-	}
 	return o, nil
 }
 
+// Resolve implements authn.Keychain.
+func (s *OCIArtefactService) Resolve(r authn.Resource) (authn.Authenticator, error) {
+	s.registryLock.Lock()
+	defer s.registryLock.Unlock()
+
+	logger := log.FromContext(s.originalContext)
+	registry := r.String()
+	existing := s.registries[registry]
+	if existing != nil {
+		return existing, nil
+	}
+	cfg := &registryAuth{}
+	s.registries[registry] = cfg
+	cfg.auth.Store(&authn.AuthConfig{})
+
+	if registry == s.targetConfig.Registry &&
+		s.targetConfig.Username != "" &&
+		s.targetConfig.Password != "" {
+		// The user has explicitly supplied credentials, lets use them
+		cfg.auth.Store(&authn.AuthConfig{
+			Username: s.targetConfig.Username,
+			Password: s.targetConfig.Password,
+		})
+		return cfg, nil
+	}
+
+	dctx, err := authn.DefaultKeychain.ResolveContext(s.originalContext, r)
+	if err == nil {
+		// Local docker config takes precidence
+		cfg.delegate = dctx
+		return cfg, nil
+	}
+
+	if isECRRepository(registry) {
+
+		username, password, err := getECRCredentials(s.originalContext)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		logger.Debugf("Using ECR credentials for registry '%s'", registry)
+		cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
+		go func() {
+			for {
+				select {
+				case <-s.originalContext.Done():
+					return
+				case <-time.After(time.Hour):
+					username, password, err := getECRCredentials(s.originalContext)
+					if err != nil {
+						logger.Errorf(err, "failed to refresh ECR credentials")
+					}
+					cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
+				}
+			}
+		}()
+	}
+	return cfg, nil
+}
+
 func (s *OCIArtefactService) GetRegistry() string {
-	return s.registry
+	return s.targetConfig.Registry
 }
 
 func getECRCredentials(ctx context.Context) (string, string, error) {
@@ -212,7 +262,7 @@ func getECRCredentials(ctx context.Context) (string, string, error) {
 func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
 	repo, err := s.repoFactory()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.registry)
+		return nil, nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
 	}
 	set := make(map[sha256.SHA256]bool)
 	for _, d := range digests {
@@ -243,7 +293,7 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload
 	repo, err := s.repoFactory()
 	logger := log.FromContext(ctx).Scope("oci:" + artefact.Digest.String())
 	if err != nil {
-		return errors.Wrapf(err, "unable to connect to repository '%s'", s.registry)
+		return errors.Wrapf(err, "unable to connect to repository '%s'", s.targetConfig.Registry)
 	}
 
 	parseSHA256, err := sha256.ParseSHA256(artefact.Digest.String())
@@ -298,15 +348,14 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	// So we are using google's go-containerregistry to do the actual download
 	// This is not great, we should remove oras at some point
 	opts := []name.Option{}
-	if s.allowInsecure {
+	if s.targetConfig.AllowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.registry, dg.String()), opts...)
+	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.targetConfig.Registry, dg.String()), opts...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
-	auth := s.auth.Load()
-	layer, err := googleremote.Layer(newDigest, googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
+	layer, err := googleremote.Layer(newDigest, googleremote.WithAuthFromKeychain(s), googleremote.Reuse(s.puller))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read layer '%s'", newDigest)
 	}
@@ -318,24 +367,36 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 }
 
 func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
-	reg, err := remote.NewRepository(s.registry)
+	reg, err := remote.NewRepository(s.targetConfig.Registry)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.registry)
+		return nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
 	}
 
-	a := s.auth.Load()
-	s.logger.Debugf("Connecting to registry '%s'", s.registry)
+	ref, err := name.NewRepository(s.targetConfig.Registry)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse registry")
+	}
+	a, err := s.Resolve(ref)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to resolve authenticator")
+	}
+	acfg, err := a.Authorization()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to authenticate")
+	}
+
+	s.logger.Debugf("Connecting to registry '%s'", s.targetConfig.Registry)
 	reg.Client = &auth.Client{
 		Client: retry.DefaultClient,
 		Cache:  auth.NewCache(),
 		Credential: func(ctx context.Context, hostport string) (auth.Credential, error) {
 			return auth.Credential{
-				Username: a.Username,
-				Password: a.Password,
+				Username: acfg.Username,
+				Password: acfg.Password,
 			}, nil
 		},
 	}
-	reg.PlainHTTP = s.allowInsecure
+	reg.PlainHTTP = s.targetConfig.AllowInsecure
 	return reg, nil
 }
 
@@ -418,12 +479,11 @@ func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string,
 func WithRemotePush() ImageTarget {
 	return func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
 		logger := log.FromContext(ctx)
-		repo, err := name.NewRepository(s.registry)
+		repo, err := name.NewRepository(s.targetConfig.Registry)
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse repo")
 		}
-		auth := s.auth.Load()
-		authOpt := googleremote.WithAuth(authn.FromConfig(auth))
+		authOpt := googleremote.WithAuthFromKeychain(s)
 
 		for _, l := range layers {
 			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
@@ -489,7 +549,8 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 	}
 
 	opts := []name.Option{}
-	if s.allowInsecure {
+	// TODO: use http:// scheme for allow/disallow insecure
+	if s.targetConfig.AllowInsecure {
 		opts = append(opts, name.Insecure)
 	}
 	logger := log.FromContext(ctx)
@@ -503,8 +564,7 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 		return errors.Wrapf(err, "failed to parse target image")
 	}
 
-	auth := s.auth.Load()
-	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuth(authn.FromConfig(auth)), googleremote.Reuse(s.puller))
+	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s), googleremote.Reuse(s.puller))
 	if err != nil {
 		return errors.Errorf("getting base image metadata: %w", err)
 	}

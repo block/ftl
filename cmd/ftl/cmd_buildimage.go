@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	errors "github.com/alecthomas/errors"
 
@@ -99,10 +98,6 @@ func (b *buildImageCmd) Run(
 			}
 		}
 		tgt := b.RegistryConfig.Registry
-		if !strings.HasSuffix(tgt, "/") {
-			tgt += "/"
-		}
-		tgt += moduleSch.Name
 		tgt += ":"
 		tgt += b.Tag
 		targets := []artefacts.ImageTarget{}
