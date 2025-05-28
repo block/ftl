@@ -12,8 +12,8 @@ RUN mvn -B --version
 # Finally create the runtime image.
 FROM ftl0/ftl-runner:latest
 
-WORKDIR /root/
+WORKDIR /jdk/
 
-ENV PATH="/root/jdk/bin:$PATH"
-ENV JAVA_HOME="/root/jdk"
-COPY --from=builder /hermit/pkg/openjdk-21.0.3_9/ /root/jdk/
+ENV PATH="/jdk/bin:$PATH"
+ENV JAVA_HOME="/jdk"
+COPY --from=builder /hermit/pkg/openjdk-21.0.3_9/ /jdk/
