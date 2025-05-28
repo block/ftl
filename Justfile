@@ -83,7 +83,8 @@ DOCKER_IMAGES := '''
   "timeline": {},
   "lease": {},
   "admin": {},
-  "schema": {}
+  "schema": {},
+  "schema-mirror": {}
 }
 '''
 USER_HERMIT_PACKAGES := "openjdk maven go-1"
@@ -158,7 +159,7 @@ build-without-frontend +tools: build-protos build-zips capture-hermit-versions
 
 # Build all backend binaries
 build-backend:
-  just build ftl ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-timeline
+  just build ftl ftl-runner ftl-sqlc ftl-admin ftl-cron ftl-http-ingress ftl-lease ftl-provisioner ftl-schema ftl-schema-mirror ftl-timeline
 
 # Build all backend tests
 build-backend-tests:
