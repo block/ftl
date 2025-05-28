@@ -261,6 +261,41 @@ schema:
   topologySpreadConstraints: null
   tolerations: null
 
+schemaMirror:
+  enabled: true
+  replicas: 1
+  env: null
+
+  revisionHistoryLimit: 0
+
+  image:
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-schema-mirror"
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 10m
+    limits:
+      memory: 256Mi
+      cpu: 2
+
+  envFrom: null
+  serviceAccountName: ftl-schema-mirror
+
+  readinessProbe: null
+
+  service:
+    annotations: null
+    port: 8892
+  podAnnotations: null
+  nodeSelector: null
+  affinity: null
+  topologySpreadConstraints: null
+  tolerations: null
+
 console:
   enabled: true
   env: null

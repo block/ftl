@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+  name: {{ include "ftl.fullname" . }}-schema-mirror
+  {{- if .Values.schemaMirror.service.annotations }}
+  annotations:
+    {{- toYaml .Values.schemaMirror.service.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - name: http2
+      port: {{ .Values.schemaMirror.service.port }}
+      protocol: TCP
+  selector:
+    {{- include "ftl-schema-mirror.selectorLabels" . | nindent 4 }}
+  type: {{ .Values.schemaMirror.service.type | default "ClusterIP" }}

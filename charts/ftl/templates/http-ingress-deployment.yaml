@@ -49,7 +49,11 @@ spec:
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
             - name: FTL_SCHEMA_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
+              value: {{ if $.Values.schemaMirror.service.enabled -}}
+                http://{{ include "ftl.fullname" . }}-schema-mirror.{{ .Release.Namespace }}:{{ $.Values.schemaMirror.service.port }}
+                {{- else -}}
+                http://{{ include "ftl.fullname" . }}-schema.{{ .Release.Namespace }}:{{ $.Values.schema.services.schema.port }}
+                {{- end }}
             - name: LOG_LEVEL
               value: "{{ .Values.ingress.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON

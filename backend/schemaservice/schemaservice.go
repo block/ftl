@@ -111,10 +111,11 @@ func New(
 			receiverClient: receiverClient,
 			rpcOpts:        rpcOpts,
 		}
-		svc.rpcOpts = append(svc.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc))
+		svc.rpcOpts = append(svc.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc), rpc.StartHook(func(ctx context.Context) error {
+			go svc.pushSchema(ctx)
+			return nil
+		}))
 	}
-
-	go svc.pushSchema(ctx)
 
 	svc.devMode = devMode
 
