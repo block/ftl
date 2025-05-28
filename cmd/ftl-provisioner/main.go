@@ -68,14 +68,15 @@ func main() {
 			return systemNamespace
 		}
 	}
-	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
-	err = scaling.Start(ctx)
-	kctx.FatalIfErrorf(err, "error starting k8s scaling")
-	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient)
-	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
+
+	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	err = scaling.Start(ctx)
+	kctx.FatalIfErrorf(err, "error starting k8s scaling")
+	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, storage)
+	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
