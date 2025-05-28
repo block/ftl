@@ -249,7 +249,9 @@ format-frontend:
 
 # Install Node dependencies using pnpm
 pnpm-install:
-  @mk $(yq '.packages[] | . + "/node_modules"' pnpm-workspace.yaml) node_modules/.modules.yaml : pnpm-lock.yaml -- @retry 3 pnpm install --frozen-lockfile
+  #!/bin/bash
+  test -z "$CI" && retries=1 || retries=3
+  mk $(yq '.packages[] | . + "/node_modules"' pnpm-workspace.yaml) node_modules/.modules.yaml : pnpm-lock.yaml -- @retry $retries pnpm install --frozen-lockfile
 
 # Copy plugin protos from the SQLC release
 update-sqlc-plugin-codegen-proto:
@@ -278,7 +280,8 @@ test-integration *test:
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
-  retry 3 /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  test -z "$CI" && retries=1 || retries=3
+  retry "$retries" /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests
 test-infrastructure *test:
@@ -286,7 +289,7 @@ test-infrastructure *test:
 
 # Run integration test(s)
 infrastructure-tests *test:
-  go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(find . -type f -name '*_test.go' -print0 | xargs -0 grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')
+  go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')
 
 # Run README doc tests
 test-readme *args:
