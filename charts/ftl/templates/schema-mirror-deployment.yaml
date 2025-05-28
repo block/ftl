@@ -1,6 +1,6 @@
 {{ $version := printf "v%s" .Chart.Version -}}
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: {{ include "ftl.fullname" . }}-schema-mirror
   labels:
