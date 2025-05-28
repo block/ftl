@@ -314,6 +314,46 @@ func TestParsing(t *testing.T) {
 		errors   []string
 		expected *Schema
 	}{
+		{name: "IngressRoot",
+			input: `
+				realm test {
+					module test {
+						export verb index(builtin.HttpRequest<Unit, Unit, Unit>) builtin.HttpResponse<Unit, String>
+					        +ingress http GET /
+					}
+				}
+		`,
+			expected: &Schema{
+				Realms: []*Realm{{
+					Name: "test",
+					Modules: []*Module{{
+						Name: "test",
+						Decls: []Decl{
+							&Verb{
+								Visibility: VisibilityScopeModule,
+								Name:       "index",
+								Request: &Ref{
+									Module:         "builtin",
+									Name:           "HttpRequest",
+									TypeParameters: []Type{&Unit{}, &Unit{}, &Unit{}},
+								},
+								Response: &Ref{
+									Module:         "builtin",
+									Name:           "HttpResponse",
+									TypeParameters: []Type{&Unit{}, &String{}},
+								},
+								Metadata: []Metadata{
+									&MetadataIngress{
+										Type:   "http",
+										Method: "GET",
+									},
+								},
+							},
+						},
+					}},
+				}},
+			},
+		},
 		{name: "Empty Realm",
 			input:    `realm foo { }`,
 			expected: &Schema{Realms: []*Realm{{Name: "foo"}}},
@@ -843,7 +883,7 @@ realm foo {
 			} else {
 				assert.NoError(t, err)
 				actual = Normalise(actual)
-				assert.NotZero(t, test.expected, "test.expected is nil")
+				assert.NotZero(t, test.expected, "test.expected is nil but should contain a schema")
 				test.expected.Realms[0].Modules = append([]*Module{Builtins()}, test.expected.Realms[0].Modules...)
 				assert.Equal(t, Normalise(test.expected), Normalise(actual), assert.OmitEmpty(), assert.Exclude[Position]())
 			}

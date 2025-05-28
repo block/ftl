@@ -3,6 +3,8 @@ package schema
 import (
 	"fmt"
 	"strings"
+
+	"github.com/block/ftl/common/slices"
 )
 
 //protobuf:2
@@ -11,7 +13,7 @@ type MetadataIngress struct {
 
 	Type   string                 `parser:"'+' 'ingress' @('http')?" protobuf:"2"`
 	Method string                 `parser:"@('GET' | 'POST' | 'PUT' | 'DELETE')" protobuf:"3"`
-	Path   []IngressPathComponent `parser:"('/' @@)+" protobuf:"4"`
+	Path   []IngressPathComponent `parser:"'/' (@@ ('/' @@)*)?" protobuf:"4"`
 }
 
 var _ Metadata = (*MetadataIngress)(nil)
@@ -25,15 +27,7 @@ func (m *MetadataIngress) String() string {
 //
 // For example, /foo/{bar}
 func (m *MetadataIngress) PathString() string {
-	path := make([]string, len(m.Path))
-	for i, p := range m.Path {
-		switch v := p.(type) {
-		case *IngressPathLiteral:
-			path[i] = v.Text
-		case *IngressPathParameter:
-			path[i] = fmt.Sprintf("{%s}", v.Name)
-		}
-	}
+	path := slices.Map(m.Path, func(c IngressPathComponent) string { return c.String() })
 	return "/" + strings.Join(path, "/")
 }
 
@@ -76,6 +70,6 @@ type IngressPathParameter struct {
 var _ IngressPathComponent = (*IngressPathParameter)(nil)
 
 func (l *IngressPathParameter) Position() Position        { return l.Pos }
-func (l *IngressPathParameter) String() string            { return l.Name }
+func (l *IngressPathParameter) String() string            { return "{" + l.Name + "}" }
 func (*IngressPathParameter) schemaChildren() []Node      { return nil }
 func (*IngressPathParameter) schemaIngressPathComponent() {}
