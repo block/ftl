@@ -1,0 +1,11 @@
+{{- if .Values.schema-mirror.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.schema-mirror.serviceAccountName }}
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.schema-mirror.schemaMirrorRoleArn }}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ .Values.schema-mirror.schemaMirrorRoleArn }}
+  {{- end }}
+{{- end }}

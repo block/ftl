@@ -1,0 +1,73 @@
+{{ $version := printf "v%s" .Chart.Version -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ftl.fullname" . }}-schema-mirror
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.schema-mirror.replicas }}
+  podManagementPolicy: Parallel
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  ordinals:
+    start: 1
+  revisionHistoryLimit: {{ .Values.schema-mirror.revisionHistoryLimit }}
+  serviceName: {{ .Values.schema-mirror.serviceName }}
+  selector:
+    matchLabels:
+      {{- include "ftl-schema-mirror.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ftl-schema-mirror.selectorLabels" . | nindent 8 }}
+      annotations:
+      {{- if .Values.schema-mirror.podAnnotations }}
+        {{- toYaml .Values.schema-mirror.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{ if .Values.istio.holdApplicationUntilProxyStarts }}
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
+      {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.schema-mirror.serviceAccountName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: app
+          image: "{{ .Values.schema-mirror.image.repository | default (printf "%s/%s" .Values.image.base .Values.schema-mirror.image.name) }}:{{ .Values.schema-mirror.image.tag | default .Values.image.tag | default $version }}"
+          imagePullPolicy: {{ .Values.schema-mirror.image.pullPolicy | default .Values.image.pullPolicy }}
+          {{- if .Values.schema-mirror.envFrom }}
+          envFrom:
+            {{- if .Values.schema-mirror.envFrom }}
+            {{- toYaml .Values.schema-mirror.envFrom | nindent 12 }}
+            {{- end }}
+          {{- else if or .Values.secrets.logEncryptionKey .Values.secrets.asyncEncryptionKey }}
+          envFrom:
+            - secretRef:
+                name: {{ include "ftl.fullname" . }}-secrets
+          {{- end }}
+          env:
+            {{- if .Values.schema-mirror.env }}
+            {{- toYaml .Values.schema-mirror.env | nindent 12 }}
+            {{- end }}
+            - name: FTL_BIND
+              value: "http://0.0.0.0:{{ .Values.schema-mirror.services.schema-mirror.port }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.schema-mirror.logLevel | default .Values.logLevel }}"
+            - name: LOG_JSON
+              value: "{{ .Values.schema-mirror.logJson | default .Values.logJson }}"
+            - name: FTL_TIMELINE_ENDPOINT
+              value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
+            - name: FTL_REALM
+              value: {{ .Values.realmName }}
+          ports:
+            - name: http2
+              containerPort: {{ .Values.schema-mirror.services.schema-mirror.port }}
+              protocol: "TCP"
+          {{- include "ftl.resources" .Values.schema-mirror | nindent 10 }}
+          {{- include "ftl.healthProbes" .Values.schema-mirror | nindent 10 }}
+          {{- include "ftl.securityContext" .Values.schema-mirror | nindent 10 }}
+      {{- include "ftl.commonPodConfig" .Values.schema-mirror | nindent 6 }}
