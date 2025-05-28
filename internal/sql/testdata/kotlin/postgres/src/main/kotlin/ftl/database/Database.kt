@@ -6,8 +6,8 @@ data class InsertRequest(val `data`: String)
 
 @Export
 @Verb
-fun insert(req: InsertRequest, c: CreateRequestClient) {
-    c.createRequest(req.`data`)
+fun insert(req: InsertRequest, createRequest: CreateRequestClient) {
+    createRequest.call(req.`data`)
 }
 
 data class TransactionRequest(val items: List<String>)
@@ -15,16 +15,16 @@ data class TransactionRequest(val items: List<String>)
 data class TransactionResponse(val count: Int)
 
 @Transactional
-fun transactionInsert(req: TransactionRequest, c: CreateRequestClient, getRequestData: GetRequestDataClient): TransactionResponse {
+fun transactionInsert(req: TransactionRequest, createRequest: CreateRequestClient, getRequestData: GetRequestDataClient): TransactionResponse {
     for (item in req.items) {
-        c.createRequest(item)
+        createRequest.call(item)
     }
-    val result = getRequestData.getRequestData()
+    val result = getRequestData.call()
     return TransactionResponse(result.size)
 }
 
 @Transactional
-fun transactionRollback(req: TransactionRequest, c: CreateRequestClient) {
-    c.createRequest(req.items[0])
+fun transactionRollback(req: TransactionRequest, createRequest: CreateRequestClient) {
+    createRequest.call(req.items[0])
     throw RuntimeException("deliberate error to test rollback")
 }

@@ -123,7 +123,6 @@ public class ModuleBuilder {
     private final Set<String> knownConfig = new HashSet<>();
     private final Map<DotName, TopicsBuildItem.DiscoveredTopic> knownTopics;
     private final Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients;
-    private final Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> sqlQueryClients;
     private final FTLRecorder recorder;
     private final CommentsBuildItem comments;
     private final List<ValidationFailure> validationFailures = new ArrayList<>();
@@ -132,7 +131,6 @@ public class ModuleBuilder {
 
     public ModuleBuilder(IndexView index, String moduleName, Map<DotName, TopicsBuildItem.DiscoveredTopic> knownTopics,
             Map<DotName, VerbClientBuildItem.DiscoveredClients> verbClients,
-            Map<DotName, SQLQueryClientBuildItem.DiscoveredClients> sqlQueryClients,
             FTLRecorder recorder,
             CommentsBuildItem comments, boolean defaultToOptional, String projectRoot) {
         this.index = index;
@@ -142,7 +140,6 @@ public class ModuleBuilder {
                 .setBuiltin(false);
         this.knownTopics = knownTopics;
         this.verbClients = verbClients;
-        this.sqlQueryClients = sqlQueryClients;
         this.recorder = recorder;
         this.comments = comments;
         this.defaultToOptional = defaultToOptional;
@@ -312,13 +309,6 @@ public class ModuleBuilder {
                     paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
                     callsMetadata.addCalls(
                             Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
-                } else if (sqlQueryClients.containsKey(param.type().name())) {
-                    var client = sqlQueryClients.get(param.type().name());
-                    Class<?> paramType = ModuleBuilder.loadClass(param.type());
-                    parameterTypes.add(paramType);
-                    paramMappers.add(recorder.verbClientSupplier(client.generatedClient()));
-                    callsMetadata.addCalls(
-                            Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
                 } else if (FTLDotNames.LEASE_CLIENT.equals(param.type().name())) {
                     parameterTypes.add(LeaseClient.class);
                     paramMappers.add(recorder.leaseClientSupplier());
@@ -368,7 +358,7 @@ public class ModuleBuilder {
             if (!customization.customHandling) {
                 recorder.registerVerb(moduleName, verbName, method.name(), parameterTypes,
                         Class.forName(className, false, Thread.currentThread().getContextClassLoader()), paramMappers,
-                        method.returnType() == VoidType.VOID, transaction);
+                        method.returnType() == VoidType.VOID);
             }
             verbBuilder.setName(verbName)
                     .setVisibility(visibility)
@@ -495,11 +485,6 @@ public class ModuleBuilder {
                         constructorSuppliers.add(recorder.verbClientSupplier(client.generatedClient()));
                         callsMetadata.addCalls(
                                 Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
-                    } else if (sqlQueryClients.containsKey(param.type().name())) {
-                        var client = sqlQueryClients.get(param.type().name());
-                        constructorSuppliers.add(recorder.verbClientSupplier(client.generatedClient()));
-                        callsMetadata.addCalls(
-                                Ref.newBuilder().setPos(methodPos).setName(client.name()).setModule(client.module()).build());
                     } else if (FTLDotNames.LEASE_CLIENT.equals(param.type().name())) {
                         constructorSuppliers.add(recorder.leaseClientSupplier());
                     } else if (FTLDotNames.WORKLOAD_IDENTITY.equals(param.type().name())) {
@@ -530,7 +515,7 @@ public class ModuleBuilder {
             recorder.registerTypeVerb(moduleName, verbName, result.method().name(), loadClass(ClassType.create(clazz.name())),
                     bodyParameterTypes,
                     bodySuppliers, constructorParameterTypes, constructorSuppliers,
-                    result.method().returnType() == VoidType.VOID, transaction);
+                    result.method().returnType() == VoidType.VOID);
 
             verbBuilder.setName(verbName)
                     .setVisibility(visibility)
@@ -568,88 +553,6 @@ public class ModuleBuilder {
             }
         }
         return ret;
-    }
-
-    public void registerTransactionDbAccess() {
-        for (var decl : decls.values()) {
-            if (!decl.hasVerb()) {
-                continue;
-            }
-            var verb = decl.getVerb();
-            if (!verb.getMetadataList().stream().anyMatch(m -> m.hasTransaction())) {
-                continue;
-            }
-            var databaseUses = resolveDatabaseUses(verb);
-            recorder.registerTransactionDbAccess(moduleName, verb.getName(), databaseUses);
-        }
-    }
-
-    private Verb resolveVerb(Ref ref) {
-        for (var verb : decls.values()) {
-            if (verb.hasVerb()) {
-                if (verb.getVerb().getName().equals(ref.getName())) {
-                    return verb.getVerb();
-                }
-            }
-        }
-        return null;
-    }
-
-    private List<String> resolveDatabaseUses(Verb verb) {
-        List<String> refs = new ArrayList<>();
-        Set<Ref> visited = new HashSet<>();
-        for (var metadata : verb.getMetadataList()) {
-            if (metadata.hasCalls()) {
-                for (var call : metadata.getCalls().getCallsList()) {
-                    if (visited.contains(call)) {
-                        continue;
-                    }
-                    visited.add(call);
-                    if (!call.getModule().equals(moduleName)) {
-                        continue;
-                    }
-                    if (call.getName().equals(verb.getName())) {
-                        continue;
-                    }
-                    Verb callee = resolveVerb(call);
-                    if (callee != null) {
-                        refs.addAll(resolveDatabaseUses(callee));
-                    }
-                }
-            }
-            if (metadata.hasDatabases()) {
-                refs.addAll(metadata.getDatabases().getUsesList().stream().map(Ref::getName).toList());
-            }
-        }
-        return refs;
-    }
-
-    public void registerSQLQueryMethod(MethodInfo method, String className, org.jboss.jandex.Type returnType,
-            String dbName,
-            String command, String rawSQL, String[] fields, String[] colToFieldName) {
-        try {
-            Class<?> returnClass;
-            if (returnType.kind() == org.jboss.jandex.Type.Kind.VOID) {
-                returnClass = Void.class;
-            } else {
-                returnClass = loadClass(returnType);
-            }
-            recorder.registerSqlQueryVerb(
-                    moduleName,
-                    method.name(),
-                    Class.forName(className, false, Thread.currentThread().getContextClassLoader()),
-                    returnClass,
-                    dbName,
-                    command,
-                    rawSQL,
-                    fields,
-                    colToFieldName);
-        } catch (ClassNotFoundException e) {
-            log.errorf(e, "Failed to process FTL method %s.%s", method.declaringClass().name(), method.name());
-            validationFailures.add(new ValidationFailure(toError(PositionUtils.forMethod(projectRoot, method)),
-                    "Failed to process FTL method " + method.declaringClass().name() + "." + method.name() + " "
-                            + e.getMessage()));
-        }
     }
 
     public static Nullability nullability(org.jboss.jandex.AnnotationTarget type) {

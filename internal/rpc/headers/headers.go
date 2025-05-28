@@ -24,6 +24,9 @@ const (
 	// i.e. the publisher that initiated this call.
 	ParentRequestIDHeader = "Ftl-Parent-Request-Id"
 
+	// TransactionIDHeader is the header used to pass the database transaction ID when an active transaction is present.
+	TransactionIDHeader = "Ftl-Transaction-Id"
+
 	transferEncoding = "Transfer-Encoding"
 	headerHost       = "Host"
 )
@@ -60,6 +63,15 @@ func SetParentRequestKey(header http.Header, key key.Request) {
 	header.Set(ParentRequestIDHeader, key.String())
 }
 
+func SetTransactionKey(header http.Header, key key.TransactionKey) {
+	header.Set(TransactionIDHeader, key.String())
+}
+
+func GetTransactionKey(header http.Header) (key.TransactionKey, bool, error) {
+	idStr := header.Get(TransactionIDHeader)
+	return getTransactionKeyFromKeyStr(idStr)
+}
+
 // GetRequestKey from an incoming request.
 //
 // Will return ("", false, nil) if no request key is present.
@@ -81,6 +93,17 @@ func getRequestKeyFromKeyStr(keyStr string) (key.Request, bool, error) {
 	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
 		return key.Request{}, false, errors.Wrapf(err, "invalid %s header %q", RequestIDHeader, keyStr)
+	}
+	return parsedKey, true, nil
+}
+
+func getTransactionKeyFromKeyStr(keyStr string) (key.TransactionKey, bool, error) {
+	if keyStr == "" {
+		return key.TransactionKey{}, false, nil
+	}
+	parsedKey, err := key.ParseTransactionKey(keyStr)
+	if err != nil {
+		return key.TransactionKey{}, false, errors.Wrapf(err, "invalid %s header %q", TransactionIDHeader, keyStr)
 	}
 	return parsedKey, true, nil
 }

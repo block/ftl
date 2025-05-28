@@ -17,7 +17,7 @@ class MySQLTest {
   @Test
   fun testQuery() {
     val ret = query(GetRequestDataClient {
-      listOf("data")
+      listOf(GetRequestDataRow("data", 1L))
      })
     Assertions.assertEquals(1, ret.size)
     Assertions.assertEquals("data", ret[0].data)

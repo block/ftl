@@ -7,7 +7,6 @@ import xyz.block.ftl.Verb;
 
 public class Mysql {
 
-
     @Verb
     public static class Insert implements FunctionVerb<InsertRequest, InsertResponse> {
 
@@ -34,7 +33,7 @@ public class Mysql {
 
         @Override
         public List<String> call(GetRequestDataClient req) {
-            return req.getRequestData();
+            return req.call();
         }
     }
 

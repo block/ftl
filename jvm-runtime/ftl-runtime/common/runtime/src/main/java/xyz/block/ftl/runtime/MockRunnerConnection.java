@@ -1,12 +1,8 @@
 package xyz.block.ftl.runtime;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 import jakarta.enterprise.inject.spi.CDI;
-
-import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
@@ -45,35 +41,6 @@ public class MockRunnerConnection implements FTLRunnerConnection {
     @Override
     public void publishEvent(String topic, String callingVerbName, byte[] event, String key) {
 
-    }
-
-    @Override
-    public String beginTransaction(String databaseName) {
-        return "123";
-    }
-
-    @Override
-    public void commitTransaction(String databaseName, String transactionId) {
-    }
-
-    @Override
-    public void rollbackTransaction(String databaseName, String transactionId) {
-    }
-
-    @Override
-    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName,
-            @Nullable String transactionId) {
-        return null;
-    }
-
-    @Override
-    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
-            @Nullable String transactionId) {
-        return new ArrayList<>();
-    }
-
-    @Override
-    public void executeQueryExec(String dbName, String sql, String paramsJson, @Nullable String transactionId) {
     }
 
     @Override

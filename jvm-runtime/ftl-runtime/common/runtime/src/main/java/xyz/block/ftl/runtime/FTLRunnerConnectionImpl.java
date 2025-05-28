@@ -26,18 +26,6 @@ import xyz.block.ftl.lease.v1.LeaseServiceGrpc;
 import xyz.block.ftl.pubsub.v1.PublishEventRequest;
 import xyz.block.ftl.pubsub.v1.PublishEventResponse;
 import xyz.block.ftl.pubsub.v1.PublishServiceGrpc;
-import xyz.block.ftl.query.v1.BeginTransactionRequest;
-import xyz.block.ftl.query.v1.BeginTransactionResponse;
-import xyz.block.ftl.query.v1.CommandType;
-import xyz.block.ftl.query.v1.CommitTransactionRequest;
-import xyz.block.ftl.query.v1.CommitTransactionResponse;
-import xyz.block.ftl.query.v1.ExecuteQueryRequest;
-import xyz.block.ftl.query.v1.ExecuteQueryResponse;
-import xyz.block.ftl.query.v1.QueryServiceGrpc;
-import xyz.block.ftl.query.v1.ResultColumn;
-import xyz.block.ftl.query.v1.RollbackTransactionRequest;
-import xyz.block.ftl.query.v1.RollbackTransactionResponse;
-import xyz.block.ftl.query.v1.TransactionStatus;
 import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.v1.CallRequest;
 import xyz.block.ftl.v1.CallResponse;
@@ -63,7 +51,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     final DeploymentContextServiceGrpc.DeploymentContextServiceStub deploymentService;
     final LeaseServiceGrpc.LeaseServiceStub leaseService;
     final PublishServiceGrpc.PublishServiceStub publishService;
-    final QueryServiceGrpc.QueryServiceStub queryService;
     final StreamObserver<GetDeploymentContextResponse> moduleObserver = new ModuleObserver();
 
     FTLRunnerConnectionImpl(final String endpoint, final String deploymentName, final String moduleName,
@@ -92,7 +79,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         verbService = VerbServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         publishService = PublishServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         leaseService = LeaseServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
-        queryService = QueryServiceGrpc.newStub(channel).withInterceptors(new CurrentRequestClientInterceptor());
         this.endpoint = endpoint;
     }
 
@@ -127,12 +113,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                 .setVerb(Ref.newBuilder().setModule(module).setName(name))
                 .setBody(ByteString.copyFrom(payload));
 
-        // Propagate metadata from current context if available
-        var currentTransactionId = CurrentTransaction.getCurrentId();
-        if (currentTransactionId != null) {
-            requestBuilder.setMetadata(CurrentTransaction.getMetadataWithCurrentId());
-        }
-
         verbService.call(requestBuilder.build(), new StreamObserver<>() {
 
             @Override
@@ -158,8 +138,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
             return cf.get();
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            CurrentTransaction.clearCurrent();
         }
     }
 
@@ -272,207 +250,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     @Override
     public String getEgress(String name) {
         return getDeploymentContext().getEgressMap().get(name);
-    }
-
-    @Override
-    public String beginTransaction(String databaseName) {
-        CompletableFuture<String> cf = new CompletableFuture<>();
-        queryService.beginTransaction(BeginTransactionRequest.newBuilder().setDatabaseName(databaseName).build(),
-                new StreamObserver<BeginTransactionResponse>() {
-                    @Override
-                    public void onNext(BeginTransactionResponse response) {
-                        cf.complete(response.getTransactionId());
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                        cf.completeExceptionally(throwable);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        cf.complete(null);
-                    }
-                });
-
-        try {
-            return cf.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void commitTransaction(String databaseName, String transactionId) {
-        CompletableFuture<String> cf = new CompletableFuture<>();
-        queryService.commitTransaction(CommitTransactionRequest.newBuilder()
-                .setTransactionId(transactionId)
-                .setDatabaseName(databaseName)
-                .build(),
-                new StreamObserver<CommitTransactionResponse>() {
-                    @Override
-                    public void onNext(CommitTransactionResponse response) {
-                        if (response.getStatus() != TransactionStatus.TRANSACTION_STATUS_SUCCESS) {
-                            cf.completeExceptionally(new RuntimeException("failed to commit transaction"));
-                        } else {
-                            cf.complete(null);
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                        cf.completeExceptionally(throwable);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        cf.complete(null);
-                    }
-                });
-
-        try {
-            cf.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void rollbackTransaction(String databaseName, String transactionId) {
-        CompletableFuture<String> cf = new CompletableFuture<>();
-        queryService.rollbackTransaction(RollbackTransactionRequest.newBuilder()
-                .setTransactionId(transactionId)
-                .setDatabaseName(databaseName)
-                .build(),
-                new StreamObserver<RollbackTransactionResponse>() {
-                    @Override
-                    public void onNext(RollbackTransactionResponse response) {
-                        if (response.getStatus() != TransactionStatus.TRANSACTION_STATUS_SUCCESS) {
-                            cf.completeExceptionally(new RuntimeException("failed to rollback transaction"));
-                        } else {
-                            cf.complete(null);
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                        cf.completeExceptionally(throwable);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        cf.complete(null);
-                    }
-                });
-
-        try {
-            cf.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String executeQueryOne(String dbName, String sql, String paramsJson, String[] colToFieldName, String transactionId) {
-        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName, transactionId)
-                .setCommandType(CommandType.COMMAND_TYPE_ONE)
-                .build();
-        List<ExecuteQueryResponse> responses = executeQuery(request);
-        if (responses.isEmpty()) {
-            return null;
-        }
-        if (responses.size() > 1) {
-            throw new RuntimeException("expected 1 response, got " + responses.size());
-        }
-        var response = responses.get(0);
-        if (!response.hasRowResults() || response.getRowResults().getJsonRows() == null
-                || response.getRowResults().getJsonRows().isEmpty()) {
-            return null;
-        }
-        return response.getRowResults().getJsonRows();
-    }
-
-    @Override
-    public List<String> executeQueryMany(String dbName, String sql, String paramsJson, String[] colToFieldName,
-            String transactionId) {
-        var request = createQueryRequest(dbName, sql, paramsJson, colToFieldName, transactionId)
-                .setCommandType(CommandType.COMMAND_TYPE_MANY)
-                .build();
-
-        List<ExecuteQueryResponse> responses = executeQuery(request);
-        List<String> results = new ArrayList<>();
-        for (ExecuteQueryResponse response : responses) {
-            if (response.hasRowResults() && response.getRowResults().getJsonRows() != null
-                    && !response.getRowResults().getJsonRows().isEmpty()) {
-                results.add(response.getRowResults().getJsonRows());
-            }
-        }
-        return results;
-    }
-
-    @Override
-    public void executeQueryExec(String dbName, String sql, String paramsJson, String transactionId) {
-        var request = createQueryRequest(dbName, sql, paramsJson, null, transactionId)
-                .setCommandType(CommandType.COMMAND_TYPE_EXEC)
-                .build();
-        executeQuery(request);
-    }
-
-    private List<ExecuteQueryResponse> executeQuery(ExecuteQueryRequest request) {
-        CompletableFuture<List<ExecuteQueryResponse>> cf = new CompletableFuture<>();
-        List<ExecuteQueryResponse> responses = new ArrayList<>();
-        queryService.executeQuery(request, new StreamObserver<ExecuteQueryResponse>() {
-            @Override
-            public void onNext(ExecuteQueryResponse response) {
-                responses.add(response);
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-                cf.completeExceptionally(throwable);
-            }
-
-            @Override
-            public void onCompleted() {
-                cf.complete(responses);
-            }
-        });
-
-        try {
-            return cf.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private ExecuteQueryRequest.Builder createQueryRequest(String dbName, String sql, String paramsJson,
-            String[] colToFieldName, String transactionId) {
-        ExecuteQueryRequest.Builder requestBuilder = ExecuteQueryRequest.newBuilder()
-                .setRawSql(sql)
-                .setDatabaseName(dbName);
-
-        if (transactionId != null && !transactionId.isEmpty()) {
-            requestBuilder.setTransactionId(transactionId);
-        }
-
-        if (paramsJson != null && !paramsJson.isEmpty()) {
-            requestBuilder.setParametersJson(paramsJson);
-        }
-
-        if (colToFieldName != null && colToFieldName.length > 0) {
-            for (String mapping : colToFieldName) {
-                String[] parts = mapping.split(",", 2);
-                if (parts.length == 2) {
-                    ResultColumn column = ResultColumn.newBuilder()
-                            .setSqlName(parts[0])
-                            .setTypeName(parts[1])
-                            .build();
-                    requestBuilder.addResultColumns(column);
-                }
-            }
-        }
-
-        return requestBuilder;
     }
 
     private class ModuleObserver implements StreamObserver<GetDeploymentContextResponse> {

@@ -20,10 +20,7 @@ import xyz.block.ftl.hotreload.CodeGenNotification;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
-import xyz.block.ftl.schema.v1.MetadataSQLColumn;
-import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
-import xyz.block.ftl.schema.v1.Ref;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
 import xyz.block.ftl.schema.v1.TypeAlias;
@@ -130,14 +127,15 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                             }
 
                             log.debugf("Generating verb %s", verb.getName());
-                            generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, output);
+                            generateVerb(module, verb, packageName, typeAliasMap, nativeTypeAliasMap, output, false);
                         } else if (decl.hasData()) {
                             var data = decl.getData();
                             if (data.getVisibility() == Visibility.VISIBILITY_SCOPE_NONE) {
                                 continue;
                             }
                             log.debugf("Generating data %s", data.getName());
-                            generateDataObject(module, data, packageName, typeAliasMap, nativeTypeAliasMap, enumVariantInfoMap,
+                            generateDataObject(module, data, packageName, typeAliasMap, nativeTypeAliasMap,
+                                    enumVariantInfoMap,
                                     output);
 
                         } else if (decl.hasEnum()) {
@@ -146,7 +144,8 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                                 continue;
                             }
                             log.debugf("Generating enum %s", data.getName());
-                            generateEnum(module, data, packageName, typeAliasMap, nativeTypeAliasMap, enumVariantInfoMap,
+                            generateEnum(module, data, packageName, typeAliasMap, nativeTypeAliasMap,
+                                    enumVariantInfoMap,
                                     output);
                         } else if (decl.hasTopic()) {
                             var data = decl.getTopic();
@@ -160,7 +159,8 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                     }
                 }
 
-                schemaFiles.addAll(writeGeneratedClients(context, packageOutputMap, generatedDir));
+                schemaFiles.addAll(
+                        writeGeneratedClients(context, packageOutputMap, generatedDir, typeAliasMap, nativeTypeAliasMap));
 
             } catch (Exception e) {
                 throw new CodeGenException(e);
@@ -182,22 +182,21 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
             throws IOException;
 
     protected abstract void generateEnum(Module module, Enum data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap,
+            PackageOutput outputDir)
             throws IOException;
 
-    protected abstract void generateDataObject(Module module, Data data, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap, PackageOutput outputDir)
+    protected abstract void generateDataObject(Module module, Data data, String packageName,
+            Map<DeclRef, Type> typeAliasMap,
+            Map<DeclRef, String> nativeTypeAliasMap, Map<DeclRef, List<EnumInfo>> enumVariantInfoMap,
+            PackageOutput outputDir)
             throws IOException;
 
     protected abstract void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir) throws IOException;
-
-    protected abstract void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
-            String packageName, PackageOutput outputDir)
-            throws IOException;
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir, boolean isQueryVerb) throws IOException;
 
     private List<Path> writeGeneratedClients(CodeGenContext context, Map<String, PackageOutput> packageOutputMap,
-            Path generatedDir)
+            Path generatedDir, Map<DeclRef, Type> typeAliasMap, Map<DeclRef, String> nativeTypeAliasMap)
             throws CodeGenException {
         List<Path> schemaFiles = new ArrayList<>();
         if (!Files.exists(generatedDir)) {
@@ -223,24 +222,12 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
                         (k) -> new PackageOutput(context.outDir(), packageName));
                 for (var decl : module.getDeclsList()) {
                     if (decl.hasVerb()) {
-                        log.debugf("Generating SQL verb %s", decl.getVerb().getName());
                         var verb = decl.getVerb();
                         var queryMetadata = verb.getMetadataList().stream().filter(md -> md.hasSqlQuery()).findFirst()
                                 .map(md -> md.getSqlQuery()).orElse(null);
-                        var dbCallMetadata = verb.getMetadataList().stream().filter(md -> md.hasDatabases()).findFirst()
-                                .map(md -> md.getDatabases()).orElse(null);
-                        var dbCalls = dbCallMetadata != null ? dbCallMetadata.getUsesList() : null;
-                        if (queryMetadata != null) {
-                            if (dbCalls == null) {
-                                throw new CodeGenException("SQL query verb " + verb.getName() + " has no database calls");
-                            }
-                            if (dbCalls.size() != 1) {
-                                throw new CodeGenException("SQL query verb " + verb.getName() + " has " + dbCalls.size()
-                                        + " database calls, but must have exactly one");
-                            }
-                            var dbName = dbCalls.get(0).getName();
-                            generateSQLQueryVerb(module, verb, dbName, queryMetadata, packageName, output);
-                        }
+                        log.debugf("Generating SQL verb %s", decl.getVerb().getName());
+                        generateVerb(module, decl.getVerb(), packageName, typeAliasMap, nativeTypeAliasMap, output,
+                                queryMetadata != null);
                     } else if (decl.hasData()) {
                         log.debugf("Generating SQL verb data %s", decl.getVerb().getName());
                         var data = decl.getData();
@@ -255,48 +242,9 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         return schemaFiles;
     }
 
-    protected List<SQLColumnField> getOrderedSQLFields(Module module, Type type) {
-        if (type.hasArray()) {
-            return getOrderedSQLFields(module, type.getArray().getElement());
-        } else if (type.hasMap()) {
-            return getOrderedSQLFields(module, type.getMap().getValue());
-        } else if (type.hasOptional()) {
-            return getOrderedSQLFields(module, type.getOptional().getType());
-        }
-
-        Ref ref = type.getRef();
-        if (ref == null) {
-            return List.of();
-        }
-        Data data = resolveDataDecl(module, ref);
-        if (data == null) {
-            return List.of();
-        }
-        List<SQLColumnField> fields = new ArrayList<>();
-        for (var field : data.getFieldsList()) {
-            MetadataSQLColumn fieldMd = field.getMetadataList().stream().findFirst().map(md -> md.getSqlColumn())
-                    .orElse(null);
-            if (fieldMd != null) {
-                fields.add(new SQLColumnField(field.getName(), fieldMd));
-            }
-        }
-        return fields;
-    }
-
-    private Data resolveDataDecl(Module module, Ref ref) {
-        if (ref == null) {
-            return null;
-        }
-        return module.getDeclsList().stream().filter(d -> d.hasData() && d.getData().getName().equals(ref.getName()))
-                .findFirst().map(d -> d.getData()).orElse(null);
-    }
-
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {
         return true;
-    }
-
-    public record SQLColumnField(String name, MetadataSQLColumn metadata) {
     }
 
     public record DeclRef(String module, String name) {

@@ -13,15 +13,15 @@ public class Database {
 
     @Verb
     @Transactional
-    public InsertResponse insert(InsertRequest insertRequest, CreateRequestClient c) {
-        c.createRequest(insertRequest.getData());
+    public InsertResponse insert(InsertRequest insertRequest, CreateRequestClient createRequest) {
+        createRequest.call(insertRequest.getData());
         return new InsertResponse();
     }
 
     @Verb
     @Transactional
-    public Map<String, String> query(GetRequestDataClient query) {
-        List<String> results = query.getRequestData();
+    public Map<String, String> query(GetRequestDataClient getRequestData) {
+        List<String> results = getRequestData.call();
         return Map.of("data", results.get(0));
     }
 }
