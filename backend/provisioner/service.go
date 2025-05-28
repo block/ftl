@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	timeline "github.com/block/ftl/internal/timelineclient"
@@ -197,7 +198,7 @@ func Start(
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *artefacts.OCIArtefactService) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -207,7 +208,7 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 		return nil, errors.Wrap(err, "error parsing plugin configuration")
 	}
 
-	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient)
+	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient, storage)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating provisioner registry")
 	}
