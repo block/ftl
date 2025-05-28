@@ -113,6 +113,12 @@ message GetDeploymentResponse {
   ftl.schema.v1.Module schema = 1;
 }
 
+message PushSchemaRequest {
+  ftl.schema.v1.Notification event = 1;
+}
+
+message PushSchemaResponse {}
+
 service SchemaService {
   // Ping service for readiness.
   rpc Ping(PingRequest) returns (PingResponse) {
@@ -124,7 +130,7 @@ service SchemaService {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
 
-  // Pull schema changes from the Controller.
+  // Pull schema changes.
   //
   // Note that if there are no deployments this will block indefinitely, making it unsuitable for
   // just retrieving the schema. Use GetSchema for that.
@@ -156,4 +162,14 @@ service SchemaService {
   rpc FailChangeset(FailChangesetRequest) returns (FailChangesetResponse);
   // GetDeployment gets a deployment by deployment key
   rpc GetDeployment(GetDeploymentRequest) returns (GetDeploymentResponse);
+}
+
+service SchemaMirrorService {
+  // Ping service for readiness.
+  rpc Ping(PingRequest) returns (PingResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // PushSchema is used to push schema changes to the mirror service.
+  rpc PushSchema(stream PushSchemaRequest) returns (PushSchemaResponse);
 }

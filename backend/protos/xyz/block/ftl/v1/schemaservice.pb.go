@@ -1184,6 +1184,86 @@ func (x *GetDeploymentResponse) GetSchema() *v1.Module {
 	return nil
 }
 
+type PushSchemaRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *v1.Notification       `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PushSchemaRequest) Reset() {
+	*x = PushSchemaRequest{}
+	mi := &file_xyz_block_ftl_v1_schemaservice_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PushSchemaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PushSchemaRequest) ProtoMessage() {}
+
+func (x *PushSchemaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_v1_schemaservice_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PushSchemaRequest.ProtoReflect.Descriptor instead.
+func (*PushSchemaRequest) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_v1_schemaservice_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *PushSchemaRequest) GetEvent() *v1.Notification {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+type PushSchemaResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PushSchemaResponse) Reset() {
+	*x = PushSchemaResponse{}
+	mi := &file_xyz_block_ftl_v1_schemaservice_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PushSchemaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PushSchemaResponse) ProtoMessage() {}
+
+func (x *PushSchemaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_v1_schemaservice_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PushSchemaResponse.ProtoReflect.Descriptor instead.
+func (*PushSchemaResponse) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_v1_schemaservice_proto_rawDescGZIP(), []int{27}
+}
+
 var File_xyz_block_ftl_v1_schemaservice_proto protoreflect.FileDescriptor
 
 const file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = "" +
@@ -1245,7 +1325,10 @@ const file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = "" +
 	"\x14GetDeploymentRequest\x12%\n" +
 	"\x0edeployment_key\x18\x01 \x01(\tR\rdeploymentKey\"P\n" +
 	"\x15GetDeploymentResponse\x127\n" +
-	"\x06schema\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06schema2\xbb\n" +
+	"\x06schema\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06schema\"P\n" +
+	"\x11PushSchemaRequest\x12;\n" +
+	"\x05event\x18\x01 \x01(\v2%.xyz.block.ftl.schema.v1.NotificationR\x05event\"\x14\n" +
+	"\x12PushSchemaResponse2\xbb\n" +
 	"\n" +
 	"\rSchemaService\x12J\n" +
 	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n" +
@@ -1261,7 +1344,11 @@ const file_xyz_block_ftl_v1_schemaservice_proto_rawDesc = "" +
 	"\x11FinalizeChangeset\x12*.xyz.block.ftl.v1.FinalizeChangesetRequest\x1a+.xyz.block.ftl.v1.FinalizeChangesetResponse\x12l\n" +
 	"\x11RollbackChangeset\x12*.xyz.block.ftl.v1.RollbackChangesetRequest\x1a+.xyz.block.ftl.v1.RollbackChangesetResponse\x12`\n" +
 	"\rFailChangeset\x12&.xyz.block.ftl.v1.FailChangesetRequest\x1a'.xyz.block.ftl.v1.FailChangesetResponse\x12`\n" +
-	"\rGetDeployment\x12&.xyz.block.ftl.v1.GetDeploymentRequest\x1a'.xyz.block.ftl.v1.GetDeploymentResponseB>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3"
+	"\rGetDeployment\x12&.xyz.block.ftl.v1.GetDeploymentRequest\x1a'.xyz.block.ftl.v1.GetDeploymentResponse2\xbc\x01\n" +
+	"\x13SchemaMirrorService\x12J\n" +
+	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12Y\n" +
+	"\n" +
+	"PushSchema\x12#.xyz.block.ftl.v1.PushSchemaRequest\x1a$.xyz.block.ftl.v1.PushSchemaResponse(\x01B>P\x01Z:github.com/block/ftl/backend/protos/xyz/block/ftl/v1;ftlv1b\x06proto3"
 
 var (
 	file_xyz_block_ftl_v1_schemaservice_proto_rawDescOnce sync.Once
@@ -1275,7 +1362,7 @@ func file_xyz_block_ftl_v1_schemaservice_proto_rawDescGZIP() []byte {
 	return file_xyz_block_ftl_v1_schemaservice_proto_rawDescData
 }
 
-var file_xyz_block_ftl_v1_schemaservice_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_xyz_block_ftl_v1_schemaservice_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_xyz_block_ftl_v1_schemaservice_proto_goTypes = []any{
 	(*GetSchemaRequest)(nil),                // 0: xyz.block.ftl.v1.GetSchemaRequest
 	(*GetSchemaResponse)(nil),               // 1: xyz.block.ftl.v1.GetSchemaResponse
@@ -1303,57 +1390,64 @@ var file_xyz_block_ftl_v1_schemaservice_proto_goTypes = []any{
 	(*RollbackChangesetResponse)(nil),       // 23: xyz.block.ftl.v1.RollbackChangesetResponse
 	(*GetDeploymentRequest)(nil),            // 24: xyz.block.ftl.v1.GetDeploymentRequest
 	(*GetDeploymentResponse)(nil),           // 25: xyz.block.ftl.v1.GetDeploymentResponse
-	(*v1.Schema)(nil),                       // 26: xyz.block.ftl.schema.v1.Schema
-	(*v1.Changeset)(nil),                    // 27: xyz.block.ftl.schema.v1.Changeset
-	(*v1.Notification)(nil),                 // 28: xyz.block.ftl.schema.v1.Notification
-	(*v1.RuntimeElement)(nil),               // 29: xyz.block.ftl.schema.v1.RuntimeElement
-	(*v1.Module)(nil),                       // 30: xyz.block.ftl.schema.v1.Module
-	(*PingRequest)(nil),                     // 31: xyz.block.ftl.v1.PingRequest
-	(*PingResponse)(nil),                    // 32: xyz.block.ftl.v1.PingResponse
+	(*PushSchemaRequest)(nil),               // 26: xyz.block.ftl.v1.PushSchemaRequest
+	(*PushSchemaResponse)(nil),              // 27: xyz.block.ftl.v1.PushSchemaResponse
+	(*v1.Schema)(nil),                       // 28: xyz.block.ftl.schema.v1.Schema
+	(*v1.Changeset)(nil),                    // 29: xyz.block.ftl.schema.v1.Changeset
+	(*v1.Notification)(nil),                 // 30: xyz.block.ftl.schema.v1.Notification
+	(*v1.RuntimeElement)(nil),               // 31: xyz.block.ftl.schema.v1.RuntimeElement
+	(*v1.Module)(nil),                       // 32: xyz.block.ftl.schema.v1.Module
+	(*PingRequest)(nil),                     // 33: xyz.block.ftl.v1.PingRequest
+	(*PingResponse)(nil),                    // 34: xyz.block.ftl.v1.PingResponse
 }
 var file_xyz_block_ftl_v1_schemaservice_proto_depIdxs = []int32{
-	26, // 0: xyz.block.ftl.v1.GetSchemaResponse.schema:type_name -> xyz.block.ftl.schema.v1.Schema
-	27, // 1: xyz.block.ftl.v1.GetSchemaResponse.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
-	28, // 2: xyz.block.ftl.v1.PullSchemaResponse.event:type_name -> xyz.block.ftl.schema.v1.Notification
-	29, // 3: xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest.update:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	28, // 0: xyz.block.ftl.v1.GetSchemaResponse.schema:type_name -> xyz.block.ftl.schema.v1.Schema
+	29, // 1: xyz.block.ftl.v1.GetSchemaResponse.changesets:type_name -> xyz.block.ftl.schema.v1.Changeset
+	30, // 2: xyz.block.ftl.v1.PullSchemaResponse.event:type_name -> xyz.block.ftl.schema.v1.Notification
+	31, // 3: xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest.update:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
 	11, // 4: xyz.block.ftl.v1.GetDeploymentsResponse.schema:type_name -> xyz.block.ftl.v1.DeployedSchema
-	30, // 5: xyz.block.ftl.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	32, // 5: xyz.block.ftl.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
 	8,  // 6: xyz.block.ftl.v1.CreateChangesetRequest.realm_changes:type_name -> xyz.block.ftl.v1.RealmChange
-	30, // 7: xyz.block.ftl.v1.DeployedSchema.schema:type_name -> xyz.block.ftl.schema.v1.Module
-	27, // 8: xyz.block.ftl.v1.CommitChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
-	27, // 9: xyz.block.ftl.v1.RollbackChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
-	30, // 10: xyz.block.ftl.v1.GetDeploymentResponse.schema:type_name -> xyz.block.ftl.schema.v1.Module
-	31, // 11: xyz.block.ftl.v1.SchemaService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	0,  // 12: xyz.block.ftl.v1.SchemaService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
-	2,  // 13: xyz.block.ftl.v1.SchemaService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
-	4,  // 14: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest
-	6,  // 15: xyz.block.ftl.v1.SchemaService.GetDeployments:input_type -> xyz.block.ftl.v1.GetDeploymentsRequest
-	9,  // 16: xyz.block.ftl.v1.SchemaService.CreateChangeset:input_type -> xyz.block.ftl.v1.CreateChangesetRequest
-	12, // 17: xyz.block.ftl.v1.SchemaService.PrepareChangeset:input_type -> xyz.block.ftl.v1.PrepareChangesetRequest
-	14, // 18: xyz.block.ftl.v1.SchemaService.CommitChangeset:input_type -> xyz.block.ftl.v1.CommitChangesetRequest
-	16, // 19: xyz.block.ftl.v1.SchemaService.DrainChangeset:input_type -> xyz.block.ftl.v1.DrainChangesetRequest
-	18, // 20: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:input_type -> xyz.block.ftl.v1.FinalizeChangesetRequest
-	22, // 21: xyz.block.ftl.v1.SchemaService.RollbackChangeset:input_type -> xyz.block.ftl.v1.RollbackChangesetRequest
-	20, // 22: xyz.block.ftl.v1.SchemaService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
-	24, // 23: xyz.block.ftl.v1.SchemaService.GetDeployment:input_type -> xyz.block.ftl.v1.GetDeploymentRequest
-	32, // 24: xyz.block.ftl.v1.SchemaService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	1,  // 25: xyz.block.ftl.v1.SchemaService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
-	3,  // 26: xyz.block.ftl.v1.SchemaService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
-	5,  // 27: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse
-	7,  // 28: xyz.block.ftl.v1.SchemaService.GetDeployments:output_type -> xyz.block.ftl.v1.GetDeploymentsResponse
-	10, // 29: xyz.block.ftl.v1.SchemaService.CreateChangeset:output_type -> xyz.block.ftl.v1.CreateChangesetResponse
-	13, // 30: xyz.block.ftl.v1.SchemaService.PrepareChangeset:output_type -> xyz.block.ftl.v1.PrepareChangesetResponse
-	15, // 31: xyz.block.ftl.v1.SchemaService.CommitChangeset:output_type -> xyz.block.ftl.v1.CommitChangesetResponse
-	17, // 32: xyz.block.ftl.v1.SchemaService.DrainChangeset:output_type -> xyz.block.ftl.v1.DrainChangesetResponse
-	19, // 33: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:output_type -> xyz.block.ftl.v1.FinalizeChangesetResponse
-	23, // 34: xyz.block.ftl.v1.SchemaService.RollbackChangeset:output_type -> xyz.block.ftl.v1.RollbackChangesetResponse
-	21, // 35: xyz.block.ftl.v1.SchemaService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
-	25, // 36: xyz.block.ftl.v1.SchemaService.GetDeployment:output_type -> xyz.block.ftl.v1.GetDeploymentResponse
-	24, // [24:37] is the sub-list for method output_type
-	11, // [11:24] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	32, // 7: xyz.block.ftl.v1.DeployedSchema.schema:type_name -> xyz.block.ftl.schema.v1.Module
+	29, // 8: xyz.block.ftl.v1.CommitChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
+	29, // 9: xyz.block.ftl.v1.RollbackChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
+	32, // 10: xyz.block.ftl.v1.GetDeploymentResponse.schema:type_name -> xyz.block.ftl.schema.v1.Module
+	30, // 11: xyz.block.ftl.v1.PushSchemaRequest.event:type_name -> xyz.block.ftl.schema.v1.Notification
+	33, // 12: xyz.block.ftl.v1.SchemaService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	0,  // 13: xyz.block.ftl.v1.SchemaService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
+	2,  // 14: xyz.block.ftl.v1.SchemaService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
+	4,  // 15: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeRequest
+	6,  // 16: xyz.block.ftl.v1.SchemaService.GetDeployments:input_type -> xyz.block.ftl.v1.GetDeploymentsRequest
+	9,  // 17: xyz.block.ftl.v1.SchemaService.CreateChangeset:input_type -> xyz.block.ftl.v1.CreateChangesetRequest
+	12, // 18: xyz.block.ftl.v1.SchemaService.PrepareChangeset:input_type -> xyz.block.ftl.v1.PrepareChangesetRequest
+	14, // 19: xyz.block.ftl.v1.SchemaService.CommitChangeset:input_type -> xyz.block.ftl.v1.CommitChangesetRequest
+	16, // 20: xyz.block.ftl.v1.SchemaService.DrainChangeset:input_type -> xyz.block.ftl.v1.DrainChangesetRequest
+	18, // 21: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:input_type -> xyz.block.ftl.v1.FinalizeChangesetRequest
+	22, // 22: xyz.block.ftl.v1.SchemaService.RollbackChangeset:input_type -> xyz.block.ftl.v1.RollbackChangesetRequest
+	20, // 23: xyz.block.ftl.v1.SchemaService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
+	24, // 24: xyz.block.ftl.v1.SchemaService.GetDeployment:input_type -> xyz.block.ftl.v1.GetDeploymentRequest
+	33, // 25: xyz.block.ftl.v1.SchemaMirrorService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	26, // 26: xyz.block.ftl.v1.SchemaMirrorService.PushSchema:input_type -> xyz.block.ftl.v1.PushSchemaRequest
+	34, // 27: xyz.block.ftl.v1.SchemaService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	1,  // 28: xyz.block.ftl.v1.SchemaService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
+	3,  // 29: xyz.block.ftl.v1.SchemaService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
+	5,  // 30: xyz.block.ftl.v1.SchemaService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.v1.UpdateDeploymentRuntimeResponse
+	7,  // 31: xyz.block.ftl.v1.SchemaService.GetDeployments:output_type -> xyz.block.ftl.v1.GetDeploymentsResponse
+	10, // 32: xyz.block.ftl.v1.SchemaService.CreateChangeset:output_type -> xyz.block.ftl.v1.CreateChangesetResponse
+	13, // 33: xyz.block.ftl.v1.SchemaService.PrepareChangeset:output_type -> xyz.block.ftl.v1.PrepareChangesetResponse
+	15, // 34: xyz.block.ftl.v1.SchemaService.CommitChangeset:output_type -> xyz.block.ftl.v1.CommitChangesetResponse
+	17, // 35: xyz.block.ftl.v1.SchemaService.DrainChangeset:output_type -> xyz.block.ftl.v1.DrainChangesetResponse
+	19, // 36: xyz.block.ftl.v1.SchemaService.FinalizeChangeset:output_type -> xyz.block.ftl.v1.FinalizeChangesetResponse
+	23, // 37: xyz.block.ftl.v1.SchemaService.RollbackChangeset:output_type -> xyz.block.ftl.v1.RollbackChangesetResponse
+	21, // 38: xyz.block.ftl.v1.SchemaService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
+	25, // 39: xyz.block.ftl.v1.SchemaService.GetDeployment:output_type -> xyz.block.ftl.v1.GetDeploymentResponse
+	34, // 40: xyz.block.ftl.v1.SchemaMirrorService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	27, // 41: xyz.block.ftl.v1.SchemaMirrorService.PushSchema:output_type -> xyz.block.ftl.v1.PushSchemaResponse
+	27, // [27:42] is the sub-list for method output_type
+	12, // [12:27] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_v1_schemaservice_proto_init() }
@@ -1369,9 +1463,9 @@ func file_xyz_block_ftl_v1_schemaservice_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_v1_schemaservice_proto_rawDesc), len(file_xyz_block_ftl_v1_schemaservice_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   28,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_xyz_block_ftl_v1_schemaservice_proto_goTypes,
 		DependencyIndexes: file_xyz_block_ftl_v1_schemaservice_proto_depIdxs,

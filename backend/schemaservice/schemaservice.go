@@ -37,6 +37,7 @@ type Service struct {
 	State          *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
 	Config         Config
 	timelineClient *timelineclient.Client
+	receiverClient optional.Option[ftlv1connect.SchemaMirrorServiceClient] // TODO: rename as mirror
 	devMode        bool
 	creationLock   sync.Mutex
 	rpcOpts        []rpc.Option
@@ -69,6 +70,7 @@ func NewLocalService(ctx context.Context, config Config, timelineClient *timelin
 		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx, "")), struct{}{}),
 		Config:         config,
 		timelineClient: timelineClient,
+		receiverClient: optional.None[ftlv1connect.SchemaMirrorServiceClient](),
 		devMode:        devMode,
 	}
 	s.rpcOpts = append(s.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, s))
@@ -84,6 +86,7 @@ func New(
 	ctx context.Context,
 	config Config,
 	timelineClient *timelineclient.Client,
+	receiverClient optional.Option[ftlv1connect.SchemaMirrorServiceClient],
 	realm string,
 	devMode bool,
 ) *Service {
@@ -105,10 +108,13 @@ func New(
 			State:          statemachine.NewSingleQueryHandle(schemaShard, struct{}{}),
 			Config:         config,
 			timelineClient: timelineClient,
+			receiverClient: receiverClient,
 			rpcOpts:        rpcOpts,
 		}
 		svc.rpcOpts = append(svc.rpcOpts, rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc))
 	}
+
+	go svc.pushSchema(ctx)
 
 	svc.devMode = devMode
 
@@ -470,4 +476,43 @@ func (s *Service) watchModuleChanges(ctx context.Context, subscriptionID string,
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+}
+
+func (s *Service) pushSchema(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	client, ok := s.receiverClient.Get()
+	if !ok {
+		return
+	}
+	for {
+		delay := time.After(time.Second * 5)
+
+		// create stream and send empty message to initiate the stream
+		logger.Tracef("Attempting to push schema to receiver")
+		stream := client.PushSchema(ctx)
+		if err := stream.Send(nil); err != nil {
+			logger.Errorf(err, "Error while pushing initial schema to receiver")
+		} else {
+			err := s.watchModuleChanges(ctx, "push-schema", func(response *ftlv1.PullSchemaResponse) error {
+				return errors.WithStack(stream.Send(&ftlv1.PushSchemaRequest{
+					Event: response.Event,
+				}))
+			})
+			if connect.CodeOf(err) == connect.CodeFailedPrecondition {
+				// This is expected if the receiver is already receiving schema updates.
+				logger.Tracef("Could not begin pushing schema to receiver: %s", err)
+			} else if err != nil {
+				logger.Errorf(err, "Error while pushing schema to receiver")
+			} else {
+				logger.Logf(log.Error, "Ended pushing schema to receiver without an error")
+			}
+			_, _ = stream.CloseAndReceive() //nolint:errcheck
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-delay:
+			// Prevent tight loop
+		}
+	}
 }

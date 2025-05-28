@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// SchemaServiceName is the fully-qualified name of the SchemaService service.
 	SchemaServiceName = "xyz.block.ftl.v1.SchemaService"
+	// SchemaMirrorServiceName is the fully-qualified name of the SchemaMirrorService service.
+	SchemaMirrorServiceName = "xyz.block.ftl.v1.SchemaMirrorService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -70,6 +72,12 @@ const (
 	// SchemaServiceGetDeploymentProcedure is the fully-qualified name of the SchemaService's
 	// GetDeployment RPC.
 	SchemaServiceGetDeploymentProcedure = "/xyz.block.ftl.v1.SchemaService/GetDeployment"
+	// SchemaMirrorServicePingProcedure is the fully-qualified name of the SchemaMirrorService's Ping
+	// RPC.
+	SchemaMirrorServicePingProcedure = "/xyz.block.ftl.v1.SchemaMirrorService/Ping"
+	// SchemaMirrorServicePushSchemaProcedure is the fully-qualified name of the SchemaMirrorService's
+	// PushSchema RPC.
+	SchemaMirrorServicePushSchemaProcedure = "/xyz.block.ftl.v1.SchemaMirrorService/PushSchema"
 )
 
 // SchemaServiceClient is a client for the xyz.block.ftl.v1.SchemaService service.
@@ -78,7 +86,7 @@ type SchemaServiceClient interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
-	// Pull schema changes from the Controller.
+	// Pull schema changes.
 	//
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
@@ -286,7 +294,7 @@ type SchemaServiceHandler interface {
 	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	// Get the full schema.
 	GetSchema(context.Context, *connect.Request[v1.GetSchemaRequest]) (*connect.Response[v1.GetSchemaResponse], error)
-	// Pull schema changes from the Controller.
+	// Pull schema changes.
 	//
 	// Note that if there are no deployments this will block indefinitely, making it unsuitable for
 	// just retrieving the schema. Use GetSchema for that.
@@ -486,4 +494,107 @@ func (UnimplementedSchemaServiceHandler) FailChangeset(context.Context, *connect
 
 func (UnimplementedSchemaServiceHandler) GetDeployment(context.Context, *connect.Request[v1.GetDeploymentRequest]) (*connect.Response[v1.GetDeploymentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaService.GetDeployment is not implemented"))
+}
+
+// SchemaMirrorServiceClient is a client for the xyz.block.ftl.v1.SchemaMirrorService service.
+type SchemaMirrorServiceClient interface {
+	// Ping service for readiness.
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	// PushSchema is used to push schema changes to the mirror service.
+	PushSchema(context.Context) *connect.ClientStreamForClient[v1.PushSchemaRequest, v1.PushSchemaResponse]
+}
+
+// NewSchemaMirrorServiceClient constructs a client for the xyz.block.ftl.v1.SchemaMirrorService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewSchemaMirrorServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) SchemaMirrorServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	schemaMirrorServiceMethods := v1.File_xyz_block_ftl_v1_schemaservice_proto.Services().ByName("SchemaMirrorService").Methods()
+	return &schemaMirrorServiceClient{
+		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
+			httpClient,
+			baseURL+SchemaMirrorServicePingProcedure,
+			connect.WithSchema(schemaMirrorServiceMethods.ByName("Ping")),
+			connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+			connect.WithClientOptions(opts...),
+		),
+		pushSchema: connect.NewClient[v1.PushSchemaRequest, v1.PushSchemaResponse](
+			httpClient,
+			baseURL+SchemaMirrorServicePushSchemaProcedure,
+			connect.WithSchema(schemaMirrorServiceMethods.ByName("PushSchema")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// schemaMirrorServiceClient implements SchemaMirrorServiceClient.
+type schemaMirrorServiceClient struct {
+	ping       *connect.Client[v1.PingRequest, v1.PingResponse]
+	pushSchema *connect.Client[v1.PushSchemaRequest, v1.PushSchemaResponse]
+}
+
+// Ping calls xyz.block.ftl.v1.SchemaMirrorService.Ping.
+func (c *schemaMirrorServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return c.ping.CallUnary(ctx, req)
+}
+
+// PushSchema calls xyz.block.ftl.v1.SchemaMirrorService.PushSchema.
+func (c *schemaMirrorServiceClient) PushSchema(ctx context.Context) *connect.ClientStreamForClient[v1.PushSchemaRequest, v1.PushSchemaResponse] {
+	return c.pushSchema.CallClientStream(ctx)
+}
+
+// SchemaMirrorServiceHandler is an implementation of the xyz.block.ftl.v1.SchemaMirrorService
+// service.
+type SchemaMirrorServiceHandler interface {
+	// Ping service for readiness.
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
+	// PushSchema is used to push schema changes to the mirror service.
+	PushSchema(context.Context, *connect.ClientStream[v1.PushSchemaRequest]) (*connect.Response[v1.PushSchemaResponse], error)
+}
+
+// NewSchemaMirrorServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewSchemaMirrorServiceHandler(svc SchemaMirrorServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	schemaMirrorServiceMethods := v1.File_xyz_block_ftl_v1_schemaservice_proto.Services().ByName("SchemaMirrorService").Methods()
+	schemaMirrorServicePingHandler := connect.NewUnaryHandler(
+		SchemaMirrorServicePingProcedure,
+		svc.Ping,
+		connect.WithSchema(schemaMirrorServiceMethods.ByName("Ping")),
+		connect.WithIdempotency(connect.IdempotencyNoSideEffects),
+		connect.WithHandlerOptions(opts...),
+	)
+	schemaMirrorServicePushSchemaHandler := connect.NewClientStreamHandler(
+		SchemaMirrorServicePushSchemaProcedure,
+		svc.PushSchema,
+		connect.WithSchema(schemaMirrorServiceMethods.ByName("PushSchema")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/xyz.block.ftl.v1.SchemaMirrorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case SchemaMirrorServicePingProcedure:
+			schemaMirrorServicePingHandler.ServeHTTP(w, r)
+		case SchemaMirrorServicePushSchemaProcedure:
+			schemaMirrorServicePushSchemaHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedSchemaMirrorServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedSchemaMirrorServiceHandler struct{}
+
+func (UnimplementedSchemaMirrorServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaMirrorService.Ping is not implemented"))
+}
+
+func (UnimplementedSchemaMirrorServiceHandler) PushSchema(context.Context, *connect.ClientStream[v1.PushSchemaRequest]) (*connect.Response[v1.PushSchemaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.v1.SchemaMirrorService.PushSchema is not implemented"))
 }
