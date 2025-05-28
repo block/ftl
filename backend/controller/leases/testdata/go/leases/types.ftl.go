@@ -3,17 +3,16 @@ package leases
 
 import (
 	"context"
-
 	"github.com/block/ftl/common/reflection"
 )
-
 
 type AcquireClient func(context.Context) error
 
 func init() {
 	reflection.Register(
+
 		reflection.ProvideResourcesForVerb(
-            Acquire,
+			Acquire,
 		),
 	)
 }

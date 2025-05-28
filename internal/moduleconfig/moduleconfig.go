@@ -19,6 +19,7 @@ import (
 const (
 	EngineMySQL    = "mysql"
 	EnginePostgres = "postgresql"
+	DBFilename     = "db.ftl.go"
 )
 
 // ModuleConfig is the configuration for an FTL module.
@@ -281,6 +282,10 @@ func ValidateSQLRoot(moduleDir, sqlDir string) (valid bool, databases map[string
 	// validate engine directories
 	for _, engineDir := range engineDirs {
 		if !engineDir.IsDir() {
+			// if generated DB clients file, continue
+			if engineDir.Name() == DBFilename {
+				continue
+			}
 			return false, databases, errors.Errorf("engine path %q must be a directory", filepath.Join(dir, engineDir.Name()))
 		}
 

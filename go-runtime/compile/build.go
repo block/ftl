@@ -42,8 +42,7 @@ import (
 )
 
 var (
-	ftlTypesFilename   = "types.ftl.go"
-	ftlQueriesFilename = "queries.ftl.go"
+	ftlTypesFilename = "types.ftl.go"
 	// Searches for paths beginning with ../../../
 	// Matches the previous character as well to avoid matching the middle deeper backtrack paths, and because
 	// regex package does not support negative lookbehind assertions
@@ -83,7 +82,6 @@ func (c *mainDeploymentContext) generateMainImports() []string {
 	imports.Add(`"github.com/block/ftl/go-runtime/server"`)
 
 	for _, v := range c.Verbs {
-		imports.Add("_ " + strconv.Quote(v.importPath))
 		imports.Append(verbImports(v, true)...)
 	}
 	out := imports.ToSlice()
@@ -139,6 +137,10 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 		imports.Add(et.importStatement())
 	}
 	for _, v := range c.Verbs {
+		if v.IsQuery {
+			continue
+		}
+
 		imports.Add(`"github.com/block/ftl/common/reflection"`)
 		if len(v.Resources) > 0 {
 			imports.Add(`"github.com/block/ftl/go-runtime/server"`)
@@ -186,7 +188,9 @@ func schemaTypeImports(t schema.Type, importUnit bool) []string {
 func verbImports(v goVerb, main bool) []string {
 	imports := sets.NewSet[string]()
 
-	if !main {
+	if main {
+		imports.Add("_ " + strconv.Quote(v.importPath))
+	} else {
 		imports.Add(v.importStatement())
 		imports.Add(`"github.com/block/ftl/common/reflection"`)
 	}
@@ -445,7 +449,7 @@ func (s *OngoingState) checkIfMainDeploymentContextChanged(moduleCtx mainDeploym
 func (s *OngoingState) DetectedFileChanges(config moduleconfig.AbsModuleConfig, changes []watch.FileChange) {
 	paths := []string{
 		filepath.Join(config.Dir, ftlTypesFilename),
-		filepath.Join(config.Dir, ftlQueriesFilename),
+		filepath.Join(config.SQLRootDir, moduleconfig.DBFilename),
 		filepath.Join(config.Dir, "go.mod"),
 		filepath.Join(config.Dir, "go.sum"),
 	}
@@ -649,8 +653,16 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 }
 
 func fileHashesForOptimisticCompilation(config moduleconfig.AbsModuleConfig) (watch.FileHashes, error) {
+	args := []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename}
 	// Include every file that may change while scaffolding the build template or tidying.
-	hashes, err := watch.ComputeFileHashes(config.Dir, false, []string{filepath.Join(buildDirName, "go", "main", "*"), "go.mod", "go.tidy", ftlTypesFilename, ftlQueriesFilename})
+	if config.SQLRootDir == "" {
+		relativeSQLRootDir, err := filepath.Rel(config.Dir, config.SQLRootDir)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not calculate relative SQL root dir")
+		}
+		args = append(args, filepath.Join(relativeSQLRootDir, moduleconfig.DBFilename))
+	}
+	hashes, err := watch.ComputeFileHashes(config.Dir, false, args)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not calculate hashes for optimistic compilation")
 	}
@@ -748,19 +760,19 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			return errors.Wrap(err, "failed to scaffold build template")
 		}
 		if len(mctx.QueriesCtx.Verbs) > 0 {
-			if err := internal.ScaffoldZip(queriesTemplateFiles(), config.Dir, mctx, scaffolder.Exclude("^go.mod$"),
+			if err := internal.ScaffoldZip(queriesTemplateFiles(), config.SQLRootDir, mctx, scaffolder.Exclude("^go.mod$"),
 				scaffolder.Functions(funcs)); err != nil {
 				return errors.Wrap(err, "failed to scaffold queries template")
 			}
-			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return errors.Wrapf(err, "failed to mark %s as modified", ftlQueriesFilename)
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.SQLRootDir, moduleconfig.DBFilename)); err != nil {
+				return errors.Wrapf(err, "failed to mark %s as modified", moduleconfig.DBFilename)
 			}
-		} else if _, err := os.Stat(filepath.Join(config.Dir, ftlQueriesFilename)); err == nil && len(mctx.QueriesCtx.Verbs) == 0 && len(mctx.QueriesCtx.Data) == 0 {
-			if err := os.Remove(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return errors.Wrapf(err, "failed to delete %s", ftlQueriesFilename)
+		} else if _, err := os.Stat(filepath.Join(config.SQLRootDir, moduleconfig.DBFilename)); err == nil && len(mctx.QueriesCtx.Verbs) == 0 && len(mctx.QueriesCtx.Data) == 0 {
+			if err := os.Remove(filepath.Join(config.SQLRootDir, moduleconfig.DBFilename)); err != nil {
+				return errors.Wrapf(err, "failed to delete %s", moduleconfig.DBFilename)
 			}
-			if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlQueriesFilename)); err != nil {
-				return errors.Wrapf(err, "failed to mark %s as deleted", ftlQueriesFilename)
+			if err := filesTransaction.ModifiedFiles(filepath.Join(config.SQLRootDir, moduleconfig.DBFilename)); err != nil {
+				return errors.Wrapf(err, "failed to mark %s as deleted", moduleconfig.DBFilename)
 			}
 		}
 		if err := filesTransaction.ModifiedFiles(filepath.Join(config.Dir, ftlTypesFilename)); err != nil {
@@ -773,6 +785,7 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 	wg, wgctx := errgroup.WithContext(ctx)
 
 	wg.Go(func() error {
+		updatedFiles := []string{}
 		if !importsChanged {
 			log.FromContext(ctx).Debugf("Skipped go mod tidy (module dir)")
 			// Even if imports didn't change, we might need to format if scaffolding happened.
@@ -780,38 +793,30 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "mod", "tidy").RunStderrError(wgctx); err != nil {
 				return errors.Wrapf(err, "%s: failed to tidy go.mod", config.Dir)
 			}
+			// Mark files as modified if tidy or format might have run
+			// This is slightly broader but ensures transaction catches changes.
+			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum"))
 		}
 
 		// Always run go fmt on potentially scaffolded files if they exist.
-		fmtFiles := []string{}
 		typesFilePath := filepath.Join(config.Dir, ftlTypesFilename)
-		queriesFilePath := filepath.Join(config.Dir, ftlQueriesFilename)
+		queriesFilePath := filepath.Join(config.SQLRootDir, moduleconfig.DBFilename)
 
 		if _, err := os.Stat(typesFilePath); err == nil {
-			fmtFiles = append(fmtFiles, ftlTypesFilename)
+			log.FromContext(ctx).Debugf("Formatting scaffolded files: %v", typesFilePath)
+			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "fmt", ftlTypesFilename).RunStderrError(wgctx); err != nil {
+				return errors.Wrapf(err, "%s: failed to format module dir files: %v", config.Dir, ftlTypesFilename)
+			}
+			updatedFiles = append(updatedFiles, typesFilePath)
 		}
 		if _, err := os.Stat(queriesFilePath); err == nil {
-			fmtFiles = append(fmtFiles, ftlQueriesFilename)
-		}
-
-		if len(fmtFiles) > 0 {
-			log.FromContext(ctx).Debugf("Formatting scaffolded files: %v", fmtFiles)
-			args := []string{"fmt"}
-			args = append(args, fmtFiles...)
-			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", args...).RunStderrError(wgctx); err != nil {
-				return errors.Wrapf(err, "%s: failed to format module dir files: %v", config.Dir, fmtFiles)
+			log.FromContext(ctx).Debugf("Formatting scaffolded files: %v", queriesFilePath)
+			if err := exec.Command(wgctx, log.Debug, config.Dir, "go", "fmt", queriesFilePath).RunStderrError(wgctx); err != nil {
+				return errors.Wrapf(err, "%s: failed to format module dir files: %v", config.Dir, queriesFilePath)
 			}
+			updatedFiles = append(updatedFiles, queriesFilePath)
 		}
 
-		// Mark files as modified if tidy or format might have run
-		// This is slightly broader but ensures transaction catches changes.
-		updatedFiles := []string{}
-		if importsChanged {
-			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, "go.mod"), filepath.Join(config.Dir, "go.sum"))
-		}
-		for _, file := range fmtFiles { // Add formatted files
-			updatedFiles = append(updatedFiles, filepath.Join(config.Dir, file))
-		}
 		if len(updatedFiles) > 0 {
 			if err := filesTransaction.ModifiedFiles(updatedFiles...); err != nil {
 				return errors.Wrap(err, "could not mark files as modified after tidying/formatting module package")
@@ -966,7 +971,7 @@ func (b *mainDeploymentContextBuilder) visit(
 					}
 					ctx.QueriesCtx.Verbs = append(ctx.QueriesCtx.Verbs, verbs...)
 					ctx.QueriesCtx.Data = append(ctx.QueriesCtx.Data, data...)
-					verb, err := b.getGoVerb(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, n.Name), n)
+					verb, err := b.getGoVerb(fmt.Sprintf("ftl/%s/db.%s", b.mainModule.Name, n.Name), n)
 					if err != nil {
 						return errors.WithStack(err)
 					}
@@ -1489,20 +1494,10 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 			err = errors.WithStack(wrapErrWithPos(err, typ.Position(), ""))
 		}
 	}()
-	typeName, err := genTypeWithNativeNames(nil, typ, b.nativeNames)
-	if err != nil {
-		return goSchemaType{}, errors.WithStack(err)
-	}
-	localTypeName, err := genTypeWithNativeNames(b.mainModule, typ, b.nativeNames)
-	if err != nil {
-		return goSchemaType{}, errors.WithStack(err)
-	}
 	result := goSchemaType{
-		TypeName:      typeName,
-		LocalTypeName: localTypeName,
-		children:      []goSchemaType{},
-		nativeType:    optional.None[nativeType](),
-		schemaType:    typ,
+		children:   []goSchemaType{},
+		nativeType: optional.None[nativeType](),
+		schemaType: typ,
 	}
 
 	nn, ok := b.nativeNames[typ]
@@ -1521,11 +1516,21 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 		// the main module needs a generated client for this verb), we can infer its native qualified name to get the
 		// native type here.
 		if !result.nativeType.Ok() {
-			nt, err := b.getNativeType("ftl/" + t.Module + "." + t.Name)
+			fallbackImportPath := fmt.Sprintf("ftl/%s.%s", t.Module, t.Name)
+			if decl := b.mainModule.Resolve(*t); decl != nil && decl.Symbol != nil {
+				if s, ok := decl.Symbol.(*schema.Data); ok {
+					if s.IsGenerated() {
+						fallbackImportPath = fmt.Sprintf("ftl/%s/db.%s", t.Module, s.Name)
+					}
+				}
+			}
+
+			nt, err := b.getNativeType(fallbackImportPath)
 			if err != nil {
 				return goSchemaType{}, errors.WithStack(err)
 			}
 			result.nativeType = optional.Some(nt)
+			b.nativeNames[typ] = fallbackImportPath
 		}
 		if len(t.TypeParameters) > 0 {
 			for _, tp := range t.TypeParameters {
@@ -1567,6 +1572,15 @@ func (b *mainDeploymentContextBuilder) getGoSchemaType(typ schema.Type) (out goS
 		}
 		result.children = append(result.children, e)
 	default:
+	}
+
+	result.TypeName, err = genTypeWithNativeNames(nil, typ, b.nativeNames)
+	if err != nil {
+		return goSchemaType{}, errors.WithStack(err)
+	}
+	result.LocalTypeName, err = genTypeWithNativeNames(b.mainModule, typ, b.nativeNames)
+	if err != nil {
+		return goSchemaType{}, errors.WithStack(err)
 	}
 
 	return result, nil

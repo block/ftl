@@ -69,10 +69,10 @@ func TestBuildWithoutQueries(t *testing.T) {
 	in.Run(t,
 		in.CopyModule("missingqueries"),
 		func(t testing.TB, ic in.TestContext) {
-			assert.NoError(t, os.Remove(filepath.Join(ic.WorkingDir(), "missingqueries/queries.ftl.go")))
+			assert.NoError(t, os.Remove(filepath.Join(ic.WorkingDir(), "missingqueries/db/db.ftl.go")))
 		},
-		in.Fail(in.FileExists("missingqueries/queries.ftl.go"), "queries.ftl.go should not exist yet"),
+		in.Fail(in.FileExists("missingqueries/db/db.ftl.go"), "db.ftl.go should not exist yet"),
 		in.Deploy("missingqueries"),
-		in.FileExists("missingqueries/queries.ftl.go"),
+		in.FileExists("missingqueries/db/db.ftl.go"),
 	)
 }

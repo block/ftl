@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
+	"ftl/postgres/db"
 )
 
 type InsertRequest struct {
@@ -32,7 +33,7 @@ type TransactionResponse struct {
 }
 
 //ftl:transaction
-func TransactionInsert(ctx context.Context, req TransactionRequest, createRequest CreateRequestClient, getRequestData GetRequestDataClient) (TransactionResponse, error) {
+func TransactionInsert(ctx context.Context, req TransactionRequest, createRequest db.CreateRequestClient, getRequestData db.GetRequestDataClient) (TransactionResponse, error) {
 	for _, item := range req.Items {
 		err := createRequest(ctx, ftl.Some(item))
 		if err != nil {
@@ -47,7 +48,7 @@ func TransactionInsert(ctx context.Context, req TransactionRequest, createReques
 }
 
 //ftl:transaction
-func TransactionRollback(ctx context.Context, req TransactionRequest, createRequest CreateRequestClient) (TransactionResponse, error) {
+func TransactionRollback(ctx context.Context, req TransactionRequest, createRequest db.CreateRequestClient) (TransactionResponse, error) {
 	if len(req.Items) > 0 {
 		err := createRequest(ctx, ftl.Some(req.Items[0]))
 		if err != nil {

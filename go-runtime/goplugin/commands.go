@@ -154,7 +154,7 @@ func (CmdService) GetSQLInterfaces(ctx context.Context, req *connect.Request[lan
 }
 
 func sqlInterfaces(moduleDir string) ([]*langpb.GetSQLInterfacesResponse_Interface, error) {
-	queriesFile, err := os.ReadFile(filepath.Join(moduleDir, "queries.ftl.go"))
+	queriesFile, err := os.ReadFile(filepath.Join(moduleDir, "db", "db.ftl.go"))
 	if errors.Is(err, os.ErrNotExist) {
 		return []*langpb.GetSQLInterfacesResponse_Interface{}, nil
 	}
