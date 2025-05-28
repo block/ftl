@@ -261,7 +261,7 @@ schema:
   topologySpreadConstraints: null
   tolerations: null
 
-schema-mirror:
+schemaMirror:
   enabled: true
   replicas: 1
   env: null
@@ -287,11 +287,9 @@ schema-mirror:
 
   readinessProbe: null
 
-  services:
-    schema-mirror:
-      type: ClusterIP
-      annotations: null
-      port: 8892
+  service:
+    annotations: null
+    port: 8892
   podAnnotations: null
   nodeSelector: null
   affinity: null

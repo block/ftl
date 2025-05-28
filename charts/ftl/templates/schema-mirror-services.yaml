@@ -4,15 +4,15 @@ metadata:
   labels:
     {{- include "ftl.labels" . | nindent 4 }}
   name: {{ include "ftl.fullname" . }}-schema-mirror
-  {{- if .Values.schema-mirror.services.schema-mirror.annotations }}
+  {{- if .Values.schemaMirror.service.annotations }}
   annotations:
-    {{- toYaml .Values.schema-mirror.services.schema-mirror.annotations | nindent 4 }}
+    {{- toYaml .Values.schemaMirror.service.annotations | nindent 4 }}
   {{- end }}
 spec:
   ports:
     - name: http2
-      port: {{ .Values.schema-mirror.services.schema-mirror.port }}
+      port: {{ .Values.schemaMirror.service.port }}
       protocol: TCP
   selector:
     {{- include "ftl-schema-mirror.selectorLabels" . | nindent 4 }}
-  type: {{ .Values.schema-mirror.services.schema-mirror.type | default "ClusterIP" }}
+  type: {{ .Values.schemaMirror.service.type | default "ClusterIP" }}

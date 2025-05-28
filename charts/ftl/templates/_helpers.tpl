@@ -82,6 +82,11 @@ app.kubernetes.io/name: {{ include "ftl.fullname" . }}
 app.kubernetes.io/component: schema
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
+{{- define "ftl-schema-mirror.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "ftl.fullname" . }}
+app.kubernetes.io/component: schema-mirror
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
 {{/*
 Common pod configuration, boilerplate that is not generally used
 */}}

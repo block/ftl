@@ -80,9 +80,9 @@ spec:
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ $.Values.schema.services.schema.port }}"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
-            {{- if .Values.schema-mirror.enabled }}
+            {{- if .Values.schemaMirror.enabled }}
             - name: FTL_SCHEMA_MIRROR_ENDPOINT
-              value: "http://{{ include "ftl.fullname" . }}-schema-mirror:{{ .Values.schema-mirror.port }}"
+              value: "http://{{ include "ftl.fullname" . }}-schema-mirror:{{ .Values.schemaMirror.port }}"
             {{- end }}
             - name: FTL_REALM
               value: {{ .Values.realmName }}
