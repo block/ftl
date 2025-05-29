@@ -98,6 +98,7 @@ func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelin
 	routeUpdates := svc.routingTable.Subscribe()
 	logger := log.FromContext(ctx)
 	go func() {
+		defer svc.routingTable.Unsubscribe(routeUpdates)
 		for module := range channels.IterContext(ctx, routeUpdates) {
 			logger.Tracef("Removing client for module %s", module)
 			svc.moduleClients.Delete(module)
