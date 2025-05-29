@@ -33,6 +33,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/go-connections v0.5.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/spec v0.21.0
 	github.com/go-sql-driver/mysql v1.9.2
