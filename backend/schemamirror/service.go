@@ -5,7 +5,6 @@ import (
 	"maps"
 	"slices"
 	"sync/atomic"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/errors"
@@ -22,42 +21,27 @@ import (
 )
 
 type Service struct {
-	// receiving *sync.Mutex
 	receiving   *atomic.Bool
 	eventSource *schemaeventsource.EventSource
 }
 
 func New(ctx context.Context) *Service {
-	svc := &Service{
-		// receiving:   &sync.Mutex{},
+	return &Service{
 		receiving:   &atomic.Bool{},
 		eventSource: schemaeventsource.NewUnattached(),
 	}
-	logger := log.FromContext(ctx)
-	go func() {
-		var wasReceiving bool
-		for {
-			select {
-			case <-time.After(time.Second * 30):
-				isReceiving := svc.receiving.Load()
-				// Log an error if atleast 2 consecutive checks show that we are not receiving schema changes.
-				if !wasReceiving && !isReceiving {
-					logger.Logf(log.Error, "Schema mirror does not have a push stream connected")
-				}
-				wasReceiving = isReceiving
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	return svc
 }
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 var _ ftlv1connect.SchemaMirrorServiceHandler = (*Service)(nil)
 
 func (s *Service) Ping(context.Context, *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
+	if !s.receiving.Load() {
+		reason := "Mirror is not receiving schema push updates"
+		return connect.NewResponse(&ftlv1.PingResponse{
+			NotReady: &reason,
+		}), nil
+	}
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
 }
 
