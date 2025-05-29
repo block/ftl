@@ -205,8 +205,8 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse deployment key %s", deploymentKey)
 	}
-	serviceClient := r.client.CoreV1().Services(r.namespaceMapper(dk.Payload.Module, dk.Payload.Realm, r.systemNamespace))
-	err = serviceClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
+	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(dk.Payload.Module, dk.Payload.Realm, r.systemNamespace))
+	err = deploymentClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to delete service %s", deploymentKey)
@@ -257,7 +257,7 @@ func getKubeConfig() (*rest.Config, error) {
 func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
 	// No longer used
 	return url.URL{Scheme: "http",
-		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm, r.systemNamespace))}
+		Host: fmt.Sprintf("%s.%s:8892", deployment.Payload.Module, r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm, r.systemNamespace))}
 
 }
 
@@ -384,11 +384,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		logger.Debugf("Created kube service  account%s", name)
 	} else {
 		logger.Debugf("Service account %s already exists", name)
-		serviceAccount.OwnerReferences = append(serviceAccount.OwnerReferences, v1.OwnerReference{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID})
-		_, err = serviceAccountClient.Update(ctx, serviceAccount, v1.UpdateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to update service account %s", name)
-		}
 	}
 
 	// Sync the istio policy if applicable
@@ -411,7 +406,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 
 	deployment.Name = name
 	deployment.Namespace = userNamespace
-	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 	deployment.Spec.Template.Spec.Containers[0].Image = sch.Runtime.Image.Image
 	deployment.Spec.Selector = &v1.LabelSelector{MatchLabels: map[string]string{"app": name}}
 	if deployment.Spec.Template.ObjectMeta.Labels == nil {

@@ -265,8 +265,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient,
-		s.config.Bind.String(), s.config.Deployment, s.config.LocalRunners)
+	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient, s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {
@@ -362,6 +361,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			}()
 
 		}
+		s.proxy.SetRunnerAddress(ctx, ep)
 		client := rpc.Dial(ftlv1connect.NewVerbServiceClient, ep, log.Error)
 		err = rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute, client)
 		dep = &deployment{
@@ -413,6 +413,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			return errors.Wrap(err, "failed to spawn plugin")
 		}
 		dep = s.makeDeployment(cmdCtx, key, deployment)
+		s.proxy.SetRunnerAddress(ctx, deployment.Endpoint.String())
 	}
 
 	s.readyTime.Store(time.Now().Add(time.Second * 2)) // Istio is a bit flakey, add a small delay for readiness

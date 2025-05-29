@@ -39,7 +39,7 @@ type Service struct {
 	moduleVerbService         *xsync.MapOf[string, moduleVerbService]
 	timelineClient            *timelineclient.Client
 	localModuleName           string
-	bindAddress               string
+	runnerBindAddress         string
 	localDeployment           key.Deployment
 	localRunner               bool
 }
@@ -47,7 +47,6 @@ type Service struct {
 func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
-	bindAddress string,
 	localDeployment key.Deployment,
 	localRunners bool) *Service {
 	proxy := &Service{
@@ -56,7 +55,6 @@ func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 		moduleVerbService:         xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:            timelineClient,
 		localModuleName:           localDeployment.Payload.Module,
-		bindAddress:               bindAddress,
 		localDeployment:           localDeployment,
 		localRunner:               localRunners,
 	}
@@ -79,17 +77,28 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 				})
 			}
 		}
-		logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
-		r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
-			client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
-			uri:    r.bindAddress,
-		})
-		err := c2.Send(i.ToProto())
-		if err != nil {
-			return errors.Wrap(err, "failed to send message")
+		if r.runnerBindAddress != "" {
+			logger.Debugf("Adding localhost route: %s -> %s", r.localModuleName, r.runnerBindAddress)
+			r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
+				client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.runnerBindAddress, log.Error),
+				uri:    r.runnerBindAddress,
+			})
+			err := c2.Send(i.ToProto())
+			if err != nil {
+				return errors.Wrap(err, "failed to send message")
+			}
 		}
 	}
 	return nil
+}
+func (r *Service) SetRunnerAddress(ctx context.Context, address string) {
+	logger := log.FromContext(ctx)
+	r.runnerBindAddress = address
+	logger.Debugf("Adding localhost route: %s -> %s", r.localModuleName, r.runnerBindAddress)
+	r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
+		client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.runnerBindAddress, log.Error),
+		uri:    r.runnerBindAddress,
+	})
 }
 
 func (r *Service) AcquireLease(ctx context.Context, c *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
