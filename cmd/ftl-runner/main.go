@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"net/url"
 	"os"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/backend/runner"
 	"github.com/block/ftl/common/log"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -25,6 +29,8 @@ var cli struct {
 	ObservabilityConfig observability.Config `prefix:"o11y-" embed:""`
 	RunnerConfig        runner.Config        `embed:""`
 	DeploymentDir       string               `help:"Directory to store deployments in." default:"/deployments"`
+	SchemaLocation      string               `help:"Location of the schema file." env:"FTL_SCHEMA_LOCATION"`
+	AdminEndpoint       *url.URL             `name:"admin-endpoint" help:"Admin server endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 }
 
 func main() {
@@ -47,16 +53,54 @@ and route to user code.
 		}
 		return key
 	})
+	sch, err := schemaFromDisk(cli.SchemaLocation)
+	kctx.FatalIfErrorf(err, "failed to load schema")
+	var module *schema.Module
+	found := ""
+	for _, rlm := range sch.Realms {
+		if rlm.External {
+			continue
+		}
+		for _, mod := range rlm.Modules {
+			found += " " + mod.Name
+			if mod.Name == cli.RunnerConfig.Deployment.Payload.Module {
+				module = mod
+				break
+			}
+		}
+	}
+	if module == nil {
+		kctx.Fatalf("Failed to find module %s in schema, found %s", cli.RunnerConfig.Deployment.Payload.Module, found)
+	}
 
-	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.RunnerConfig.SchemaEndpoint.String(), log.Error)
-	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.RunnerConfig.AdminEndpoint.String(), log.Error)
-	routeTable := routing.New(ctx, schemaeventsource.New(ctx, "runner-deployment-context", schemaClient))
-	dp, err := deploymentcontext.NewAdminProvider(ctx, cli.RunnerConfig.Deployment, routeTable, schemaClient, adminClient)
+	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
+	ses := schemaeventsource.NewUnattached()
+	err = ses.Publish(&schema.FullSchemaNotification{Schema: sch})
+	kctx.FatalIfErrorf(err, "failed to publish schema")
+	routeTable := routing.New(ctx, ses)
+	dp, err := deploymentcontext.NewAdminProvider(ctx, cli.RunnerConfig.Deployment, routeTable, module, adminClient)
 	kctx.FatalIfErrorf(err)
 	deploymentProvider := func() (string, error) {
 
 		return cli.DeploymentDir, nil
 	}
-	err = runner.Start(ctx, cli.RunnerConfig, deploymentProvider, dp, schemaClient)
+	err = runner.Start(ctx, cli.RunnerConfig, deploymentProvider, dp, module)
 	kctx.FatalIfErrorf(err)
+}
+
+func schemaFromDisk(path string) (*schema.Schema, error) {
+	pb, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load schema")
+	}
+	schemaProto := &schemapb.Schema{}
+	err = proto.Unmarshal(pb, schemaProto)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal schema")
+	}
+	sch, err := schema.FromProto(schemaProto)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse schema")
+	}
+	return sch, nil
 }

@@ -65,7 +65,7 @@ func provisionOCIImage(storage *artefacts.OCIArtefactService, defaultImage strin
 		tgt += moduleSch.Name
 		tgt += ":"
 		tgt += tag
-		err = storage.BuildOCIImageFromRemote(ctx, image, tgt, tempDir, variants, artefacts.WithRemotePush())
+		err = storage.BuildOCIImageFromRemote(ctx, image, tgt, tempDir, moduleSch, variants, artefacts.WithRemotePush())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build image")
 		}
