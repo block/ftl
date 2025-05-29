@@ -264,6 +264,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
 
     @Override
     public void close() {
+        log.debugf("Closing FTL runner connection");
         channel.shutdown();
     }
 
@@ -474,8 +475,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     private class ModuleObserver implements StreamObserver<GetDeploymentContextResponse> {
-
-        final AtomicInteger failCount = new AtomicInteger();
 
         @Override
         public void onNext(GetDeploymentContextResponse moduleContextResponse) {

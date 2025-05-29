@@ -25,7 +25,16 @@ import (
 	"github.com/block/ftl/internal/rpc"
 )
 
-type DeploymentContextProvider <-chan DeploymentContext
+type DeploymentContextProvider func(ctx context.Context) <-chan DeploymentContext
+
+type SecretsProvider func(ctx context.Context) map[string][]byte
+type ConfigProvider func(ctx context.Context) map[string][]byte
+
+type RouteProvider interface {
+	Subscribe() chan string
+	Unsubscribe(c chan string)
+	Route(module string) string
+}
 
 // Verb is a function that takes a request and returns a response but is not constrained by request/response type like ftl.Verb
 //

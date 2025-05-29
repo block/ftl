@@ -71,8 +71,7 @@ and route to user code.
 	var secProvider deploymentcontext.SecretsProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
 	var configProvider deploymentcontext.ConfigProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
 
-	dp, err := deploymentcontext.NewProvider(ctx, cli.RunnerConfig.Deployment, &templateRouteTable{template: cli.RouteTemplate, realm: cli.RunnerConfig.Deployment.Payload.Realm}, module, secProvider, configProvider)
-	kctx.FatalIfErrorf(err)
+	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, &templateRouteTable{template: cli.RouteTemplate, realm: cli.RunnerConfig.Deployment.Payload.Realm}, module, secProvider, configProvider)
 	deploymentProvider := func() (string, error) {
 
 		return cli.DeploymentDir, nil
