@@ -87,7 +87,7 @@ func (l *localScaling) StartDeployment(ctx context.Context, deployment string, s
 		break
 	}
 
-	if err := l.startRunner(ctx, dep.key, dep); err != nil {
+	if err := l.startRunner(ctx, dep.key, dep, sch); err != nil {
 		logger.Errorf(err, "Failed to start runner")
 		return url.URL{}, errors.WithStack(err)
 	}
@@ -226,7 +226,7 @@ func NewLocalScaling(
 	return &local, nil
 }
 
-func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo) error {
+func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deployment, info *deploymentInfo, sch *schema.Module) error {
 	logger := log.FromContext(ctx)
 	select {
 	case <-ctx.Done():
@@ -301,7 +301,6 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	}
 	config := runner.Config{
 		Bind:                  bindURL,
-		SchemaEndpoint:        l.schemaAddress,
 		LeaseEndpoint:         l.leaseAddress,
 		Key:                   key.NewLocalRunnerKey(keySuffix),
 		Deployment:            deploymentKey,
@@ -329,13 +328,13 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	runnerCtx, cancel := context.WithCancelCause(runnerCtx)
 	info.runner = optional.Some(runnerInfo{cancelFunc: cancel, port: bind.Port, host: "127.0.0.1"})
 
-	dcproc, err := deploymentcontext.NewAdminProvider(ctx, info.key, l.routeTable, l.schemaClient, l.adminClient)
+	dcproc, err := deploymentcontext.NewAdminProvider(ctx, info.key, l.routeTable, sch, l.adminClient)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create deployment context provider")
 	}
 
 	go func() {
-		err := runner.Start(runnerCtx, config, deploymentProvider, dcproc, l.schemaClient)
+		err := runner.Start(runnerCtx, config, deploymentProvider, dcproc, sch)
 		cancel(errors.Wrap(err, "runner exited"))
 		l.lock.Lock()
 		defer l.lock.Unlock()

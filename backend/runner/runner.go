@@ -57,8 +57,6 @@ type Config struct {
 	Bind                  *url.URL                `help:"Endpoint the Runner should bind to and advertise." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
 	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
-	SchemaEndpoint        *url.URL                `name:"schema-endpoint" help:"Schema server endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	AdminEndpoint         *url.URL                `name:"admin-endpoint" help:"Admin server endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
 	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	DeploymentKeepHistory int                     `help:"Number of deployments to keep history for." default:"3"`
@@ -70,10 +68,10 @@ type Config struct {
 	DevHotReloadEndpoint  optional.Option[string] `help:"The gRPC enpoint to send runner into to for hot reload." hidden:""`
 	LocalRunners          bool                    `help:"Set to true if we are running with local runners" hidden:""`
 	DevModeSchemaSequence int64                   `help:"Schema sequence number for dev mode runner. " hidden:""`
-	DevModeRunnerSequence int64                   `help:"Runner sequence number  for dev mode runner. " hidden:""`
+	DevModeRunnerSequence int64                   `help:"Runner sequence number for dev mode runner. " hidden:""`
 }
 
-func Start(ctx context.Context, config Config, deploymentArtifactProvider artefacts.DeploymentArtefactProvider, deploymentContextProvider deploymentcontext.DeploymentContextProvider, schemaClient ftlv1connect.SchemaServiceClient) error {
+func Start(ctx context.Context, config Config, deploymentArtifactProvider artefacts.DeploymentArtefactProvider, deploymentContextProvider deploymentcontext.DeploymentContextProvider, module *schema.Module) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
 	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
@@ -97,7 +95,6 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider artefa
 	}
 
 	logger.Debugf("Listening on %s", config.Bind)
-	logger.Debugf("Using Schema endpoint %s", config.SchemaEndpoint.String())
 
 	labels, err := structpb.NewStruct(map[string]any{
 		"hostname": hostname,
@@ -115,7 +112,7 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider artefa
 		key:                       runnerKey,
 		config:                    config,
 		deploymentProvider:        deploymentArtifactProvider,
-		schemaClient:              schemaClient,
+		schema:                    module,
 		timelineClient:            timelineClient,
 		timelineLogSink:           timeline.NewLogSink(timelineClient, log.Debug),
 		labels:                    labels,
@@ -125,10 +122,6 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider artefa
 		deploymentContextProvider: deploymentContextProvider,
 	}
 
-	module, err := svc.getModule(ctx, config.Deployment)
-	if err != nil {
-		return errors.Wrap(err, "failed to get module")
-	}
 	var git *schema.MetadataGit
 	for m := range slices.FilterVariants[*schema.MetadataGit, schema.Metadata](module.Metadata) {
 		git = m
@@ -210,7 +203,7 @@ type Service struct {
 	config                    Config
 	deploymentProvider        artefacts.DeploymentArtefactProvider
 	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
-	schemaClient              ftlv1connect.SchemaServiceClient
+	schema                    *schema.Module
 	timelineClient            *timeline.Client
 	timelineLogSink           *timeline.LogSink
 	// Failed to register with the Controller
@@ -247,20 +240,6 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
 	return connect.NewResponse(&ftlv1.PingResponse{}), nil
-}
-
-func (s *Service) getModule(ctx context.Context, key key.Deployment) (*schema.Module, error) {
-	gdResp, err := s.schemaClient.GetDeployment(ctx, connect.NewRequest(&ftlv1.GetDeploymentRequest{DeploymentKey: s.config.Deployment.String()}))
-	if err != nil {
-		observability.Deployment.Failure(ctx, optional.Some(key.String()))
-		return nil, errors.Wrap(err, "failed to get deployment from schema service")
-	}
-
-	module, err := schema.ValidatedModuleFromProto(gdResp.Msg.Schema)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid module")
-	}
-	return module, nil
 }
 
 func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {

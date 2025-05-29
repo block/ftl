@@ -94,6 +94,9 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 	logger.Debugf("Migrations extracted %v from %s", migrationFiles, config.SQLRootDir)
 
 	if schema, ok := schemaOpt.Get(); ok {
+		if realm, ok := schema.FirstInternalRealm().Get(); ok {
+			realm.UpsertModule(result.Schema)
+		}
 		data, err := proto.Marshal(schema.ToProto())
 		if err != nil {
 			return nil, "", nil, errors.Wrap(err, "failed to marshal schema files")

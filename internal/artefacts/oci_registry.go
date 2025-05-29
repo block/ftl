@@ -30,6 +30,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"google.golang.org/protobuf/proto"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/registry/remote"
@@ -37,6 +38,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote/retry"
 
 	"github.com/block/ftl/common/log"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 )
@@ -523,13 +525,41 @@ func WithLocalDeamon() ImageTarget {
 
 type ImageTarget func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error
 
-func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, module *schema.Module, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
 	if err != nil {
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
 	}
 	defer os.RemoveAll(target)
 	err = s.DownloadArtifacts(ctx, target, artifacts)
+
+	schemaPath := filepath.Join(target, FTLFullSchemaPath)
+	schemaBytes, err := os.ReadFile(schemaPath)
+	if err == nil {
+		// Only update the schema if it exists
+		schpb := &schemapb.Schema{}
+		if err := proto.Unmarshal(schemaBytes, schpb); err != nil {
+			return errors.Wrapf(err, "failed to unmashal schema")
+		}
+		schema, err := schema.FromProto(schpb)
+		if err != nil {
+			return errors.Wrapf(err, "failed to unmashal schema")
+		}
+		if realm, ok := schema.FirstInternalRealm().Get(); ok {
+			realm.UpsertModule(module)
+		}
+		bytes, err := proto.Marshal(schema.ToProto())
+		if err != nil {
+			return errors.Wrapf(err, "failed to marshal schema")
+		}
+		err = os.WriteFile(schemaPath, bytes, 0644) //nolint:gosec
+		if err != nil {
+			return errors.Wrapf(err, "failed to write schema")
+		}
+	} else {
+		log.FromContext(ctx).Errorf(err, "Unable to update schema file")
+	}
+
 	if err != nil {
 		return err
 	}
@@ -587,6 +617,16 @@ func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string
 	newImg, err := mutate.AppendLayers(base, layer, schLayer)
 	if err != nil {
 		return errors.Errorf("appending layer: %w", err)
+	}
+
+	cfg, err := newImg.ConfigFile()
+	if err != nil {
+		return errors.Errorf("getting config file: %w", err)
+	}
+	cfg.Config.Env = append(cfg.Config.Env, "FTL_SCHEMA_LOCATION=/deployments/ftl-full-schema.pb")
+	newImg, err = mutate.Config(newImg, cfg.Config)
+	if err != nil {
+		return errors.Errorf("setting environment var: %w", err)
 	}
 
 	idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: newImg})

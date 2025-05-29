@@ -24,14 +24,10 @@ import (
 )
 
 // NewAdminProvider retrieves config, secrets and DSNs for a module.
-func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routing.RouteTable, schemaClient ftlv1connect.SchemaServiceClient, adminClient adminpbconnect.AdminServiceClient) (DeploymentContextProvider, error) {
+func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routing.RouteTable, deployment *schema.Module, adminClient adminpbconnect.AdminServiceClient) (DeploymentContextProvider, error) {
 	ret := make(chan DeploymentContext)
 	logger := log.FromContext(ctx)
 	updates := routeTable.Subscribe()
-	deployment, err := getDeployment(ctx, key, schemaClient)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get deployment")
-	}
 	module := deployment.Name
 
 	// Initialize checksum to -1; a zero checksum does occur when the context contains no settings
