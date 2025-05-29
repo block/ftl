@@ -17,19 +17,11 @@ func (m DeploymentContext) ToProto() *ftlv1.GetDeploymentContextResponse {
 			Dsn:  entry.DSN,
 		})
 	}
-	routes := make([]*ftlv1.GetDeploymentContextResponse_Route, 0, len(m.routes))
-	for dep, entry := range m.routes {
-		routes = append(routes, &ftlv1.GetDeploymentContextResponse_Route{
-			Deployment: dep,
-			Uri:        entry,
-		})
-	}
 	return &ftlv1.GetDeploymentContextResponse{
 		Module:    m.module,
 		Configs:   m.configs,
 		Secrets:   m.secrets,
 		Databases: databases,
-		Routes:    routes,
 		Egress:    m.egress,
 	}
 }

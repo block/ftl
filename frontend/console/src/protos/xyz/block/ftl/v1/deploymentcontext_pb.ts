@@ -73,11 +73,6 @@ export class GetDeploymentContextResponse extends Message<GetDeploymentContextRe
   databases: GetDeploymentContextResponse_DSN[] = [];
 
   /**
-   * @generated from field: repeated xyz.block.ftl.v1.GetDeploymentContextResponse.Route routes = 6;
-   */
-  routes: GetDeploymentContextResponse_Route[] = [];
-
-  /**
    * @generated from field: map<string, string> egress = 7;
    */
   egress: { [key: string]: string } = {};
@@ -95,7 +90,6 @@ export class GetDeploymentContextResponse extends Message<GetDeploymentContextRe
     { no: 3, name: "configs", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 12 /* ScalarType.BYTES */} },
     { no: 4, name: "secrets", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 12 /* ScalarType.BYTES */} },
     { no: 5, name: "databases", kind: "message", T: GetDeploymentContextResponse_DSN, repeated: true },
-    { no: 6, name: "routes", kind: "message", T: GetDeploymentContextResponse_Route, repeated: true },
     { no: 7, name: "egress", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
   ]);
 
@@ -188,49 +182,6 @@ export class GetDeploymentContextResponse_DSN extends Message<GetDeploymentConte
 
   static equals(a: GetDeploymentContextResponse_DSN | PlainMessage<GetDeploymentContextResponse_DSN> | undefined, b: GetDeploymentContextResponse_DSN | PlainMessage<GetDeploymentContextResponse_DSN> | undefined): boolean {
     return proto3.util.equals(GetDeploymentContextResponse_DSN, a, b);
-  }
-}
-
-/**
- * @generated from message xyz.block.ftl.v1.GetDeploymentContextResponse.Route
- */
-export class GetDeploymentContextResponse_Route extends Message<GetDeploymentContextResponse_Route> {
-  /**
-   * @generated from field: string deployment = 1;
-   */
-  deployment = "";
-
-  /**
-   * @generated from field: string uri = 2;
-   */
-  uri = "";
-
-  constructor(data?: PartialMessage<GetDeploymentContextResponse_Route>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.v1.GetDeploymentContextResponse.Route";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "deployment", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "uri", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDeploymentContextResponse_Route {
-    return new GetDeploymentContextResponse_Route().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDeploymentContextResponse_Route {
-    return new GetDeploymentContextResponse_Route().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDeploymentContextResponse_Route {
-    return new GetDeploymentContextResponse_Route().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: GetDeploymentContextResponse_Route | PlainMessage<GetDeploymentContextResponse_Route> | undefined, b: GetDeploymentContextResponse_Route | PlainMessage<GetDeploymentContextResponse_Route> | undefined): boolean {
-    return proto3.util.equals(GetDeploymentContextResponse_Route, a, b);
   }
 }
 

@@ -29,9 +29,8 @@ var _ ftlv1connect.VerbServiceHandler = &Service{}
 var _ ftlv1connect.DeploymentContextServiceHandler = &Service{}
 
 type moduleVerbService struct {
-	client     ftlv1connect.VerbServiceClient
-	deployment key.Deployment
-	uri        string
+	client ftlv1connect.VerbServiceClient
+	uri    string
 }
 
 type Service struct {
@@ -40,7 +39,7 @@ type Service struct {
 	moduleVerbService         *xsync.MapOf[string, moduleVerbService]
 	timelineClient            *timelineclient.Client
 	localModuleName           string
-	bindAddress               string
+	runnerBindAddress         string
 	localDeployment           key.Deployment
 	localRunner               bool
 }
@@ -48,7 +47,6 @@ type Service struct {
 func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
-	bindAddress string,
 	localDeployment key.Deployment,
 	localRunners bool) *Service {
 	proxy := &Service{
@@ -57,7 +55,6 @@ func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 		moduleVerbService:         xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:            timelineClient,
 		localModuleName:           localDeployment.Payload.Module,
-		bindAddress:               bindAddress,
 		localDeployment:           localDeployment,
 		localRunner:               localRunners,
 	}
@@ -69,35 +66,35 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 	for i := range channels.IterContext[deploymentcontext.DeploymentContext](ctx, r.deploymentContextProvider) {
 
 		logger.Debugf("Received DeploymentContext from module: %v", i.GetModule())
-		for deployment := range i.GetRoutes() {
-			route := i.GetRoute(deployment)
-			logger.Debugf("Adding proxy route: %s -> %s", deployment, route)
-
-			deployment, err := key.ParseDeploymentKey(deployment)
-			if err != nil {
-				return errors.Wrap(err, "failed to parse deployment key")
+		for module := range i.GetRoutes() {
+			if module == r.localModuleName {
+				continue
 			}
-			module := deployment.Payload.Module
-			if existing, ok := r.moduleVerbService.Load(module); !ok || existing.deployment.String() != deployment.String() {
+			route := i.GetRoute(module)
+			logger.Debugf("Adding proxy route: %s -> %s", module, route)
+
+			if existing, ok := r.moduleVerbService.Load(module); !ok || existing.uri != route {
 				r.moduleVerbService.Store(module, moduleVerbService{
-					client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, route, log.Error),
-					deployment: deployment,
-					uri:        route,
+					client: rpc.Dial(ftlv1connect.NewVerbServiceClient, route, log.Error),
+					uri:    route,
 				})
 			}
 		}
-		logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
-		r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
-			client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
-			deployment: r.localDeployment,
-			uri:        r.bindAddress,
-		})
 		err := c2.Send(i.ToProto())
 		if err != nil {
 			return errors.Wrap(err, "failed to send message")
 		}
 	}
 	return nil
+}
+func (r *Service) SetRunnerAddress(ctx context.Context, address string) {
+	logger := log.FromContext(ctx)
+	r.runnerBindAddress = address
+	logger.Debugf("Adding localhost route: %s -> %s", r.localModuleName, r.runnerBindAddress)
+	r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
+		client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.runnerBindAddress, log.Error),
+		uri:    r.runnerBindAddress,
+	})
 }
 
 func (r *Service) AcquireLease(ctx context.Context, c *connect.BidiStream[ftllease.AcquireLeaseRequest, ftllease.AcquireLeaseResponse]) error {
@@ -161,7 +158,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		return nil, errors.Wrap(err, "could not get verb ref")
 	}
 	callEvent := &timelineclient.Call{
-		DeploymentKey: verbService.deployment,
+		DeploymentKey: r.localDeployment,
 		RequestKey:    requestKey,
 		StartTime:     start,
 		DestVerb:      destVerb,
