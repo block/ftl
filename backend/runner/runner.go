@@ -412,8 +412,8 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 			observability.Deployment.Failure(ctx, optional.Some(key.String()))
 			return errors.Wrap(err, "failed to spawn plugin")
 		}
-		dep = s.makeDeployment(cmdCtx, key, deployment)
 		s.proxy.SetRunnerAddress(ctx, deployment.Endpoint.String())
+		dep = s.makeDeployment(cmdCtx, key, deployment)
 	}
 
 	s.readyTime.Store(time.Now().Add(time.Second * 2)) // Istio is a bit flakey, add a small delay for readiness

@@ -541,8 +541,8 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 
 	err := r.createOrUpdateIstioPolicy(ctx, sec, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
 		addLabels(&policy.ObjectMeta, realm, module, name)
-		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
-		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{"app": name}}
+		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: module, UID: service.UID}}
+		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{moduleLabel: module}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
 			"cluster.local/ns/" + r.systemNamespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,

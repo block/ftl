@@ -67,6 +67,9 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 
 		logger.Debugf("Received DeploymentContext from module: %v", i.GetModule())
 		for module := range i.GetRoutes() {
+			if module == r.localModuleName {
+				continue
+			}
 			route := i.GetRoute(module)
 			logger.Debugf("Adding proxy route: %s -> %s", module, route)
 
@@ -77,16 +80,9 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 				})
 			}
 		}
-		if r.runnerBindAddress != "" {
-			logger.Debugf("Adding localhost route: %s -> %s", r.localModuleName, r.runnerBindAddress)
-			r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
-				client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.runnerBindAddress, log.Error),
-				uri:    r.runnerBindAddress,
-			})
-			err := c2.Send(i.ToProto())
-			if err != nil {
-				return errors.Wrap(err, "failed to send message")
-			}
+		err := c2.Send(i.ToProto())
+		if err != nil {
+			return errors.Wrap(err, "failed to send message")
 		}
 	}
 	return nil

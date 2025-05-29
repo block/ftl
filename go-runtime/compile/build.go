@@ -939,7 +939,7 @@ func writeLaunchScript(buildDir string) error {
 	if [ -n "$FTL_DEBUG_PORT" ] && command -v dlv &> /dev/null ; then
 	    dlv --listen=localhost:$FTL_DEBUG_PORT --headless=true --api-version=2 --accept-multiclient --allow-non-terminal-interactive exec --continue ./main
 	else
-		exec ./main
+	 	./main
 	fi
 	`), 0770) // #nosec
 	if err != nil {

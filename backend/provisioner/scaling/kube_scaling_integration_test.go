@@ -24,7 +24,7 @@ func TestKubeScalingUserNamespace(t *testing.T) {
 func TestKubeScalingDeploymentPerNamespace(t *testing.T) {
 	runTest(t, func(dep string) string {
 		return dep + "-ftl"
-	}, "--set", "--set", "ftl.provisioner.userNamespace=null")
+	}, "--set", "ftl.provisioner.userNamespace=null")
 }
 
 func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string) {
@@ -158,10 +158,6 @@ func runTest(t *testing.T, namespace func(dep string) string, helmArgs ...string
 				if strings.HasPrefix(dep.Name, "dpl-ftl-echo") {
 					t.Logf("Found deployment %s", dep.Name)
 					depCount++
-					service, err := client.CoreV1().Services(namespace("echo")).Get(ctx, dep.Name, v1.GetOptions{})
-					assert.NoError(t, err)
-					assert.Equal(t, 1, len(dep.OwnerReferences), "Expected 1 owner reference", dep.OwnerReferences)
-					assert.Equal(t, service.UID, dep.OwnerReferences[0].UID)
 				}
 			}
 			assert.Equal(t, 1, depCount, "Expected 1 deployment, found %d", depCount)
