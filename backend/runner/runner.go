@@ -239,7 +239,13 @@ func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 }
 
 func (s *Service) Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error) {
-	return connect.NewResponse(&ftlv1.PingResponse{}), nil
+	if s.deployment.Load().Ok() {
+		if s.readyTime.Load().Before(time.Now()) {
+			return connect.NewResponse(&ftlv1.PingResponse{}), nil
+		}
+	}
+	msg := "deployment not ready"
+	return connect.NewResponse(&ftlv1.PingResponse{NotReady: &msg}), nil
 }
 
 func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema.Module, dbAddresses *xsync.MapOf[string, string]) error {
