@@ -532,6 +532,9 @@ func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseIm
 	}
 	defer os.RemoveAll(target)
 	err = s.DownloadArtifacts(ctx, target, artifacts)
+	if err != nil {
+		return errors.Wrapf(err, "failed to download artifacts")
+	}
 
 	schemaPath := filepath.Join(target, FTLFullSchemaPath)
 	schemaBytes, err := os.ReadFile(schemaPath)
