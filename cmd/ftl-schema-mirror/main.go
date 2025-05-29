@@ -40,8 +40,11 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-schema-mirror", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	svc := schemamirror.New(ctx)
-	err = rpc.Serve(ctx, cli.Bind, rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, svc), rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc))
+	mirrorSvc := schemamirror.NewMirrorService()
+	schemaSvc := schemamirror.NewSchemaService(mirrorSvc)
+	err = rpc.Serve(ctx, cli.Bind,
+		rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, mirrorSvc),
+		rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, schemaSvc))
 	logger.Debugf("Listening on %s", cli.Bind)
 	kctx.FatalIfErrorf(err)
 }

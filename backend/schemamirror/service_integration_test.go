@@ -30,50 +30,65 @@ func TestMirror(t *testing.T) {
 	hostURL, err := url.Parse("http://" + hostAddr.String())
 	assert.NoError(t, err, "failed to parse address for mirror service")
 
-	svc := schemamirror.New(ctx)
+	mirrorSvc := schemamirror.NewMirrorService()
+	schemaSvc := schemamirror.NewSchemaService(mirrorSvc)
 
 	go func() {
 		opts := []rpc.Option{
-			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, svc),
-			rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, svc),
+			rpc.GRPC(ftlv1connect.NewSchemaServiceHandler, schemaSvc),
+			rpc.GRPC(ftlv1connect.NewSchemaMirrorServiceHandler, mirrorSvc),
 		}
-		assert.NoError(t, rpc.Serve(ctx, hostURL, opts...), "mirror service failed")
+		assert.NoError(t, rpc.Serve(ctx, hostURL, opts...), "services failed")
 	}()
 
-	client := rpc.Dial(ftlv1connect.NewSchemaServiceClient, hostURL.String(), log.Debug)
-	receiverClient := rpc.Dial(ftlv1connect.NewSchemaMirrorServiceClient, hostURL.String(), log.Debug)
+	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, hostURL.String(), log.Debug)
+	mirrorClient := rpc.Dial(ftlv1connect.NewSchemaMirrorServiceClient, hostURL.String(), log.Debug)
 
-	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, client), "failed to connect to mirror service")
-	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, receiverClient), "failed to connect to mirror receiver service")
+	// Mirror service should be available, but the schema service should not yet
+	checkDisconnectedReadiness(ctx, t, mirrorClient, schemaClient)
 
-	stream := receiverClient.PushSchema(ctx)
+	// Begin pushing schema
+	stream := mirrorClient.PushSchema(ctx)
+	sendInitialSchema(t, stream)
 
-	pullSchemaStream, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
+	// Schema service should now be available and we can begin pulling schema
+	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, schemaClient), "failed to connect to schema service")
+	pullSchemaStream, err := schemaClient.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{}))
 	assert.NoError(t, err, "failed to create PullSchema stream")
 
 	// We receive an initial empty schema when mirror service doesn't have any schema yet
 	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 
 	// Send schema and an update. Make sure mirror passes it along
-	sendInitialSchema(t, stream)
 	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 	sendChangesetCreatedNotification(t, stream)
 	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](ctx, t, pullSchemaStream)
 
 	// Should only allow one stream pushing schema at a time
-	badStream := receiverClient.PushSchema(ctx)
+	badStream := mirrorClient.PushSchema(ctx)
 	_, err = badStream.CloseAndReceive()
 	assert.True(t, connect.CodeOf(err) == connect.CodeFailedPrecondition, "stream should fail because one is still active")
 
 	// Disconnect push stream and connect another one
 	_, err = stream.CloseAndReceive()
 	assert.NoError(t, err, "failed to close PushSchema stream")
+
 	time.Sleep(time.Second) // Give some time for the stream to close
-	stream = receiverClient.PushSchema(ctx)
+	checkDisconnectedReadiness(ctx, t, mirrorClient, schemaClient)
+
+	stream = mirrorClient.PushSchema(ctx)
 	sendInitialSchema(t, stream)
 	receiveSchemaUpdate[*schemapb.Notification_FullSchemaNotification](ctx, t, pullSchemaStream)
 	sendChangesetCreatedNotification(t, stream)
 	receiveSchemaUpdate[*schemapb.Notification_ChangesetCreatedNotification](ctx, t, pullSchemaStream)
+}
+
+// checkDisconnectedReadiness makes sure that the mirror service is available, but the schema service is not ready yet.
+func checkDisconnectedReadiness(ctx context.Context, t *testing.T, mirrorClient ftlv1connect.SchemaMirrorServiceClient, schemaClient ftlv1connect.SchemaServiceClient) {
+	assert.NoError(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*10, mirrorClient), "failed to connect to mirror service")
+	assert.Contains(t, rpc.Wait(ctx, backoff.Backoff{}, time.Second*1, schemaClient).Error(), "service is not ready: Mirror is not receiving schema push updates")
+	_, err := schemaClient.GetSchema(ctx, connect.NewRequest(&ftlv1.GetSchemaRequest{}))
+	assert.Equal(t, connect.CodeOf(err), connect.CodeUnavailable, "GetSchema should fail because schema service is not ready")
 }
 
 func sendInitialSchema(t *testing.T, stream *connect.ClientStreamForClient[ftlv1.PushSchemaRequest, ftlv1.PushSchemaResponse]) {
