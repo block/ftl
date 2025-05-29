@@ -330,7 +330,8 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 
 	secretsProvider := deploymentcontext.NewAdminSecretsProvider(info.key, l.adminClient)
 	cfgProvider := deploymentcontext.NewAdminConfigProvider(info.key, l.adminClient)
-	dcproc, err := deploymentcontext.NewProvider(ctx, info.key, l.routeTable, sch, secretsProvider, cfgProvider)
+	routing := deploymentcontext.NewRouteTableProvider(l.routeTable)
+	dcproc, err := deploymentcontext.NewProvider(ctx, info.key, routing, sch, secretsProvider, cfgProvider)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create deployment context provider")
 	}

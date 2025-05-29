@@ -67,12 +67,13 @@ type k8sScaling struct {
 	adminServiceAccount       string
 	consoleServiceAccount     string
 	httpIngressServiceAccount string
+	routeTemplate             string
 }
 
 type NamespaceMapper func(module string, realm string, systemNamespace string) string
 
-func NewK8sScaling(disableIstio bool, instanceName string, mapper NamespaceMapper, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
+func NewK8sScaling(disableIstio bool, instanceName string, mapper NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -254,7 +255,7 @@ func getKubeConfig() (*rest.Config, error) {
 }
 
 func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
-
+	// No longer used
 	return url.URL{Scheme: "http",
 		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm, r.systemNamespace))}
 
@@ -336,19 +337,19 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 	// First create a Service, this will be the root owner of all the other resources
 	// Only create if it does not exist already
 	servicesClient := r.client.CoreV1().Services(userNamespace)
-	service, err := servicesClient.Get(ctx, name, v1.GetOptions{})
+	service, err := servicesClient.Get(ctx, module, v1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get service %s", name)
+			return errors.Wrapf(err, "failed to get service %s", module)
 		}
-		logger.Debugf("Creating new kube service %s", name)
+		logger.Debugf("Creating new kube service %s", module)
 		err = decodeBytesToObject([]byte(cm.Data[serviceTemplate]), service)
 		if err != nil {
 			return errors.Wrapf(err, "failed to decode service from configMap %s", configMapName)
 		}
-		service.Name = name
-		service.Spec.Selector = map[string]string{"app": name}
-		addLabels(&service.ObjectMeta, realm, module, name)
+		service.Name = module
+		service.Spec.Selector = map[string]string{moduleLabel: module}
+		addLabels(&service.ObjectMeta, realm, module, module)
 		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create service %s", name)
@@ -375,7 +376,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		if serviceAccount.Labels == nil {
 			serviceAccount.Labels = map[string]string{}
 		}
-		serviceAccount.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
 		serviceAccount.Labels[moduleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
@@ -409,11 +409,6 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		return errors.Wrapf(err, "failed to decode deployment from configMap %s", configMapName)
 	}
 
-	// runner images use the same tag as the provisioner
-	rawRunnerImage := sch.Runtime.Base.Image
-	if rawRunnerImage == "" {
-		rawRunnerImage = "ftl0/ftl-runner"
-	}
 	deployment.Name = name
 	deployment.Namespace = userNamespace
 	deployment.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: name, UID: service.UID}}
@@ -498,6 +493,7 @@ func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas in
 		})
 	}
 	changes = r.updateEnvVar(deployment, "FTL_DEPLOYMENT", deployment.Name, changes)
+	changes = r.updateEnvVar(deployment, "FTL_ROUTE_TEMPLATE", r.routeTemplate, changes)
 	return changes, nil
 }
 

@@ -26,6 +26,12 @@ import (
 type SecretsProvider func(ctx context.Context) map[string][]byte
 type ConfigProvider func(ctx context.Context) map[string][]byte
 
+type RouteProvider interface {
+	Subscribe() chan string
+	Unsubscribe(c chan string)
+	Route(module string) string
+}
+
 func NewAdminSecretsProvider(key key.Deployment, adminClient adminpbconnect.AdminServiceClient) SecretsProvider {
 	return func(ctx context.Context) map[string][]byte {
 		secretsResp, err := adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: key.Payload.Module}})
@@ -48,19 +54,48 @@ func NewAdminConfigProvider(key key.Deployment, adminClient adminpbconnect.Admin
 	}
 }
 
+func NewRouteTableProvider(table *routing.RouteTable) RouteProvider {
+	return &routeTableRouting{table: *table}
+}
+
+var _ RouteProvider = (*routeTableRouting)(nil)
+
+type routeTableRouting struct {
+	table routing.RouteTable
+}
+
+// Route implements RouteProvider.
+func (r *routeTableRouting) Route(module string) string {
+	route := r.table.Current().GetForModule(module)
+	if r, ok := route.Get(); ok {
+		return r.String()
+	}
+	return ""
+}
+
+// Subscribe implements RouteProvider.
+func (r *routeTableRouting) Subscribe() chan string {
+	return r.table.Subscribe()
+}
+
+// Unsubscribe implements RouteProvider.
+func (r *routeTableRouting) Unsubscribe(c chan string) {
+	r.table.Unsubscribe(c)
+}
+
 // NewProvider retrieves config, secrets and DSNs for a module.
-func NewProvider(ctx context.Context, key key.Deployment, routeTable *routing.RouteTable, deployment *schema.Module, secretsProvider SecretsProvider, configProvider ConfigProvider) (DeploymentContextProvider, error) {
+func NewProvider(ctx context.Context, key key.Deployment, routeProvider RouteProvider, moduleSchema *schema.Module, secretsProvider SecretsProvider, configProvider ConfigProvider) (DeploymentContextProvider, error) {
 	ret := make(chan DeploymentContext)
 	logger := log.FromContext(ctx)
-	updates := routeTable.Subscribe()
-	module := deployment.Name
+	updates := routeProvider.Subscribe()
+	module := moduleSchema.Name
 
 	// Initialize checksum to -1; a zero checksum does occur when the context contains no settings
 	lastChecksum := int64(-1)
 
 	callableModules := map[string]bool{}
 	egress := map[string]string{}
-	for _, decl := range deployment.Decls {
+	for _, decl := range moduleSchema.Decls {
 		switch entry := decl.(type) {
 		case *schema.Verb:
 			for _, md := range entry.Metadata {
@@ -85,27 +120,24 @@ func NewProvider(ctx context.Context, key key.Deployment, routeTable *routing.Ro
 	callableModuleNames = slices.Sort(callableModuleNames)
 	logger.Debugf("Modules %s can call %v", module, callableModuleNames)
 	go func() {
-		defer routeTable.Unsubscribe(updates)
+		defer routeProvider.Unsubscribe(updates)
 
 		for {
 			h := sha.New()
 
 			configs := configProvider(ctx)
 			secrets := secretsProvider(ctx)
-			routeView := routeTable.Current()
 
 			routeTable := map[string]string{}
 			for _, module := range callableModuleNames {
-				if module == deployment.Name {
+				if module == moduleSchema.Name {
 					continue
 				}
-				deployment, ok := routeView.GetDeployment(module).Get()
-				if !ok {
+				route := routeProvider.Route(module)
+				if route == "" {
 					continue
 				}
-				if route, ok := routeView.Get(deployment).Get(); ok && route.String() != "" {
-					routeTable[deployment.String()] = route.String()
-				}
+				routeTable[module] = route
 			}
 
 			if err := hashConfigurationMap(h, configs); err != nil {

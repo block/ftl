@@ -22,8 +22,7 @@ provisioner:
   provisionersRoleArn: arn:aws:iam::ftl-provisioners-irsa-role
   replicas: 1
   revisionHistoryLimit: 0
-  userNamespace:
-  modulePerNamespace: false
+  userNamespace: 
   defaultRunnerImage: ftl0/ftl-runner
   configMap: "ftl-provisioner-default-config"
   image:

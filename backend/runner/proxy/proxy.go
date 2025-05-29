@@ -29,9 +29,8 @@ var _ ftlv1connect.VerbServiceHandler = &Service{}
 var _ ftlv1connect.DeploymentContextServiceHandler = &Service{}
 
 type moduleVerbService struct {
-	client     ftlv1connect.VerbServiceClient
-	deployment key.Deployment
-	uri        string
+	client ftlv1connect.VerbServiceClient
+	uri    string
 }
 
 type Service struct {
@@ -69,28 +68,21 @@ func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[f
 	for i := range channels.IterContext[deploymentcontext.DeploymentContext](ctx, r.deploymentContextProvider) {
 
 		logger.Debugf("Received DeploymentContext from module: %v", i.GetModule())
-		for deployment := range i.GetRoutes() {
-			route := i.GetRoute(deployment)
-			logger.Debugf("Adding proxy route: %s -> %s", deployment, route)
+		for module := range i.GetRoutes() {
+			route := i.GetRoute(module)
+			logger.Debugf("Adding proxy route: %s -> %s", module, route)
 
-			deployment, err := key.ParseDeploymentKey(deployment)
-			if err != nil {
-				return errors.Wrap(err, "failed to parse deployment key")
-			}
-			module := deployment.Payload.Module
-			if existing, ok := r.moduleVerbService.Load(module); !ok || existing.deployment.String() != deployment.String() {
+			if existing, ok := r.moduleVerbService.Load(module); !ok || existing.uri != route {
 				r.moduleVerbService.Store(module, moduleVerbService{
-					client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, route, log.Error),
-					deployment: deployment,
-					uri:        route,
+					client: rpc.Dial(ftlv1connect.NewVerbServiceClient, route, log.Error),
+					uri:    route,
 				})
 			}
 		}
 		logger.Debugf("Adding localhost route: %s -> %s", r.localDeployment, r.bindAddress)
 		r.moduleVerbService.Store(r.localModuleName, moduleVerbService{
-			client:     rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
-			deployment: r.localDeployment,
-			uri:        r.bindAddress,
+			client: rpc.Dial(ftlv1connect.NewVerbServiceClient, r.bindAddress, log.Error),
+			uri:    r.bindAddress,
 		})
 		err := c2.Send(i.ToProto())
 		if err != nil {
@@ -161,7 +153,7 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		return nil, errors.Wrap(err, "could not get verb ref")
 	}
 	callEvent := &timelineclient.Call{
-		DeploymentKey: verbService.deployment,
+		DeploymentKey: r.localDeployment,
 		RequestKey:    requestKey,
 		StartTime:     start,
 		DestVerb:      destVerb,

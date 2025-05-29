@@ -62,10 +62,6 @@ spec:
             - name: FTL_USER_NAMESPACE
               value: "{{ .Values.provisioner.userNamespace }}"
             {{- end }}
-            {{- if .Values.provisioner.modulePerNamespace}}
-            - name: FTL_MODULE_PER_NAMESPACE
-              value: "{{ .Values.provisioner.modulePerNamespace }}"
-            {{- end }}
             - name: FTL_ARTEFACT_REGISTRY_USERNAME
               valueFrom:
                 secretKeyRef:
