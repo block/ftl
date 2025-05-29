@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/url"
 	"os"
 
 	errors "github.com/alecthomas/errors"
@@ -10,7 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/backend/runner"
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -19,7 +17,6 @@ import (
 	"github.com/block/ftl/internal/observability"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/routing"
-	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -29,8 +26,7 @@ var cli struct {
 	ObservabilityConfig observability.Config `prefix:"o11y-" embed:""`
 	RunnerConfig        runner.Config        `embed:""`
 	DeploymentDir       string               `help:"Directory to store deployments in." default:"/deployments"`
-	SchemaLocation      string               `help:"Location of the schema file." env:"FTL_SCHEMA_LOCATION"`
-	AdminEndpoint       *url.URL             `name:"admin-endpoint" help:"Admin server endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
+	SchemaLocation      string               `help:"Location of the schema file." env:"FTL_SCHEMA_LOCATION"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 }
 
 func main() {
@@ -73,12 +69,14 @@ and route to user code.
 		kctx.Fatalf("Failed to find module %s in schema, found %s", cli.RunnerConfig.Deployment.Payload.Module, found)
 	}
 
-	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	ses := schemaeventsource.NewUnattached()
 	err = ses.Publish(&schema.FullSchemaNotification{Schema: sch})
 	kctx.FatalIfErrorf(err, "failed to publish schema")
 	routeTable := routing.New(ctx, ses)
-	dp, err := deploymentcontext.NewAdminProvider(ctx, cli.RunnerConfig.Deployment, routeTable, module, adminClient)
+	var secProvider deploymentcontext.SecretsProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
+	var configProvider deploymentcontext.ConfigProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
+
+	dp, err := deploymentcontext.NewProvider(ctx, cli.RunnerConfig.Deployment, routeTable, module, secProvider, configProvider)
 	kctx.FatalIfErrorf(err)
 	deploymentProvider := func() (string, error) {
 

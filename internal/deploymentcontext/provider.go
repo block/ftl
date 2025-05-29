@@ -23,8 +23,33 @@ import (
 	"github.com/block/ftl/internal/routing"
 )
 
-// NewAdminProvider retrieves config, secrets and DSNs for a module.
-func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routing.RouteTable, deployment *schema.Module, adminClient adminpbconnect.AdminServiceClient) (DeploymentContextProvider, error) {
+type SecretsProvider func(ctx context.Context) map[string][]byte
+type ConfigProvider func(ctx context.Context) map[string][]byte
+
+func NewAdminSecretsProvider(key key.Deployment, adminClient adminpbconnect.AdminServiceClient) SecretsProvider {
+	return func(ctx context.Context) map[string][]byte {
+		secretsResp, err := adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: key.Payload.Module}})
+		if err != nil {
+			log.FromContext(ctx).Errorf(err, "could not get secrets")
+			return map[string][]byte{}
+		}
+		return secretsResp.Msg.Values
+
+	}
+}
+func NewAdminConfigProvider(key key.Deployment, adminClient adminpbconnect.AdminServiceClient) ConfigProvider {
+	return func(ctx context.Context) map[string][]byte {
+		configResp, err := adminClient.MapConfigsForModule(ctx, &connect.Request[adminpb.MapConfigsForModuleRequest]{Msg: &adminpb.MapConfigsForModuleRequest{Module: key.Payload.Module}})
+		if err != nil {
+			log.FromContext(ctx).Errorf(err, "could not get config")
+			return map[string][]byte{}
+		}
+		return configResp.Msg.Values
+	}
+}
+
+// NewProvider retrieves config, secrets and DSNs for a module.
+func NewProvider(ctx context.Context, key key.Deployment, routeTable *routing.RouteTable, deployment *schema.Module, secretsProvider SecretsProvider, configProvider ConfigProvider) (DeploymentContextProvider, error) {
 	ret := make(chan DeploymentContext)
 	logger := log.FromContext(ctx)
 	updates := routeTable.Subscribe()
@@ -65,15 +90,9 @@ func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routi
 		for {
 			h := sha.New()
 
-			configs := map[string][]byte{}
-			secrets := map[string][]byte{}
+			configs := configProvider(ctx)
+			secrets := secretsProvider(ctx)
 			routeView := routeTable.Current()
-			configsResp, err := adminClient.MapConfigsForModule(ctx, &connect.Request[adminpb.MapConfigsForModuleRequest]{Msg: &adminpb.MapConfigsForModuleRequest{Module: module}})
-			if err != nil {
-				logger.Errorf(err, "could not get configs")
-			} else {
-				configs = configsResp.Msg.Values
-			}
 
 			routeTable := map[string]string{}
 			for _, module := range callableModuleNames {
@@ -87,13 +106,6 @@ func NewAdminProvider(ctx context.Context, key key.Deployment, routeTable *routi
 				if route, ok := routeView.Get(deployment).Get(); ok && route.String() != "" {
 					routeTable[deployment.String()] = route.String()
 				}
-			}
-
-			secretsResp, err := adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: module}})
-			if err != nil {
-				logger.Errorf(err, "could not get secrets")
-			} else {
-				secrets = secretsResp.Msg.Values
 			}
 
 			if err := hashConfigurationMap(h, configs); err != nil {
