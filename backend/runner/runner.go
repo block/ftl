@@ -202,7 +202,7 @@ type Service struct {
 
 	config                    Config
 	deploymentProvider        oci.DeploymentArtefactProvider
-	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
+	deploymentContextProvider deploymentcontext.DeploymentContextProvider
 	schema                    *schema.Module
 	timelineClient            *timeline.Client
 	timelineLogSink           *timeline.LogSink

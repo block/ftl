@@ -63,7 +63,8 @@ func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 
 func (r *Service) GetDeploymentContext(ctx context.Context, c *connect.Request[ftlv1.GetDeploymentContextRequest], c2 *connect.ServerStream[ftlv1.GetDeploymentContextResponse]) error {
 	logger := log.FromContext(ctx)
-	for i := range channels.IterContext[deploymentcontext.DeploymentContext](ctx, r.deploymentContextProvider) {
+	updates := r.deploymentContextProvider(ctx)
+	for i := range channels.IterContext[deploymentcontext.DeploymentContext](ctx, updates) {
 
 		logger.Debugf("Received DeploymentContext from module: %v", i.GetModule())
 		for module := range i.GetRoutes() {

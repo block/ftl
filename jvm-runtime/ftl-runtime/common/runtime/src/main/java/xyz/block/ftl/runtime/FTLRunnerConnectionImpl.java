@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
@@ -264,6 +263,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
 
     @Override
     public void close() {
+        log.debugf("Closing FTL runner connection");
         channel.shutdown();
     }
 
@@ -474,8 +474,6 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     }
 
     private class ModuleObserver implements StreamObserver<GetDeploymentContextResponse> {
-
-        final AtomicInteger failCount = new AtomicInteger();
 
         @Override
         public void onNext(GetDeploymentContextResponse moduleContextResponse) {
