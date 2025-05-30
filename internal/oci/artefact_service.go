@@ -72,18 +72,26 @@ type ReleaseArtefact struct {
 	Executable bool
 }
 
-type RegistryConfig struct {
-	Registry      string `help:"OCI container registry, in the form host[:port]/repository" env:"FTL_ARTEFACT_REGISTRY"`
-	Username      string `help:"OCI container registry username" env:"FTL_ARTEFACT_REGISTRY_USERNAME"`
-	Password      string `help:"OCI container registry password" env:"FTL_ARTEFACT_REGISTRY_PASSWORD"`
-	AllowInsecure bool   `help:"Allows the use of insecure HTTP based registries." env:"FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE"`
+// Registry is a string that represents an OCI container registry.
+// For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com"
+type Registry string
+
+// Repository is a string that represents an OCI container repository.
+// For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests"
+type Repository string
+
+type RepositoryConfig struct {
+	Repository    Repository `help:"OCI container repository, in the form host[:port]/repository" env:"FTL_ARTEFACT_REPOSITORY"`
+	Username      string     `help:"OCI container repository username" env:"FTL_ARTEFACT_REPOSITORY_USERNAME"`
+	Password      string     `help:"OCI container repository password" env:"FTL_ARTEFACT_REPOSITORY_PASSWORD"`
+	AllowInsecure bool       `help:"Allows the use of insecure HTTP based registries." env:"FTL_ARTEFACT_REPOSITORY_ALLOW_INSECURE"`
 }
 
 type ArtefactService struct {
 	keyChain *keyChain
 
 	puller       *googleremote.Puller
-	targetConfig RegistryConfig
+	targetConfig RepositoryConfig
 	logger       *log.Logger
 }
 
@@ -121,18 +129,18 @@ func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
 }
 
 func NewNewArtefactServiceForTesting() *ArtefactService {
-	storage, err := NewArtefactService(context.TODO(), RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
+	storage, err := NewArtefactService(context.TODO(), RepositoryConfig{Repository: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
 	if err != nil {
 		panic(err)
 	}
 	return storage
 }
 
-func NewArtefactService(ctx context.Context, config RegistryConfig) (*ArtefactService, error) {
+func NewArtefactService(ctx context.Context, config RepositoryConfig) (*ArtefactService, error) {
 	logger := log.FromContext(ctx)
 	o := &ArtefactService{
 		keyChain: &keyChain{
-			registries:      map[string]*registryAuth{},
+			repositories:    map[string]*registryAuth{},
 			targetConfig:    config,
 			originalContext: ctx,
 		},
@@ -148,14 +156,14 @@ func NewArtefactService(ctx context.Context, config RegistryConfig) (*ArtefactSe
 	return o, nil
 }
 
-func (s *ArtefactService) GetRegistry() string {
-	return s.targetConfig.Registry
+func (s *ArtefactService) GetRepository() Repository {
+	return s.targetConfig.Repository
 }
 
 func (s *ArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
 	repo, err := s.repoFactory()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
+		return nil, nil, errors.Wrapf(err, "unable to connect to container repository '%s'", s.targetConfig.Repository)
 	}
 	set := make(map[sha256.SHA256]bool)
 	for _, d := range digests {
@@ -186,7 +194,7 @@ func (s *ArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) e
 	repo, err := s.repoFactory()
 	logger := log.FromContext(ctx).Scope("oci:" + artefact.Digest.String())
 	if err != nil {
-		return errors.Wrapf(err, "unable to connect to repository '%s'", s.targetConfig.Registry)
+		return errors.Wrapf(err, "unable to connect to repository '%s'", s.targetConfig.Repository)
 	}
 
 	parseSHA256, err := sha256.ParseSHA256(artefact.Digest.String())
@@ -244,7 +252,7 @@ func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.Re
 	if s.targetConfig.AllowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.targetConfig.Registry, dg.String()), opts...)
+	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.targetConfig.Repository, dg.String()), opts...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
@@ -260,12 +268,12 @@ func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.Re
 }
 
 func (s *ArtefactService) repoFactory() (*remote.Repository, error) {
-	reg, err := remote.NewRepository(s.targetConfig.Registry)
+	reg, err := remote.NewRepository(string(s.targetConfig.Repository))
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
+		return nil, errors.Wrapf(err, "unable to connect to container repository '%s'", s.targetConfig.Repository)
 	}
 
-	ref, err := name.NewRepository(s.targetConfig.Registry)
+	ref, err := name.NewRepository(string(s.targetConfig.Repository))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse registry")
 	}
@@ -278,7 +286,7 @@ func (s *ArtefactService) repoFactory() (*remote.Repository, error) {
 		return nil, errors.Wrapf(err, "failed to authenticate")
 	}
 
-	s.logger.Debugf("Connecting to registry '%s'", s.targetConfig.Registry)
+	s.logger.Debugf("Connecting to repository '%s'", s.targetConfig.Repository)
 	reg.Client = &auth.Client{
 		Client: retry.DefaultClient,
 		Cache:  auth.NewCache(),

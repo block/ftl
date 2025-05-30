@@ -48,7 +48,8 @@ func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemReso
 		}
 		logger.Debugf("Using base image %s from default %s", image, defaultImage)
 
-		tgt := storage.Registry()
+		// TODO: Use repository instead
+		tgt := string(storage.Repository())
 		if !strings.HasSuffix(tgt, "/") {
 			tgt += "/"
 		}
