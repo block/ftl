@@ -9,11 +9,11 @@ import (
 	"time"
 
 	errors "github.com/alecthomas/errors"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
-	"github.com/block/ftl/common/log"
 	"github.com/google/go-containerregistry/pkg/authn"
 
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/block/ftl/common/log"
 )
 
 type keyChain struct {

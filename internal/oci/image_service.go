@@ -6,9 +6,6 @@ import (
 	"path/filepath"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/block/ftl/common/log"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
-	"github.com/block/ftl/common/schema"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
@@ -16,6 +13,10 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/block/ftl/common/log"
+	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
+	"github.com/block/ftl/common/schema"
 )
 
 type ImageService struct {
