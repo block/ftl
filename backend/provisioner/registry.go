@@ -68,14 +68,14 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *oci.OCIArtefactService) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "error validating provisioner config")
 	}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, storage)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -85,7 +85,7 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *oci.OCIArtefactService) (Plugin, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (Plugin, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
@@ -96,7 +96,7 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 	case "noop":
 		return NewPluginClient(&NoopProvisioner{}), nil
 	case "oci-image":
-		return NewOCIImageProvisioner(storage, "ftl0/ftl-runner"), nil
+		return NewOCIImageProvisioner(imageService, "ftl0/ftl-runner"), nil
 	default:
 		plugin, _, err := plugin.Spawn(
 			ctx,

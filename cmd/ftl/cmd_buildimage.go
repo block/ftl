@@ -62,7 +62,11 @@ func (b *buildImageCmd) Run(
 		logger.Warnf("No modules were found to build")
 		return nil
 	}
-	service, err := oci.NewArtefactService(ctx, b.RegistryConfig)
+	artefactService, err := oci.NewArtefactService(ctx, b.RegistryConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to init artefact service")
+	}
+	imageService, err := oci.NewImageService(ctx, artefactService, b.RegistryConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
@@ -108,7 +112,7 @@ func (b *buildImageCmd) Run(
 		if b.Push {
 			targets = append(targets, oci.WithRemotePush())
 		}
-		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, artifacts, targets...)
+		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, artifacts, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}

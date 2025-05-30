@@ -17,15 +17,13 @@ import (
 	"github.com/block/ftl/internal/oci"
 )
 
-// NewRunnerScalingProvisioner creates a new provisioner that provisions resources locally when running FTL in dev mode
-
-func NewOCIImageProvisioner(storage *oci.OCIArtefactService, defaultImage string) *InMemProvisioner {
+func NewOCIImageProvisioner(storage *oci.ImageService, defaultImage string) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
 		schema.ResourceTypeImage: provisionOCIImage(storage, defaultImage),
 	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
 }
 
-func provisionOCIImage(storage *oci.OCIArtefactService, defaultImage string) InMemResourceProvisionerFn {
+func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, moduleSch *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 		variants := goslices.Collect(slices.FilterVariants[*schema.MetadataArtefact](moduleSch.Metadata))
@@ -50,7 +48,7 @@ func provisionOCIImage(storage *oci.OCIArtefactService, defaultImage string) InM
 		}
 		logger.Debugf("Using base image %s from default %s", image, defaultImage)
 
-		tgt := storage.GetRegistry()
+		tgt := storage.Registry()
 		if !strings.HasSuffix(tgt, "/") {
 			tgt += "/"
 		}
