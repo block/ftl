@@ -29,13 +29,13 @@ import (
 const tenMB = 1024 * 1024 * 10
 
 // NewSQLMigrationProvisioner creates a new provisioner that provisions database migrations
-func NewSQLMigrationProvisioner(storage *oci.OCIArtefactService) *InMemProvisioner {
+func NewSQLMigrationProvisioner(storage *oci.ArtefactService) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
 		schema.ResourceTypeSQLMigration: provisionSQLMigration(storage),
 	}, make(map[schema.ResourceType]InMemResourceProvisionerFn))
 }
 
-func provisionSQLMigration(storage *oci.OCIArtefactService) InMemResourceProvisionerFn {
+func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 

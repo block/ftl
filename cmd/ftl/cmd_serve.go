@@ -175,7 +175,7 @@ func (s *serveCommonConfig) run(
 			Registry:      fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort),
 		}
 	}
-	storage, err := oci.NewArtefactService(ctx, rc)
+	artefactService, err := oci.NewArtefactService(ctx, rc)
 	if err != nil {
 		return errors.Wrap(err, "failed to create OCI registry storage")
 	}
@@ -197,7 +197,7 @@ func (s *serveCommonConfig) run(
 		projConfig.Path,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableVSCodeIntegration,
 		!projConfig.DisableIDEIntegration && !projConfig.DisableIntellijIntegration,
-		storage,
+		artefactService,
 		bool(s.ObservabilityConfig.ExportOTEL),
 		devModeEndpoints,
 		routing.New(ctx, schemaEventSource),
@@ -255,7 +255,7 @@ func (s *serveCommonConfig) run(
 				ID: "egress",
 			},
 			{
-				Provisioner: provisioner.NewSQLMigrationProvisioner(storage),
+				Provisioner: provisioner.NewSQLMigrationProvisioner(artefactService),
 				Types:       []schema.ResourceType{schema.ResourceTypeSQLMigration},
 				ID:          "migration",
 			},
@@ -272,9 +272,14 @@ func (s *serveCommonConfig) run(
 		},
 	}
 
+	imageService, err := oci.NewImageService(ctx, artefactService, rc)
+	if err != nil {
+		return errors.Wrap(err, "failed to create image service")
+	}
+
 	// read provisioners from a config file if provided
 	if s.PluginConfigFile != nil {
-		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, storage)
+		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, imageService)
 		if err != nil {
 			return errors.Wrap(err, "failed to create provisioner registry")
 		}
@@ -319,7 +324,7 @@ func (s *serveCommonConfig) run(
 	})
 	services = append(services, lease.New(ctx))
 	// Start Admin
-	adminService := admin.NewAdminService(s.Admin, cm, sm, schemaClient, schemaEventSource, storage, router, timelineClient, s.WaitFor)
+	adminService := admin.NewAdminService(s.Admin, cm, sm, schemaClient, schemaEventSource, artefactService, router, timelineClient, s.WaitFor)
 	services = append(services, adminService)
 
 	// Start the common server

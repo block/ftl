@@ -51,7 +51,7 @@ type localScaling struct {
 
 	prevRunnerSuffix int
 	ideSupport       optional.Option[localdebug.IDEIntegration]
-	storage          *oci.OCIArtefactService
+	storage          *oci.ArtefactService
 	enableOtel       bool
 
 	devModeEndpointsUpdates <-chan dev.LocalEndpoint
@@ -190,7 +190,7 @@ func NewLocalScaling(
 	configPath string,
 	enableVSCodeIntegration bool,
 	enableIntellijIntegration bool,
-	storage *oci.OCIArtefactService,
+	storage *oci.ArtefactService,
 	enableOtel bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 	routeTable *routing.RouteTable,

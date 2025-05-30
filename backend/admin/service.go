@@ -52,7 +52,7 @@ type Service struct {
 	timelineClient *timelineclient.Client
 	schemaClient   ftlv1connect.SchemaServiceClient
 	source         *schemaeventsource.EventSource
-	storage        *oci.OCIArtefactService
+	storage        *oci.ArtefactService
 	config         Config
 	routeTable     *routing.VerbCallRouter
 	waitFor        []string
@@ -85,7 +85,7 @@ func NewAdminService(
 	sm *manager.Manager[configuration.Secrets],
 	schr ftlv1connect.SchemaServiceClient,
 	source *schemaeventsource.EventSource,
-	storage *oci.OCIArtefactService,
+	storage *oci.ArtefactService,
 	routes *routing.VerbCallRouter,
 	timelineClient *timelineclient.Client,
 	waitFor []string,

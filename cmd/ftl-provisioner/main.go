@@ -68,13 +68,16 @@ func main() {
 		}
 	}
 
-	storage, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
+	artefactService, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
+
+	imageService, err := oci.NewImageService(ctx, artefactService, cli.RegistryConfig)
+	kctx.FatalIfErrorf(err, "failed to create image service")
 
 	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
-	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, storage)
+	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
@@ -82,7 +85,7 @@ func main() {
 		return slices.Contains(binding.Types, schema.ResourceTypeSQLMigration)
 	}); !ok {
 
-		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(storage)
+		sqlMigrationProvisioner := provisioner.NewSQLMigrationProvisioner(artefactService)
 		sqlMigrationBinding := registry.Register("in-mem-sql-migration", sqlMigrationProvisioner, schema.ResourceTypeSQLMigration)
 		logger.Debugf("Registered provisioner %s as fallback for sql-migration", sqlMigrationBinding)
 	}
@@ -91,7 +94,7 @@ func main() {
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeImage)
 	}); !ok {
-		ociProvisioner := provisioner.NewOCIImageProvisioner(storage, cli.DefaultRunnerImage)
+		ociProvisioner := provisioner.NewOCIImageProvisioner(imageService, cli.DefaultRunnerImage)
 		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
 		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
 	}

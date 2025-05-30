@@ -4,33 +4,23 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/daemon"
-	"github.com/google/go-containerregistry/pkg/v1/empty"
-	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"google.golang.org/protobuf/proto"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/registry/remote"
@@ -38,7 +28,6 @@ import (
 	"oras.land/oras-go/v2/registry/remote/retry"
 
 	"github.com/block/ftl/common/log"
-	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 )
@@ -90,13 +79,12 @@ type RegistryConfig struct {
 	AllowInsecure bool   `help:"Allows the use of insecure HTTP based registries." env:"FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE"`
 }
 
-type OCIArtefactService struct {
-	originalContext context.Context
-	puller          *googleremote.Puller
-	targetConfig    RegistryConfig
-	logger          *log.Logger
-	registries      map[string]*registryAuth
-	registryLock    sync.Mutex
+type ArtefactService struct {
+	keyChain *keyChain
+
+	puller       *googleremote.Puller
+	targetConfig RegistryConfig
+	logger       *log.Logger
 }
 
 type ArtefactRepository struct {
@@ -132,7 +120,7 @@ func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
 	return r.auth.Load(), nil
 }
 
-func NewNewArtefactServiceForTesting() *OCIArtefactService {
+func NewNewArtefactServiceForTesting() *ArtefactService {
 	storage, err := NewArtefactService(context.TODO(), RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
 	if err != nil {
 		panic(err)
@@ -140,23 +128,19 @@ func NewNewArtefactServiceForTesting() *OCIArtefactService {
 	return storage
 }
 
-func isECRRepository(repo string) bool {
-	ecrRegex := regexp.MustCompile(`(?i)^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/`)
-	return ecrRegex.MatchString(repo)
-}
-
-func NewArtefactService(ctx context.Context, config RegistryConfig) (*OCIArtefactService, error) {
-	// Connect the registry targeting the specified container
-
+func NewArtefactService(ctx context.Context, config RegistryConfig) (*ArtefactService, error) {
 	logger := log.FromContext(ctx)
-	o := &OCIArtefactService{
-		originalContext: ctx,
-		registries:      map[string]*registryAuth{},
-		targetConfig:    config,
-		logger:          logger,
+	o := &ArtefactService{
+		keyChain: &keyChain{
+			registries:      map[string]*registryAuth{},
+			targetConfig:    config,
+			originalContext: ctx,
+		},
+		targetConfig: config,
+		logger:       logger,
 	}
 
-	puller, err := googleremote.NewPuller(googleremote.WithAuthFromKeychain(o))
+	puller, err := googleremote.NewPuller(googleremote.WithAuthFromKeychain(o.keyChain))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create puller")
 	}
@@ -164,104 +148,11 @@ func NewArtefactService(ctx context.Context, config RegistryConfig) (*OCIArtefac
 	return o, nil
 }
 
-// Resolve implements authn.Keychain.
-func (s *OCIArtefactService) Resolve(r authn.Resource) (authn.Authenticator, error) {
-	s.registryLock.Lock()
-	defer s.registryLock.Unlock()
-
-	logger := log.FromContext(s.originalContext)
-	registry := r.String()
-	existing := s.registries[registry]
-	if existing != nil {
-		return existing, nil
-	}
-	cfg := &registryAuth{}
-	s.registries[registry] = cfg
-	cfg.auth.Store(&authn.AuthConfig{})
-
-	if registry == s.targetConfig.Registry &&
-		s.targetConfig.Username != "" &&
-		s.targetConfig.Password != "" {
-		// The user has explicitly supplied credentials, lets use them
-		cfg.auth.Store(&authn.AuthConfig{
-			Username: s.targetConfig.Username,
-			Password: s.targetConfig.Password,
-		})
-		return cfg, nil
-	}
-
-	dctx, err := authn.DefaultKeychain.ResolveContext(s.originalContext, r)
-	if err == nil {
-		// Local docker config takes precidence
-		cfg.delegate = dctx
-		return cfg, nil
-	}
-
-	if isECRRepository(registry) {
-
-		username, password, err := getECRCredentials(s.originalContext)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		logger.Debugf("Using ECR credentials for registry '%s'", registry)
-		cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
-		go func() {
-			for {
-				select {
-				case <-s.originalContext.Done():
-					return
-				case <-time.After(time.Hour):
-					username, password, err := getECRCredentials(s.originalContext)
-					if err != nil {
-						logger.Errorf(err, "failed to refresh ECR credentials")
-					}
-					cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
-				}
-			}
-		}()
-	}
-	return cfg, nil
-}
-
-func (s *OCIArtefactService) GetRegistry() string {
+func (s *ArtefactService) GetRegistry() string {
 	return s.targetConfig.Registry
 }
 
-func getECRCredentials(ctx context.Context) (string, string, error) {
-	// Load AWS Config
-	cfg, err := awsconfig.LoadDefaultConfig(ctx)
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to load AWS config")
-	}
-
-	// Create ECR client
-	ecrClient := ecr.NewFromConfig(cfg)
-	// Get authorization token
-	resp, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get authorization token")
-	}
-
-	if len(resp.AuthorizationData) == 0 {
-		return "", "", errors.Wrap(err, "no authorization data")
-	}
-	authData := resp.AuthorizationData[0]
-	token, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to decode auth token")
-	}
-
-	splitToken := strings.SplitN(string(token), ":", 2)
-	if len(splitToken) != 2 {
-		return "", "", errors.Wrap(err, "failed to decode auth token due to invalid format")
-	}
-
-	username := splitToken[0]
-	password := splitToken[1]
-	return username, password, nil
-}
-
-func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
+func (s *ArtefactService) GetDigestsKeys(ctx context.Context, digests []sha256.SHA256) (keys []ArtefactKey, missing []sha256.SHA256, err error) {
 	repo, err := s.repoFactory()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
@@ -291,7 +182,7 @@ func (s *OCIArtefactService) GetDigestsKeys(ctx context.Context, digests []sha25
 }
 
 // Upload uploads the specific artifact as a raw blob and links it to a manifest to prevent GC
-func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) error {
+func (s *ArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) error {
 	repo, err := s.repoFactory()
 	logger := log.FromContext(ctx).Scope("oci:" + artefact.Digest.String())
 	if err != nil {
@@ -345,7 +236,7 @@ func (s *OCIArtefactService) Upload(ctx context.Context, artefact ArtefactUpload
 	return nil
 }
 
-func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.ReadCloser, error) {
+func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.ReadCloser, error) {
 	// ORAS is really annoying, and needs you to know the size of the blob you're downloading
 	// So we are using google's go-containerregistry to do the actual download
 	// This is not great, we should remove oras at some point
@@ -357,7 +248,7 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
-	layer, err := googleremote.Layer(newDigest, googleremote.WithAuthFromKeychain(s), googleremote.Reuse(s.puller))
+	layer, err := googleremote.Layer(newDigest, googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read layer '%s'", newDigest)
 	}
@@ -368,7 +259,7 @@ func (s *OCIArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io
 	return uncompressed, nil
 }
 
-func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
+func (s *ArtefactService) repoFactory() (*remote.Repository, error) {
 	reg, err := remote.NewRepository(s.targetConfig.Registry)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to connect to container registry '%s'", s.targetConfig.Registry)
@@ -378,7 +269,7 @@ func (s *OCIArtefactService) repoFactory() (*remote.Repository, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse registry")
 	}
-	a, err := s.Resolve(ref)
+	a, err := s.keyChain.Resolve(ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to resolve authenticator")
 	}
@@ -429,7 +320,7 @@ func generateManifestContent(config ocispec.Descriptor, layers ...ocispec.Descri
 }
 
 // DownloadArtifacts downloads artefacts for a deployment from an OCI registry.
-func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string, artifacts []*schema.MetadataArtefact) error {
+func (s *ArtefactService) DownloadArtifacts(ctx context.Context, dest string, artifacts []*schema.MetadataArtefact) error {
 	logger := log.FromContext(ctx)
 	start := time.Now()
 	count := 0
@@ -475,172 +366,6 @@ func (s *OCIArtefactService) DownloadArtifacts(ctx context.Context, dest string,
 		}
 	}
 	logger.Debugf("Downloaded %d artefacts in %s", count, time.Since(start))
-	return nil
-}
-
-func WithRemotePush() ImageTarget {
-	return func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
-		logger := log.FromContext(ctx)
-		repo, err := name.NewRepository(s.targetConfig.Registry)
-		if err != nil {
-			return errors.Wrapf(err, "unable to parse repo")
-		}
-		authOpt := googleremote.WithAuthFromKeychain(s)
-
-		for _, l := range layers {
-			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
-				return errors.Errorf("writing layer: %w", err)
-			}
-		}
-		// Also push up any other layers
-		existing, err := image.Layers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get image layers")
-		}
-
-		for _, l := range existing {
-			if err := googleremote.WriteLayer(repo, l, authOpt); err != nil {
-				return errors.Errorf("writing layer: %w", err)
-			}
-		}
-		if err := googleremote.Write(targetImage, image, authOpt); err != nil {
-			return errors.Errorf("writing image: %w", err)
-		}
-		logger.Infof("Wrote image %s to remote repository", targetImage) //nolint
-		return nil
-	}
-}
-
-func WithLocalDeamon() ImageTarget {
-	return func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
-
-		logger := log.FromContext(ctx)
-		if _, err := daemon.Write(targetImage, image); err != nil {
-			return errors.Errorf("writing layout: %w", err)
-		}
-		logger.Infof("Wrote image %s to local daemon", targetImage) //nolint
-		return nil
-	}
-}
-
-type ImageTarget func(ctx context.Context, s *OCIArtefactService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error
-
-func (s *OCIArtefactService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, module *schema.Module, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
-	target, err := os.MkdirTemp(tempDir, "ftl-image-")
-	if err != nil {
-		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
-	}
-	defer os.RemoveAll(target)
-	err = s.DownloadArtifacts(ctx, target, artifacts)
-	if err != nil {
-		return errors.Wrapf(err, "failed to download artifacts")
-	}
-
-	schemaPath := filepath.Join(target, FTLFullSchemaPath)
-	schemaBytes, err := os.ReadFile(schemaPath)
-	if err == nil {
-		// Only update the schema if it exists
-		schpb := &schemapb.Schema{}
-		if err := proto.Unmarshal(schemaBytes, schpb); err != nil {
-			return errors.Wrapf(err, "failed to unmashal schema")
-		}
-		schema, err := schema.FromProto(schpb)
-		if err != nil {
-			return errors.Wrapf(err, "failed to unmashal schema")
-		}
-		if realm, ok := schema.FirstInternalRealm().Get(); ok {
-			realm.UpsertModule(module)
-		}
-		bytes, err := proto.Marshal(schema.ToProto())
-		if err != nil {
-			return errors.Wrapf(err, "failed to marshal schema")
-		}
-		err = os.WriteFile(schemaPath, bytes, 0644) //nolint:gosec
-		if err != nil {
-			return errors.Wrapf(err, "failed to write schema")
-		}
-	} else {
-		log.FromContext(ctx).Errorf(err, "Unable to update schema file")
-	}
-
-	if err != nil {
-		return err
-	}
-	return s.BuildOCIImage(ctx, baseImage, targetImage, target, artifacts, targets...)
-
-}
-
-func (s *OCIArtefactService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, allArtifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
-	var artifacts []*schema.MetadataArtefact
-	var schemaArtifacts []*schema.MetadataArtefact
-	for _, i := range allArtifacts {
-		if i.Path == FTLFullSchemaPath {
-			schemaArtifacts = append(schemaArtifacts, i)
-		} else {
-			artifacts = append(artifacts, i)
-		}
-	}
-
-	opts := []name.Option{}
-	// TODO: use http:// scheme for allow/disallow insecure
-	if s.targetConfig.AllowInsecure {
-		opts = append(opts, name.Insecure)
-	}
-	logger := log.FromContext(ctx)
-	logger.Infof("Building %s with %s as a base image", targetImage, baseImage) //nolint
-	ref, err := name.ParseReference(baseImage, opts...)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse image name")
-	}
-	targetRef, err := name.NewTag(targetImage)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse target image")
-	}
-
-	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s), googleremote.Reuse(s.puller))
-	if err != nil {
-		return errors.Errorf("getting base image metadata: %w", err)
-	}
-
-	base, err := desc.Image()
-	if err != nil {
-		return errors.Errorf("loading base image: %w", err)
-	}
-
-	layer, err := createLayer(apath, artifacts)
-	if err != nil {
-		return errors.Errorf("creating layer: %w", err)
-	}
-	schLayer, err := createLayer(apath, schemaArtifacts)
-	if err != nil {
-		return errors.Errorf("creating layer: %w", err)
-	}
-
-	// Append the layer to the base image
-	newImg, err := mutate.AppendLayers(base, layer, schLayer)
-	if err != nil {
-		return errors.Errorf("appending layer: %w", err)
-	}
-
-	cfg, err := newImg.ConfigFile()
-	if err != nil {
-		return errors.Errorf("getting config file: %w", err)
-	}
-	cfg.Config.Env = append(cfg.Config.Env, "FTL_SCHEMA_LOCATION=/deployments/ftl-full-schema.pb")
-	newImg, err = mutate.Config(newImg, cfg.Config)
-	if err != nil {
-		return errors.Errorf("setting environment var: %w", err)
-	}
-
-	idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: newImg})
-
-	for _, i := range targets {
-		err = i(ctx, s, targetRef, idx, newImg, []v1.Layer{layer})
-		if err != nil {
-			return errors.Wrapf(err, "failed to write image")
-		}
-	}
-
 	return nil
 }
 
