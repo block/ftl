@@ -60,17 +60,17 @@ spec:
               value: "{{ .Values.admin.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
               value: "{{ .Values.admin.logJson | default .Values.logJson }}"
-            - name: FTL_ARTEFACT_REGISTRY
+            - name: FTL_ARTEFACT_REPOSITORY
               value: "{{ .Values.registry.repository }}"
-            - name: FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE
+            - name: FTL_ARTEFACT_REPOSITORY_ALLOW_INSECURE
               value: "{{ .Values.registry.allowInsecure }}"
-            - name: FTL_ARTEFACT_REGISTRY_USERNAME
+            - name: FTL_ARTEFACT_REPOSITORY_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "ftl.fullname" . }}-secrets
-                  key: FTL_CONTROLLER_REGISTRY_USERNAME
+                  key: FTL_CONTROLLER_REPOSITORY_USERNAME
                   optional: true
-            - name: FTL_ARTEFACT_REGISTRY_PASSWORD
+            - name: FTL_ARTEFACT_REPOSITORY_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "ftl.fullname" . }}-secrets

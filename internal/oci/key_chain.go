@@ -18,8 +18,8 @@ import (
 
 type keyChain struct {
 	originalContext context.Context
-	targetConfig    RegistryConfig
-	registries      map[string]*registryAuth
+	targetConfig    RepositoryConfig
+	repositories    map[string]*registryAuth
 	registryLock    sync.Mutex
 }
 
@@ -29,16 +29,16 @@ func (k *keyChain) Resolve(r authn.Resource) (authn.Authenticator, error) {
 	defer k.registryLock.Unlock()
 
 	logger := log.FromContext(k.originalContext)
-	registry := r.String()
-	existing := k.registries[registry]
+	repo := r.String()
+	existing := k.repositories[repo]
 	if existing != nil {
 		return existing, nil
 	}
 	cfg := &registryAuth{}
-	k.registries[registry] = cfg
+	k.repositories[repo] = cfg
 	cfg.auth.Store(&authn.AuthConfig{})
 
-	if registry == k.targetConfig.Registry &&
+	if repo == string(k.targetConfig.Repository) &&
 		k.targetConfig.Username != "" &&
 		k.targetConfig.Password != "" {
 		// The user has explicitly supplied credentials, lets use them
@@ -56,12 +56,12 @@ func (k *keyChain) Resolve(r authn.Resource) (authn.Authenticator, error) {
 		return cfg, nil
 	}
 
-	if isECRRepository(registry) {
+	if isECRRepository(repo) {
 		username, password, err := getECRCredentials(k.originalContext)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		logger.Debugf("Using ECR credentials for registry '%s'", registry)
+		logger.Debugf("Using ECR credentials for repository '%s'", repo)
 		cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
 		go func() {
 			for {

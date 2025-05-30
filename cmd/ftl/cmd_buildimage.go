@@ -18,14 +18,14 @@ import (
 )
 
 type buildImageCmd struct {
-	Parallelism     int                `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
-	Dirs            []string           `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
-	BuildEnv        []string           `help:"Environment variables to set for the build."`
-	RegistryConfig  oci.RegistryConfig `embed:""`
-	Tag             string             `help:"The image tag" default:"latest"`
-	RunnerImage     string             `help:"An override of the runner base image"`
-	Push            bool               `help:"Push the image to the registry after building." default:"false"`
-	SkipLocalDaemon bool               `help:"Skip pushing to the local docker daemon." default:"false"`
+	Parallelism     int                  `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
+	Dirs            []string             `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
+	BuildEnv        []string             `help:"Environment variables to set for the build."`
+	RegistryConfig  oci.RepositoryConfig `embed:""`
+	Tag             string               `help:"The image tag" default:"latest"`
+	RunnerImage     string               `help:"An override of the runner base image"`
+	Push            bool                 `help:"Push the image to the registry after building." default:"false"`
+	SkipLocalDaemon bool                 `help:"Skip pushing to the local docker daemon." default:"false"`
 }
 
 func (b *buildImageCmd) Run(
@@ -102,7 +102,7 @@ func (b *buildImageCmd) Run(
 				image += "latest"
 			}
 		}
-		tgt := b.RegistryConfig.Registry
+		tgt := string(b.RegistryConfig.Repository)
 		tgt += ":"
 		tgt += b.Tag
 		targets := []oci.ImageTarget{}

@@ -21,17 +21,17 @@ import (
 
 type ImageService struct {
 	puller          *googleremote.Puller
-	targetConfig    RegistryConfig
+	targetConfig    RepositoryConfig
 	logger          *log.Logger
 	artefactService *ArtefactService
 	keyChain        *keyChain
 }
 
-func NewImageService(ctx context.Context, artefactService *ArtefactService, config RegistryConfig) (*ImageService, error) {
+func NewImageService(ctx context.Context, artefactService *ArtefactService, config RepositoryConfig) (*ImageService, error) {
 	logger := log.FromContext(ctx)
 	o := &ImageService{
 		keyChain: &keyChain{
-			registries:      map[string]*registryAuth{},
+			repositories:    map[string]*registryAuth{},
 			targetConfig:    config,
 			originalContext: ctx,
 		},
@@ -54,7 +54,7 @@ type ImageTarget func(ctx context.Context, s *ImageService, targetImage name.Tag
 func WithRemotePush() ImageTarget {
 	return func(ctx context.Context, s *ImageService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
 		logger := log.FromContext(ctx)
-		repo, err := name.NewRepository(s.targetConfig.Registry)
+		repo, err := name.NewRepository(string(s.targetConfig.Repository))
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse repo")
 		}
@@ -96,8 +96,8 @@ func WithLocalDeamon() ImageTarget {
 	}
 }
 
-func (s *ImageService) Registry() string {
-	return s.targetConfig.Registry
+func (s *ImageService) Repository() Repository {
+	return s.targetConfig.Repository
 }
 
 func (s *ImageService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, module *schema.Module, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {

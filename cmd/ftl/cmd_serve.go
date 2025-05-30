@@ -58,7 +58,7 @@ type serveCommonConfig struct {
 	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
 	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
 	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
-	RegistryConfig      oci.RegistryConfig   `prefix:"oci-" hidden:"" embed:""`
+	RegistryConfig      oci.RepositoryConfig `prefix:"oci-" hidden:"" embed:""`
 	Background          bool                 `help:"Run in the background." default:"false"`
 	Stop                bool                 `help:"Stop the running FTL instance. Can be used with --background to restart the server" default:"false"`
 	StartupTimeout      time.Duration        `help:"Timeout for the server to start up." default:"10s" env:"FTL_STARTUP_TIMEOUT"`
@@ -169,10 +169,10 @@ func (s *serveCommonConfig) run(
 		return errors.Wrap(err, "registry init failed")
 	}
 	rc := s.RegistryConfig
-	if rc.Registry == "" {
-		rc = oci.RegistryConfig{
+	if rc.Repository == "" {
+		rc = oci.RepositoryConfig{
 			AllowInsecure: true,
-			Registry:      fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort),
+			Repository:    oci.Repository(fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort)),
 		}
 	}
 	artefactService, err := oci.NewArtefactService(ctx, rc)

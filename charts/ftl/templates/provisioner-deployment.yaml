@@ -52,9 +52,9 @@ spec:
               value: "{{ .Values.provisioner.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
               value: "{{ .Values.provisioner.logJson | default .Values.logJson }}"
-            - name: FTL_ARTEFACT_REGISTRY
+            - name: FTL_ARTEFACT_REPOSITORY
               value: "{{ .Values.registry.repository }}"
-            - name: FTL_ARTEFACT_REGISTRY_ALLOW_INSECURE
+            - name: FTL_ARTEFACT_REPOSITORY_ALLOW_INSECURE
               value: "{{ .Values.registry.allowInsecure }}"
             - name: FTL_INSTANCE_NAME
               value: "{{ include "ftl.fullname" . }}"
@@ -62,13 +62,13 @@ spec:
             - name: FTL_USER_NAMESPACE
               value: "{{ .Values.provisioner.userNamespace }}"
             {{- end }}
-            - name: FTL_ARTEFACT_REGISTRY_USERNAME
+            - name: FTL_ARTEFACT_REPOSITORY_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: {{ include "ftl.fullname" . }}-secrets
                   key: FTL_RUNNER_REGISTRY_USERNAME
                   optional: true
-            - name: FTL_ARTEFACT_REGISTRY_PASSWORD
+            - name: FTL_ARTEFACT_REPOSITORY_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "ftl.fullname" . }}-secrets
