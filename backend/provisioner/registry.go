@@ -15,7 +15,7 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/artefacts"
+	"github.com/block/ftl/internal/oci"
 )
 
 // provisionerPluginConfig is a map of provisioner name to resources it supports
@@ -68,7 +68,7 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *artefacts.OCIArtefactService) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *oci.OCIArtefactService) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
@@ -85,7 +85,7 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *artefacts.OCIArtefactService) (Plugin, error) {
+func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, storage *oci.OCIArtefactService) (Plugin, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin

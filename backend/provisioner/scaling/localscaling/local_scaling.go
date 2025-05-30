@@ -23,12 +23,12 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/download"
 	"github.com/block/ftl/internal/localdebug"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 )
@@ -51,7 +51,7 @@ type localScaling struct {
 
 	prevRunnerSuffix int
 	ideSupport       optional.Option[localdebug.IDEIntegration]
-	storage          *artefacts.OCIArtefactService
+	storage          *oci.OCIArtefactService
 	enableOtel       bool
 
 	devModeEndpointsUpdates <-chan dev.LocalEndpoint
@@ -190,7 +190,7 @@ func NewLocalScaling(
 	configPath string,
 	enableVSCodeIntegration bool,
 	enableIntellijIntegration bool,
-	storage *artefacts.OCIArtefactService,
+	storage *oci.OCIArtefactService,
 	enableOtel bool,
 	devModeEndpoints <-chan dev.LocalEndpoint,
 	routeTable *routing.RouteTable,
@@ -236,7 +236,7 @@ func (l *localScaling) startRunner(ctx context.Context, deploymentKey key.Deploy
 	default:
 	}
 
-	var deploymentProvider artefacts.DeploymentArtefactProvider
+	var deploymentProvider oci.DeploymentArtefactProvider
 
 	module := info.key.Payload.Module
 	devEndpoint := l.devModeEndpoints[module]

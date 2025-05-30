@@ -22,20 +22,20 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/dsn"
+	"github.com/block/ftl/internal/oci"
 )
 
 const tenMB = 1024 * 1024 * 10
 
 // NewSQLMigrationProvisioner creates a new provisioner that provisions database migrations
-func NewSQLMigrationProvisioner(storage *artefacts.OCIArtefactService) *InMemProvisioner {
+func NewSQLMigrationProvisioner(storage *oci.OCIArtefactService) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
 		schema.ResourceTypeSQLMigration: provisionSQLMigration(storage),
 	}, make(map[schema.ResourceType]InMemResourceProvisionerFn))
 }
 
-func provisionSQLMigration(storage *artefacts.OCIArtefactService) InMemResourceProvisionerFn {
+func provisionSQLMigration(storage *oci.OCIArtefactService) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 

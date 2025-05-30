@@ -32,10 +32,10 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/rpc/headers"
@@ -52,7 +52,7 @@ type Service struct {
 	timelineClient *timelineclient.Client
 	schemaClient   ftlv1connect.SchemaServiceClient
 	source         *schemaeventsource.EventSource
-	storage        *artefacts.OCIArtefactService
+	storage        *oci.OCIArtefactService
 	config         Config
 	routeTable     *routing.VerbCallRouter
 	waitFor        []string
@@ -85,7 +85,7 @@ func NewAdminService(
 	sm *manager.Manager[configuration.Secrets],
 	schr ftlv1connect.SchemaServiceClient,
 	source *schemaeventsource.EventSource,
-	storage *artefacts.OCIArtefactService,
+	storage *oci.OCIArtefactService,
 	routes *routing.VerbCallRouter,
 	timelineClient *timelineclient.Client,
 	waitFor []string,
@@ -726,7 +726,7 @@ func (s *Service) UploadArtefact(ctx context.Context, stream *connect.ClientStre
 		}
 		logger = logger.Scope("uploadArtefact:" + digest.String())
 		logger.Debugf("Starting upload to OCI")
-		err = s.storage.Upload(ctx, artefacts.ArtefactUpload{
+		err = s.storage.Upload(ctx, oci.ArtefactUpload{
 			Digest:  digest,
 			Size:    msg.Size,
 			Content: r,

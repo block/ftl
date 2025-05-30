@@ -1,4 +1,4 @@
-package artefacts
+package oci
 
 import (
 	"archive/tar"
@@ -132,8 +132,8 @@ func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
 	return r.auth.Load(), nil
 }
 
-func NewForTesting() *OCIArtefactService {
-	storage, err := NewOCIRegistryStorage(context.TODO(), RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
+func NewNewArtefactServiceForTesting() *OCIArtefactService {
+	storage, err := NewArtefactService(context.TODO(), RegistryConfig{Registry: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
 	if err != nil {
 		panic(err)
 	}
@@ -145,7 +145,7 @@ func isECRRepository(repo string) bool {
 	return ecrRegex.MatchString(repo)
 }
 
-func NewOCIRegistryStorage(ctx context.Context, config RegistryConfig) (*OCIArtefactService, error) {
+func NewArtefactService(ctx context.Context, config RegistryConfig) (*OCIArtefactService, error) {
 	// Connect the registry targeting the specified container
 
 	logger := log.FromContext(ctx)

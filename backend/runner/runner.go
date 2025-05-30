@@ -41,11 +41,11 @@ import (
 	"github.com/block/ftl/common/plugin"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/deploymentcontext"
 	"github.com/block/ftl/internal/dsn"
 	"github.com/block/ftl/internal/exec"
 	ftlobservability "github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/pgproxy"
 	"github.com/block/ftl/internal/rpc"
 	timeline "github.com/block/ftl/internal/timelineclient"
@@ -71,7 +71,7 @@ type Config struct {
 	DevModeRunnerSequence int64                   `help:"Runner sequence number for dev mode runner. " hidden:""`
 }
 
-func Start(ctx context.Context, config Config, deploymentArtifactProvider artefacts.DeploymentArtefactProvider, deploymentContextProvider deploymentcontext.DeploymentContextProvider, module *schema.Module) error {
+func Start(ctx context.Context, config Config, deploymentArtifactProvider oci.DeploymentArtefactProvider, deploymentContextProvider deploymentcontext.DeploymentContextProvider, module *schema.Module) error {
 	ctx, doneFunc := context.WithCancelCause(ctx)
 	defer doneFunc(errors.Wrap(context.Canceled, "runner terminated"))
 	hostname, err := os.Hostname()
@@ -201,7 +201,7 @@ type Service struct {
 	readyTime  atomic.Value[time.Time]
 
 	config                    Config
-	deploymentProvider        artefacts.DeploymentArtefactProvider
+	deploymentProvider        oci.DeploymentArtefactProvider
 	deploymentContextProvider <-chan deploymentcontext.DeploymentContext
 	schema                    *schema.Module
 	timelineClient            *timeline.Client

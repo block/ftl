@@ -15,27 +15,27 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/rpc"
 	timeline "github.com/block/ftl/internal/timelineclient"
 )
 
 var cli struct {
-	Version               kong.VersionFlag         `help:"Show version."`
-	ObservabilityConfig   observability.Config     `embed:"" prefix:"o11y-"`
-	LogConfig             log.Config               `embed:"" prefix:"log-"`
-	ProvisionerConfig     provisioner.Config       `embed:""`
-	ConfigFlag            string                   `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
-	RegistryConfig        artefacts.RegistryConfig `prefix:"oci-" embed:""`
-	InstanceName          string                   `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
-	UserNamespace         string                   `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
-	CronServiceAccount    string                   `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
-	ConsoleServiceAccount string                   `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
-	AdminServiceAccount   string                   `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
-	HTTPServiceAccount    string                   `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
-	DefaultRunnerImage    string                   `help:"Default image to use for a runner." env:"FTL_DEFAULT_RUNNER_IMAGE" default:"ftl0/ftl-runner"`
+	Version               kong.VersionFlag     `help:"Show version."`
+	ObservabilityConfig   observability.Config `embed:"" prefix:"o11y-"`
+	LogConfig             log.Config           `embed:"" prefix:"log-"`
+	ProvisionerConfig     provisioner.Config   `embed:""`
+	ConfigFlag            string               `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
+	RegistryConfig        oci.RegistryConfig   `prefix:"oci-" embed:""`
+	InstanceName          string               `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
+	UserNamespace         string               `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
+	CronServiceAccount    string               `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
+	ConsoleServiceAccount string               `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
+	AdminServiceAccount   string               `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
+	HTTPServiceAccount    string               `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
+	DefaultRunnerImage    string               `help:"Default image to use for a runner." env:"FTL_DEFAULT_RUNNER_IMAGE" default:"ftl0/ftl-runner"`
 }
 
 func main() {
@@ -68,7 +68,7 @@ func main() {
 		}
 	}
 
-	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
+	storage, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
