@@ -15,6 +15,8 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
+var _ channels.Subscribeable[string] = (*RouteTable)(nil)
+
 type RouteView struct {
 	byDeployment       map[string]*url.URL
 	moduleToDeployment map[string]key.Deployment
@@ -90,11 +92,13 @@ func (r RouteView) Schema() *schema.Schema {
 	return r.schema
 }
 
-func (r *RouteTable) Subscribe() chan string {
-	return r.changeNotification.Subscribe(nil)
-}
-func (r *RouteTable) Unsubscribe(s chan string) {
-	r.changeNotification.Unsubscribe(s)
+func (r *RouteTable) Subscribe(ctx context.Context) <-chan string {
+	ret := r.changeNotification.Subscribe(nil)
+	go func() {
+		<-ctx.Done()
+		r.changeNotification.Unsubscribe(ret)
+	}()
+	return ret
 }
 
 func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
