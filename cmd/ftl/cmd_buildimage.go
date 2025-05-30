@@ -11,21 +11,21 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/buildengine"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
 type buildImageCmd struct {
-	Parallelism     int                      `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
-	Dirs            []string                 `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
-	BuildEnv        []string                 `help:"Environment variables to set for the build."`
-	RegistryConfig  artefacts.RegistryConfig `embed:""`
-	Tag             string                   `help:"The image tag" default:"latest"`
-	RunnerImage     string                   `help:"An override of the runner base image"`
-	Push            bool                     `help:"Push the image to the registry after building." default:"false"`
-	SkipLocalDaemon bool                     `help:"Skip pushing to the local docker daemon." default:"false"`
+	Parallelism     int                `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
+	Dirs            []string           `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
+	BuildEnv        []string           `help:"Environment variables to set for the build."`
+	RegistryConfig  oci.RegistryConfig `embed:""`
+	Tag             string             `help:"The image tag" default:"latest"`
+	RunnerImage     string             `help:"An override of the runner base image"`
+	Push            bool               `help:"Push the image to the registry after building." default:"false"`
+	SkipLocalDaemon bool               `help:"Skip pushing to the local docker daemon." default:"false"`
 }
 
 func (b *buildImageCmd) Run(
@@ -62,7 +62,7 @@ func (b *buildImageCmd) Run(
 		logger.Warnf("No modules were found to build")
 		return nil
 	}
-	service, err := artefacts.NewOCIRegistryStorage(ctx, b.RegistryConfig)
+	service, err := oci.NewArtefactService(ctx, b.RegistryConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
@@ -101,12 +101,12 @@ func (b *buildImageCmd) Run(
 		tgt := b.RegistryConfig.Registry
 		tgt += ":"
 		tgt += b.Tag
-		targets := []artefacts.ImageTarget{}
+		targets := []oci.ImageTarget{}
 		if !b.SkipLocalDaemon {
-			targets = append(targets, artefacts.WithLocalDeamon())
+			targets = append(targets, oci.WithLocalDeamon())
 		}
 		if b.Push {
-			targets = append(targets, artefacts.WithRemotePush())
+			targets = append(targets, oci.WithRemotePush())
 		}
 		err := service.BuildOCIImage(ctx, image, tgt, tmpDeployDir, artifacts, targets...)
 		if err != nil {

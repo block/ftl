@@ -13,12 +13,12 @@ import (
 	"github.com/block/ftl/backend/admin"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/artefacts"
 	cf "github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/configuration/providers"
 	"github.com/block/ftl/internal/configuration/routers"
 	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -27,16 +27,16 @@ import (
 )
 
 var cli struct {
-	Bind                *url.URL                 `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Version             kong.VersionFlag         `help:"Show version."`
-	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config               `embed:"" prefix:"log-"`
-	AdminConfig         admin.Config             `embed:"" prefix:"admin-"`
-	SchemaEndpoint      *url.URL                 `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint    *url.URL                 `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Config              string                   `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	Secrets             string                   `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
-	RegistryConfig      artefacts.RegistryConfig `embed:"" prefix:"oci-"`
+	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	Version             kong.VersionFlag     `help:"Show version."`
+	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config           `embed:"" prefix:"log-"`
+	AdminConfig         admin.Config         `embed:"" prefix:"admin-"`
+	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
+	Secrets             string               `help:"Path to FTL secrets file." env:"FTL_SECRETS" required:""`
+	RegistryConfig      oci.RegistryConfig   `embed:"" prefix:"oci-"`
 }
 
 func main() {
@@ -68,7 +68,7 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 
-	storage, err := artefacts.NewOCIRegistryStorage(ctx, cli.RegistryConfig)
+	storage, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 	client := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
 	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, []string{})

@@ -34,13 +34,13 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	consolefrontend "github.com/block/ftl/frontend/console"
-	"github.com/block/ftl/internal/artefacts"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/configuration"
 	"github.com/block/ftl/internal/configuration/manager"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/observability"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -53,27 +53,27 @@ type serveCmd struct {
 }
 
 type serveCommonConfig struct {
-	IngressBind         *url.URL                 `help:"HTTP Ingress bind" default:"http://127.0.0.1:8891"`
-	Bind                *url.URL                 `help:"Starting endpoint to bind to and advertise to for all FTL services" default:"http://127.0.0.1:8892"`
-	DBPort              int                      `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
-	MysqlPort           int                      `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
-	RegistryPort        int                      `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
-	RegistryConfig      artefacts.RegistryConfig `prefix:"oci-" hidden:"" embed:""`
-	Background          bool                     `help:"Run in the background." default:"false"`
-	Stop                bool                     `help:"Stop the running FTL instance. Can be used with --background to restart the server" default:"false"`
-	StartupTimeout      time.Duration            `help:"Timeout for the server to start up." default:"10s" env:"FTL_STARTUP_TIMEOUT"`
-	ObservabilityConfig observability.Config     `embed:"" prefix:"o11y-"`
-	DatabaseImage       string                   `help:"The container image to start for the database" default:"postgres:15.10" env:"FTL_DATABASE_IMAGE" hidden:""`
-	RegistryImage       string                   `help:"The container image to start for the image registry" default:"registry:2" env:"FTL_REGISTRY_IMAGE" hidden:""`
-	GrafanaImage        string                   `help:"The container image to start for the automatic Grafana instance" default:"grafana/otel-lgtm" env:"FTL_GRAFANA_IMAGE" hidden:""`
-	EnableGrafana       bool                     `help:"Enable Grafana to view telemetry data." default:"false"`
-	NoConsole           bool                     `help:"Disable the console."`
-	Ingress             ingress.Config           `embed:"" prefix:"ingress-"`
-	Timeline            timeline.Config          `embed:"" prefix:"timeline-"`
-	Console             console.Config           `embed:"" prefix:"console-"`
-	Admin               admin.Config             `embed:"" prefix:"admin-"`
-	Recreate            bool                     `help:"Recreate any stateful resources if they already exist." default:"false"`
-	WaitFor             []string                 `help:"Wait for these modules to be deployed before becoming ready." placeholder:"MODULE"`
+	IngressBind         *url.URL             `help:"HTTP Ingress bind" default:"http://127.0.0.1:8891"`
+	Bind                *url.URL             `help:"Starting endpoint to bind to and advertise to for all FTL services" default:"http://127.0.0.1:8892"`
+	DBPort              int                  `help:"Port to use for the database." env:"FTL_DB_PORT" default:"15432"`
+	MysqlPort           int                  `help:"Port to use for the MySQL database, if one is required." env:"FTL_MYSQL_PORT" default:"13306"`
+	RegistryPort        int                  `help:"Port to use for the registry." env:"FTL_OCI_REGISTRY_PORT" default:"15000"`
+	RegistryConfig      oci.RegistryConfig   `prefix:"oci-" hidden:"" embed:""`
+	Background          bool                 `help:"Run in the background." default:"false"`
+	Stop                bool                 `help:"Stop the running FTL instance. Can be used with --background to restart the server" default:"false"`
+	StartupTimeout      time.Duration        `help:"Timeout for the server to start up." default:"10s" env:"FTL_STARTUP_TIMEOUT"`
+	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
+	DatabaseImage       string               `help:"The container image to start for the database" default:"postgres:15.10" env:"FTL_DATABASE_IMAGE" hidden:""`
+	RegistryImage       string               `help:"The container image to start for the image registry" default:"registry:2" env:"FTL_REGISTRY_IMAGE" hidden:""`
+	GrafanaImage        string               `help:"The container image to start for the automatic Grafana instance" default:"grafana/otel-lgtm" env:"FTL_GRAFANA_IMAGE" hidden:""`
+	EnableGrafana       bool                 `help:"Enable Grafana to view telemetry data." default:"false"`
+	NoConsole           bool                 `help:"Disable the console."`
+	Ingress             ingress.Config       `embed:"" prefix:"ingress-"`
+	Timeline            timeline.Config      `embed:"" prefix:"timeline-"`
+	Console             console.Config       `embed:"" prefix:"console-"`
+	Admin               admin.Config         `embed:"" prefix:"admin-"`
+	Recreate            bool                 `help:"Recreate any stateful resources if they already exist." default:"false"`
+	WaitFor             []string             `help:"Wait for these modules to be deployed before becoming ready." placeholder:"MODULE"`
 	provisioner.CommonProvisionerConfig
 	schemaservice.CommonSchemaServiceConfig
 }
@@ -170,12 +170,12 @@ func (s *serveCommonConfig) run(
 	}
 	rc := s.RegistryConfig
 	if rc.Registry == "" {
-		rc = artefacts.RegistryConfig{
+		rc = oci.RegistryConfig{
 			AllowInsecure: true,
 			Registry:      fmt.Sprintf("127.0.0.1:%d/ftl", s.RegistryPort),
 		}
 	}
-	storage, err := artefacts.NewOCIRegistryStorage(ctx, rc)
+	storage, err := oci.NewArtefactService(ctx, rc)
 	if err != nil {
 		return errors.Wrap(err, "failed to create OCI registry storage")
 	}
