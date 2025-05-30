@@ -16,9 +16,8 @@ var _ Sink = (*jsonSink)(nil)
 type jsonEntry struct {
 	Attributes      map[string]string `json:"attributes,omitempty"`
 	Level           string            `json:"level,omitempty"`
-	Time            string            `json:"time,omitempty"`
 	Error           string            `json:"error,omitempty"`
-	Timestamp       time.Time         `json:"timestamp,omitempty"`
+	Timestamp       string            `json:"timestamp,omitempty"`
 	Sequence        int               `json:"sequence,omitempty"`
 	LoggerClassName string            `json:"loggerClassName,omitempty"`
 	LoggerName      string            `json:"loggerName,omitempty"`
@@ -53,7 +52,7 @@ func (j *jsonSink) Log(entry Entry) error {
 	}
 	jentry := jsonEntry{
 		Level:      entry.Level.String(),
-		Time:       entry.Time.Format(time.RFC3339Nano),
+		Timestamp:  entry.Time.Format(time.RFC3339Nano),
 		Error:      errStr,
 		Attributes: entry.Attributes,
 		Message:    entry.Message,
@@ -122,11 +121,13 @@ func (r *jsonEntry) ToEntry() Entry {
 			level = Warn
 		}
 	}
+	t, _ := time.Parse(time.RFC3339Nano, r.Timestamp) //nolint
 
 	ret := Entry{
-		Time:    r.Timestamp,
-		Level:   level,
-		Message: r.Message,
+		Time:       t,
+		Level:      level,
+		Message:    r.Message,
+		Attributes: r.Attributes,
 	}
 	if r.StackTrace != "" {
 		ret.Message += "\n" + r.StackTrace
@@ -139,14 +140,6 @@ func (r *jsonEntry) ToEntry() Entry {
 		ret.Error = errors.New(em)
 	} else if r.Error != "" {
 		ret.Error = errors.New(r.Error)
-	}
-
-	// Go is time, JVM is timestamp
-	if r.Time != "" {
-		ret.Time, err = time.Parse(time.RFC3339Nano, r.Time)
-		if err != nil {
-			ret.Time = time.Now()
-		}
 	}
 	return ret
 }
