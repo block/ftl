@@ -150,14 +150,16 @@ func NewServer(ctx context.Context, listen *url.URL, options ...Option) (*Server
 	var hcServer *http.Server
 	if opts.healthCheckBind != nil {
 		mux := http.NewServeMux()
-		mux.Handle("/healthz", opts.healthCheck)
+		mux.Handle("/_readiness", opts.healthCheck)
+		mux.Handle("/_liveness", opts.healthCheck)
 		hcServer = &http.Server{
 			Handler:           h2c.NewHandler(ContextValuesMiddleware(ctx, mux), &http2.Server{}),
 			ReadHeaderTimeout: time.Second * 30,
 			BaseContext:       func(net.Listener) context.Context { return ctx },
 		}
 	} else {
-		opts.mux.Handle("/healthz", opts.healthCheck)
+		opts.mux.Handle("/_readiness", opts.healthCheck)
+		opts.mux.Handle("/_liveness", opts.healthCheck)
 	}
 
 	// Register reflection services.

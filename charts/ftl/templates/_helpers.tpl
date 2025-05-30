@@ -117,7 +117,7 @@ readinessProbe:
   {{- toYaml .readinessProbe | nindent 12 }}
   {{- else }}
   httpGet:
-    path: /healthz
+    path: /_readiness
     port: 8892
   initialDelaySeconds: 1
   periodSeconds: 2

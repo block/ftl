@@ -12,7 +12,7 @@ import (
 //
 //ftl:verb export
 func BeNaughty(ctx context.Context, endpoint map[string]string) (string, error) {
-	url := "http://" + endpoint["name"] + ":8893/healthz" // Replace with your actual URL
+	url := "http://" + endpoint["name"] + ":8893/_readiness" // Replace with your actual URL
 
 	resp, err := http.Get(url)
 	if err != nil {
