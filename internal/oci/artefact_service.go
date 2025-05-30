@@ -11,9 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -80,7 +78,11 @@ type Registry string
 // For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests"
 type Repository string
 
-type RepositoryConfig struct {
+// Image is a string that represents an OCI image.
+// For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests/ftl-tests:latest"
+type Image string
+
+type ArtefactConfig struct {
 	Repository    Repository `help:"OCI container repository, in the form host[:port]/repository" env:"FTL_ARTEFACT_REPOSITORY"`
 	Username      string     `help:"OCI container repository username" env:"FTL_ARTEFACT_REPOSITORY_USERNAME"`
 	Password      string     `help:"OCI container repository password" env:"FTL_ARTEFACT_REPOSITORY_PASSWORD"`
@@ -91,7 +93,7 @@ type ArtefactService struct {
 	keyChain *keyChain
 
 	puller       *googleremote.Puller
-	targetConfig RepositoryConfig
+	targetConfig ArtefactConfig
 	logger       *log.Logger
 }
 
@@ -109,39 +111,20 @@ type ArtefactBlobs struct {
 	Size      int64
 }
 
-type registryAuth struct {
-	delegate authn.Authenticator
-	auth     atomic.Value[*authn.AuthConfig]
-}
-
-// Authorization implements authn.Authenticator.
-func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
-	if r.delegate != nil {
-		auth, err := r.delegate.Authorization()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to authorize container registry")
-		}
-		if auth != nil {
-			return auth, nil
-		}
-	}
-	return r.auth.Load(), nil
-}
-
 func NewNewArtefactServiceForTesting() *ArtefactService {
-	storage, err := NewArtefactService(context.TODO(), RepositoryConfig{Repository: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
+	storage, err := NewArtefactService(context.TODO(), ArtefactConfig{Repository: "127.0.0.1:15000/ftl-tests", AllowInsecure: true})
 	if err != nil {
 		panic(err)
 	}
 	return storage
 }
 
-func NewArtefactService(ctx context.Context, config RepositoryConfig) (*ArtefactService, error) {
+func NewArtefactService(ctx context.Context, config ArtefactConfig) (*ArtefactService, error) {
 	logger := log.FromContext(ctx)
 	o := &ArtefactService{
 		keyChain: &keyChain{
-			repositories:    map[string]*registryAuth{},
-			targetConfig:    config,
+			resources:       map[string]*registryAuth{},
+			repoCredentials: config,
 			originalContext: ctx,
 		},
 		targetConfig: config,

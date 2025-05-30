@@ -24,6 +24,9 @@ provisioner:
   revisionHistoryLimit: 0
   userNamespace: 
   defaultRunnerImage: ftl0/ftl-runner
+  imageRepositoryTemplate: "ftl-${realm}-${module}"
+  imageTagTemplate: "${tag}"
+  imageRegistry: "ftl-registry.localhost:5000"
   configMap: "ftl-provisioner-default-config"
   image:
     repository: null

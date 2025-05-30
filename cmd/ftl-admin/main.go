@@ -34,7 +34,7 @@ var cli struct {
 	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Realm               string               `help:"Realm name." env:"FTL_REALM" required:""`
 	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	RegistryConfig      oci.RepositoryConfig `embed:"" prefix:"oci-"`
+	RegistryConfig      oci.ArtefactConfig   `embed:"" prefix:"oci-"`
 }
 
 func main() {

@@ -48,12 +48,6 @@ func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemReso
 		}
 		logger.Debugf("Using base image %s from default %s", image, defaultImage)
 
-		// TODO: Use repository instead
-		tgt := string(storage.Repository())
-		if !strings.HasSuffix(tgt, "/") {
-			tgt += "/"
-		}
-
 		tag := "latest"
 		git, ok := slices.FindVariant[*schema.MetadataGit](moduleSch.Metadata)
 
@@ -61,17 +55,15 @@ func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemReso
 			tag = git.Commit
 		}
 
-		tgt += moduleSch.Name
-		tgt += ":"
-		tgt += tag
-		err = storage.BuildOCIImageFromRemote(ctx, image, tgt, tempDir, moduleSch, variants, oci.WithRemotePush())
+		target := string(storage.Image(deployment.Payload.Realm, deployment.Payload.Module, tag))
+		err = storage.BuildOCIImageFromRemote(ctx, image, target, tempDir, moduleSch, variants, oci.WithRemotePush())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build image")
 		}
 		return &schema.RuntimeElement{
 			Deployment: deployment,
 			Element: &schema.ModuleRuntimeImage{
-				Image: tgt,
+				Image: target,
 			},
 		}, nil
 	}

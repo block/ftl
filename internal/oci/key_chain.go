@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
@@ -18,9 +19,28 @@ import (
 
 type keyChain struct {
 	originalContext context.Context
-	targetConfig    RepositoryConfig
-	repositories    map[string]*registryAuth
+	repoCredentials ArtefactConfig
+	resources       map[string]*registryAuth
 	registryLock    sync.Mutex
+}
+
+type registryAuth struct {
+	delegate authn.Authenticator
+	auth     atomic.Value[*authn.AuthConfig]
+}
+
+// Authorization implements authn.Authenticator.
+func (r *registryAuth) Authorization() (*authn.AuthConfig, error) {
+	if r.delegate != nil {
+		auth, err := r.delegate.Authorization()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to authorize container registry")
+		}
+		if auth != nil {
+			return auth, nil
+		}
+	}
+	return r.auth.Load(), nil
 }
 
 // Resolve implements authn.Keychain.
@@ -29,22 +49,23 @@ func (k *keyChain) Resolve(r authn.Resource) (authn.Authenticator, error) {
 	defer k.registryLock.Unlock()
 
 	logger := log.FromContext(k.originalContext)
-	repo := r.String()
-	existing := k.repositories[repo]
+	// resource is either a repository or a registry
+	resource := r.String()
+	existing := k.resources[resource]
 	if existing != nil {
 		return existing, nil
 	}
 	cfg := &registryAuth{}
-	k.repositories[repo] = cfg
+	k.resources[resource] = cfg
 	cfg.auth.Store(&authn.AuthConfig{})
 
-	if repo == string(k.targetConfig.Repository) &&
-		k.targetConfig.Username != "" &&
-		k.targetConfig.Password != "" {
+	if resource == string(k.repoCredentials.Repository) &&
+		k.repoCredentials.Username != "" &&
+		k.repoCredentials.Password != "" {
 		// The user has explicitly supplied credentials, lets use them
 		cfg.auth.Store(&authn.AuthConfig{
-			Username: k.targetConfig.Username,
-			Password: k.targetConfig.Password,
+			Username: k.repoCredentials.Username,
+			Password: k.repoCredentials.Password,
 		})
 		return cfg, nil
 	}
@@ -56,12 +77,12 @@ func (k *keyChain) Resolve(r authn.Resource) (authn.Authenticator, error) {
 		return cfg, nil
 	}
 
-	if isECRRepository(repo) {
+	if isECRRepository(resource) {
 		username, password, err := getECRCredentials(k.originalContext)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		logger.Debugf("Using ECR credentials for repository '%s'", repo)
+		logger.Debugf("Using ECR credentials for repository '%s'", resource)
 		cfg.auth.Store(&authn.AuthConfig{Username: username, Password: password})
 		go func() {
 			for {
