@@ -76,8 +76,9 @@ type CommandType int32
 const (
 	CommandType_COMMAND_TYPE_UNSPECIFIED CommandType = 0
 	CommandType_COMMAND_TYPE_EXEC        CommandType = 1
-	CommandType_COMMAND_TYPE_ONE         CommandType = 2
-	CommandType_COMMAND_TYPE_MANY        CommandType = 3
+	CommandType_COMMAND_TYPE_EXECRESULT  CommandType = 2
+	CommandType_COMMAND_TYPE_ONE         CommandType = 3
+	CommandType_COMMAND_TYPE_MANY        CommandType = 4
 )
 
 // Enum value maps for CommandType.
@@ -85,14 +86,16 @@ var (
 	CommandType_name = map[int32]string{
 		0: "COMMAND_TYPE_UNSPECIFIED",
 		1: "COMMAND_TYPE_EXEC",
-		2: "COMMAND_TYPE_ONE",
-		3: "COMMAND_TYPE_MANY",
+		2: "COMMAND_TYPE_EXECRESULT",
+		3: "COMMAND_TYPE_ONE",
+		4: "COMMAND_TYPE_MANY",
 	}
 	CommandType_value = map[string]int32{
 		"COMMAND_TYPE_UNSPECIFIED": 0,
 		"COMMAND_TYPE_EXEC":        1,
-		"COMMAND_TYPE_ONE":         2,
-		"COMMAND_TYPE_MANY":        3,
+		"COMMAND_TYPE_EXECRESULT":  2,
+		"COMMAND_TYPE_ONE":         3,
+		"COMMAND_TYPE_MANY":        4,
 	}
 )
 
@@ -785,12 +788,13 @@ const file_xyz_block_ftl_query_v1_query_proto_rawDesc = "" +
 	"\x11TransactionStatus\x12\"\n" +
 	"\x1eTRANSACTION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aTRANSACTION_STATUS_SUCCESS\x10\x01\x12\x1d\n" +
-	"\x19TRANSACTION_STATUS_FAILED\x10\x02*o\n" +
+	"\x19TRANSACTION_STATUS_FAILED\x10\x02*\x8c\x01\n" +
 	"\vCommandType\x12\x1c\n" +
 	"\x18COMMAND_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11COMMAND_TYPE_EXEC\x10\x01\x12\x14\n" +
-	"\x10COMMAND_TYPE_ONE\x10\x02\x12\x15\n" +
-	"\x11COMMAND_TYPE_MANY\x10\x032\xb8\x04\n" +
+	"\x11COMMAND_TYPE_EXEC\x10\x01\x12\x1b\n" +
+	"\x17COMMAND_TYPE_EXECRESULT\x10\x02\x12\x14\n" +
+	"\x10COMMAND_TYPE_ONE\x10\x03\x12\x15\n" +
+	"\x11COMMAND_TYPE_MANY\x10\x042\xb8\x04\n" +
 	"\fQueryService\x12J\n" +
 	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12u\n" +
 	"\x10BeginTransaction\x12/.xyz.block.ftl.query.v1.BeginTransactionRequest\x1a0.xyz.block.ftl.query.v1.BeginTransactionResponse\x12x\n" +

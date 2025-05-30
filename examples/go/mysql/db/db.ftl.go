@@ -23,6 +23,10 @@ type GetManyAuthorsInfoRow struct {
 	Bio      ftl.Option[string]
 	Hometown ftl.Option[string]
 }
+type UpdateAuthorBioQuery struct {
+	Bio ftl.Option[string]
+	Id  int
+}
 
 type CreateRequestClient func(context.Context, ftl.Option[string]) error
 
@@ -36,6 +40,8 @@ type GetManyAuthorsInfoClient func(context.Context, int) ([]GetManyAuthorsInfoRo
 
 type GetRequestDataClient func(context.Context) ([]ftl.Option[string], error)
 
+type UpdateAuthorBioClient func(context.Context, UpdateAuthorBioQuery) error
+
 func init() {
 	reflection.Register(
 		server.QuerySink[ftl.Option[string]]("mysql", "createRequest", reflection.CommandTypeExec, "testdb", "mysql", "INSERT INTO requests (data) VALUES (?)", []string{}, []tuple.Pair[string, string]{}),
@@ -44,5 +50,6 @@ func init() {
 		server.Query[int, GetAuthorInfoRow]("mysql", "getAuthorInfo", reflection.CommandTypeOne, "testdb", "mysql", "SELECT bio, hometown FROM authors WHERE id = ?", []string{}, []tuple.Pair[string, string]{tuple.PairOf("bio", "Bio"), tuple.PairOf("hometown", "Hometown")}),
 		server.Query[int, GetManyAuthorsInfoRow]("mysql", "getManyAuthorsInfo", reflection.CommandTypeMany, "testdb", "mysql", "SELECT bio, hometown FROM authors WHERE id IN (?)", []string{}, []tuple.Pair[string, string]{tuple.PairOf("bio", "Bio"), tuple.PairOf("hometown", "Hometown")}),
 		server.QuerySource[ftl.Option[string]]("mysql", "getRequestData", reflection.CommandTypeMany, "testdb", "mysql", "SELECT data FROM requests", []string{}, []tuple.Pair[string, string]{}),
+		server.QuerySink[UpdateAuthorBioQuery]("mysql", "updateAuthorBio", reflection.CommandTypeExecresult, "testdb", "mysql", "UPDATE authors SET bio = ? WHERE id = ?", []string{"Bio", "Id"}, []tuple.Pair[string, string]{}),
 	)
 }

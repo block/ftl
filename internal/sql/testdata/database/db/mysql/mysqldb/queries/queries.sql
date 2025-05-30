@@ -15,3 +15,6 @@ SELECT bio, hometown FROM authors WHERE id = ?;
 
 -- name: GetManyAuthorsInfoMySQL :many
 SELECT bio, hometown FROM authors;
+
+-- name: UpdateAuthorBio :execresult
+UPDATE authors SET bio = ? WHERE id = ?;

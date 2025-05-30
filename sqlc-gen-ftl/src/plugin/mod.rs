@@ -374,6 +374,9 @@ fn to_verb(
 
     let response_type = match query.cmd.as_str() {
         ":exec" => Some(to_schema_unit()),
+        ":execresult" => Some(schemapb::Type {
+            value: Some(TypeValue::Int(schemapb::Int { pos: None }))
+        }),
         ":one" => {
             if query.columns.len() == 1 {
                 Some(get_column_type(&query.columns[0], request))

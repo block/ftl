@@ -47,21 +47,27 @@ export enum CommandType {
   EXEC = 1,
 
   /**
-   * @generated from enum value: COMMAND_TYPE_ONE = 2;
+   * @generated from enum value: COMMAND_TYPE_EXECRESULT = 2;
    */
-  ONE = 2,
+  EXECRESULT = 2,
 
   /**
-   * @generated from enum value: COMMAND_TYPE_MANY = 3;
+   * @generated from enum value: COMMAND_TYPE_ONE = 3;
    */
-  MANY = 3,
+  ONE = 3,
+
+  /**
+   * @generated from enum value: COMMAND_TYPE_MANY = 4;
+   */
+  MANY = 4,
 }
 // Retrieve enum metadata with: proto3.getEnumType(CommandType)
 proto3.util.setEnumType(CommandType, "xyz.block.ftl.query.v1.CommandType", [
   { no: 0, name: "COMMAND_TYPE_UNSPECIFIED" },
   { no: 1, name: "COMMAND_TYPE_EXEC" },
-  { no: 2, name: "COMMAND_TYPE_ONE" },
-  { no: 3, name: "COMMAND_TYPE_MANY" },
+  { no: 2, name: "COMMAND_TYPE_EXECRESULT" },
+  { no: 3, name: "COMMAND_TYPE_ONE" },
+  { no: 4, name: "COMMAND_TYPE_MANY" },
 ]);
 
 /**

@@ -210,6 +210,32 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					&schema.MetadataGenerated{},
 				},
 			},
+			&schema.Data{
+				Name: "UpdateAuthorBioQuery",
+				Pos: schema.Position{
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
+					Line:     19,
+				},
+				Fields: []*schema.Field{
+					{
+						Name: "bio",
+						Type: &schema.Optional{Type: &schema.String{}},
+						Metadata: []schema.Metadata{
+							&schema.MetadataSQLColumn{Name: "bio", Table: "authors"},
+						},
+					},
+					{
+						Name: "id",
+						Type: &schema.Int{},
+						Metadata: []schema.Metadata{
+							&schema.MetadataSQLColumn{Name: "id", Table: "authors"},
+						},
+					},
+				},
+				Metadata: []schema.Metadata{
+					&schema.MetadataGenerated{},
+				},
+			},
 			&schema.Verb{
 				Pos: schema.Position{
 					Filename: "db/mysql/mysqldb/queries/queries.sql",
@@ -434,6 +460,25 @@ func TestAddDatabaseDeclsToSchema(t *testing.T) {
 					&schema.MetadataSQLQuery{
 						Query:   "SELECT data FROM requests",
 						Command: "many",
+					},
+					&schema.MetadataGenerated{},
+				},
+			},
+			&schema.Verb{
+				Name: "updateAuthorBio",
+				Pos: schema.Position{
+					Filename: "db/mysql/mysqldb/queries/queries.sql",
+					Line:     19,
+				},
+				Request:  &schema.Ref{Module: "test", Name: "UpdateAuthorBioQuery"},
+				Response: &schema.Unit{},
+				Metadata: []schema.Metadata{
+					&schema.MetadataDatabases{
+						Uses: []*schema.Ref{{Module: "test", Name: "mysqldb"}},
+					},
+					&schema.MetadataSQLQuery{
+						Query:   "UPDATE authors SET bio = ? WHERE id = ?",
+						Command: "execresult",
 					},
 					&schema.MetadataGenerated{},
 				},
