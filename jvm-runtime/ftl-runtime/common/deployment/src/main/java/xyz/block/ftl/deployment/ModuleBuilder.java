@@ -1104,6 +1104,31 @@ public class ModuleBuilder {
                         if (field.getType().hasRef()) {
                             var ref = field.getType().getRef();
                             setDeclExport(ref.getName(), value);
+                        } else if (field.getType().hasArray()) {
+                            var arrayType = field.getType().getArray();
+                            if (arrayType.getElement().hasRef()) {
+                                var ref = arrayType.getElement().getRef();
+                                setDeclExport(ref.getName(), value);
+                            }
+                        } else if (field.getType().hasMap()) {
+                            var mapType = field.getType().getMap();
+                            if (mapType.getKey().hasRef()) {
+                                var ref = mapType.getKey().getRef();
+                                setDeclExport(ref.getName(), value);
+                            }
+                            if (mapType.getValue().hasRef()) {
+                                var ref = mapType.getValue().getRef();
+                                setDeclExport(ref.getName(), value);
+                            }
+                        } else if (field.getType().hasOptional()) {
+                            var arrayType = field.getType().getArray();
+                            if (arrayType.getElement().hasRef()) {
+                                var ref = arrayType.getElement().getRef();
+                                setDeclExport(ref.getName(), value);
+                            }
+                        } else if (field.getType().hasEnum()) {
+                            var enumType = field.getType().getEnum();
+                            setDeclExport(enumType.getName(), value);
                         }
                     }
                 }
