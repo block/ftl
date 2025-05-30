@@ -84,6 +84,12 @@ spec:
               value: "{{ .Values.ingress.serviceAccountName }}"
             - name: FTL_DEFAULT_RUNNER_IMAGE
               value: "{{ .Values.provisioner.defaultRunnerImage }}"
+            - name: FTL_IMAGE_REPOSITORY_TEMPLATE
+              value: "{{ .Values.provisioner.imageRepositoryTemplate }}"
+            - name: FTL_IMAGE_TAG_TEMPLATE
+              value: "{{ .Values.provisioner.imageTagTemplate }}"
+            - name: FTL_IMAGE_REGISTRY
+              value: "{{ .Values.provisioner.imageRegistry }}"
             - name: FTL_PROVISIONER_PLUGIN_CONFIG_FILE
               value: /config/config.toml
             {{- if .Values.provisioner.env }}
