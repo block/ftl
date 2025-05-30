@@ -56,7 +56,7 @@ func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemReso
 		}
 
 		target := string(storage.Image(deployment.Payload.Realm, deployment.Payload.Module, tag))
-		err = storage.BuildOCIImageFromRemote(ctx, image, target, tempDir, moduleSch, variants, oci.WithRemotePush())
+		err = storage.BuildOCIImageFromRemote(ctx, image, target, tempDir, moduleSch, deployment, variants, oci.WithRemotePush())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build image")
 		}

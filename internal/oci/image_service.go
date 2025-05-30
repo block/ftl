@@ -15,6 +15,7 @@ import (
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
@@ -123,7 +124,16 @@ func (s *ImageService) Image(realm, module, tag string) Image {
 	))
 }
 
-func (s *ImageService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, module *schema.Module, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+func (s *ImageService) BuildOCIImageFromRemote(
+	ctx context.Context,
+	baseImage string,
+	targetImage string,
+	tempDir string,
+	module *schema.Module,
+	deployment key.Deployment,
+	artifacts []*schema.MetadataArtefact,
+	targets ...ImageTarget,
+) error {
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
 	if err != nil {
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
@@ -164,11 +174,19 @@ func (s *ImageService) BuildOCIImageFromRemote(ctx context.Context, baseImage st
 	if err != nil {
 		return errors.Wrapf(err, "failed to download artifacts")
 	}
-	return s.BuildOCIImage(ctx, baseImage, targetImage, target, artifacts, targets...)
+	return s.BuildOCIImage(ctx, baseImage, targetImage, target, deployment, artifacts, targets...)
 
 }
 
-func (s *ImageService) BuildOCIImage(ctx context.Context, baseImage string, targetImage string, apath string, allArtifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
+func (s *ImageService) BuildOCIImage(
+	ctx context.Context,
+	baseImage string,
+	targetImage string,
+	apath string,
+	deployment key.Deployment,
+	allArtifacts []*schema.MetadataArtefact,
+	targets ...ImageTarget,
+) error {
 	var artifacts []*schema.MetadataArtefact
 	var schemaArtifacts []*schema.MetadataArtefact
 	for _, i := range allArtifacts {
@@ -225,6 +243,7 @@ func (s *ImageService) BuildOCIImage(ctx context.Context, baseImage string, targ
 		return errors.Errorf("getting config file: %w", err)
 	}
 	cfg.Config.Env = append(cfg.Config.Env, "FTL_SCHEMA_LOCATION=/deployments/ftl-full-schema.pb")
+	cfg.Config.Env = append(cfg.Config.Env, fmt.Sprintf("FTL_DEPLOYMENT=%s", deployment.String()))
 	newImg, err = mutate.Config(newImg, cfg.Config)
 	if err != nil {
 		return errors.Errorf("setting environment var: %w", err)
