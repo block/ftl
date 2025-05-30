@@ -99,6 +99,8 @@ linters:
       default-signifies-exhaustive: true
     forbidigo:
       forbid:
+        - pattern: ^os.Getenv$
+          msg: do not use os.Getenv, use Kong's env tag to inject values from main
         - pattern: ^fmt.Errorf$
           msg: use github.com/alecthomas/errors.Errorf or Wrapf
         - pattern: ^context.WithCancel$
