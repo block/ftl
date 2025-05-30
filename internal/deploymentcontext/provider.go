@@ -14,8 +14,6 @@ import (
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
@@ -78,7 +76,7 @@ func (r *routeTableRouting) Unsubscribe(c chan string) {
 func NewProvider(key key.Deployment, routeProvider RouteProvider, moduleSchema *schema.Module, secretsProvider SecretsProvider, configProvider ConfigProvider) DeploymentContextProvider {
 	return func(ctx context.Context) <-chan DeploymentContext {
 
-		ret := make(chan DeploymentContext)
+		ret := make(chan DeploymentContext, 16)
 		logger := log.FromContext(ctx)
 		updates := routeProvider.Subscribe()
 		module := moduleSchema.Name
@@ -148,13 +146,16 @@ func NewProvider(key key.Deployment, routeProvider RouteProvider, moduleSchema *
 				if checksum != lastChecksum {
 					logger.Debugf("Sending module context for: %s routes: %v", module, routeTable)
 					response := NewBuilder(module).AddConfigs(configs).AddSecrets(secrets).AddEgress(egress).AddRoutes(routeTable).Build()
-					ret <- response
+					select {
+					case <-ctx.Done():
+						return
+					case ret <- response:
+					}
 					lastChecksum = checksum
 				}
 
 				select {
 				case <-ctx.Done():
-					close(ret)
 					return
 				case <-time.After(time.Second * 10):
 				case <-updates:
