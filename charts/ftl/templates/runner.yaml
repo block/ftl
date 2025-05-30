@@ -33,6 +33,8 @@ data:
           {{- include "ftl-runner.selectorLabels" . | nindent 10 }}
       template:
         metadata:
+          finalizers:
+            - foo.bar/baz
           labels:
             {{- include "ftl-runner.selectorLabels" . | nindent 12 }}
           annotations:
