@@ -9,10 +9,11 @@ import (
 
 	"github.com/alecthomas/atomic"
 	"github.com/alecthomas/errors"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
-	"google.golang.org/protobuf/proto"
 )
 
 type diskSecretsProvider struct {
