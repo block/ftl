@@ -2,6 +2,7 @@ package oci
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -19,24 +20,30 @@ import (
 	"github.com/block/ftl/common/schema"
 )
 
+type ImageConfig struct {
+	AllowInsecureImages bool     `help:"Allows the use of insecure HTTP based registries." env:"FTL_IMAGE_REPOSITORY_ALLOW_INSECURE"`
+	Registry            Registry `help:"Registry to use for the image service." env:"FTL_IMAGE_REGISTRY"`
+	RepositoryTemplate  string   `help:"Repository template to use for the image service." env:"FTL_IMAGE_REPOSITORY_TEMPLATE" default:"ftl-$${realm}-$${module}"`
+	TagTemplate         string   `help:"Tag template to use for the image service." env:"FTL_IMAGE_TAG_TEMPLATE" default:"$${tag}"`
+}
+
 type ImageService struct {
+	config          *ImageConfig
 	puller          *googleremote.Puller
-	targetConfig    RepositoryConfig
 	logger          *log.Logger
 	artefactService *ArtefactService
 	keyChain        *keyChain
 }
 
-func NewImageService(ctx context.Context, artefactService *ArtefactService, config RepositoryConfig) (*ImageService, error) {
+func NewImageService(ctx context.Context, artefactService *ArtefactService, config *ImageConfig) (*ImageService, error) {
 	logger := log.FromContext(ctx)
 	o := &ImageService{
+		config: config,
 		keyChain: &keyChain{
-			repositories:    map[string]*registryAuth{},
-			targetConfig:    config,
+			resources:       map[string]*registryAuth{},
 			originalContext: ctx,
 		},
-		targetConfig: config,
-		logger:       logger,
+		logger: logger,
 
 		artefactService: artefactService,
 	}
@@ -54,7 +61,7 @@ type ImageTarget func(ctx context.Context, s *ImageService, targetImage name.Tag
 func WithRemotePush() ImageTarget {
 	return func(ctx context.Context, s *ImageService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
 		logger := log.FromContext(ctx)
-		repo, err := name.NewRepository(string(s.targetConfig.Repository))
+		repo, err := name.NewRepository(targetImage.Repository.String())
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse repo")
 		}
@@ -96,8 +103,24 @@ func WithLocalDeamon() ImageTarget {
 	}
 }
 
-func (s *ImageService) Repository() Repository {
-	return s.targetConfig.Repository
+func (s *ImageService) Image(realm, module, tag string) Image {
+	expFunc := func(k string) string {
+		switch k {
+		case "realm":
+			return realm
+		case "module":
+			return module
+		case "tag":
+			return tag
+		}
+		return ""
+	}
+
+	return Image(fmt.Sprintf("%s/%s:%s",
+		s.config.Registry,
+		os.Expand(s.config.RepositoryTemplate, expFunc),
+		os.Expand(s.config.TagTemplate, expFunc),
+	))
 }
 
 func (s *ImageService) BuildOCIImageFromRemote(ctx context.Context, baseImage string, targetImage string, tempDir string, module *schema.Module, artifacts []*schema.MetadataArtefact, targets ...ImageTarget) error {
@@ -158,7 +181,7 @@ func (s *ImageService) BuildOCIImage(ctx context.Context, baseImage string, targ
 
 	opts := []name.Option{}
 	// TODO: use http:// scheme for allow/disallow insecure
-	if s.targetConfig.AllowInsecure {
+	if s.config.AllowInsecureImages {
 		opts = append(opts, name.Insecure)
 	}
 	logger := log.FromContext(ctx)

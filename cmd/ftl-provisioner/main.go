@@ -28,7 +28,8 @@ var cli struct {
 	LogConfig             log.Config           `embed:"" prefix:"log-"`
 	ProvisionerConfig     provisioner.Config   `embed:""`
 	ConfigFlag            string               `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
-	RegistryConfig        oci.RepositoryConfig `prefix:"oci-" embed:""`
+	ArtefactConfig        oci.ArtefactConfig   `prefix:"oci-artefact-" embed:""`
+	ImageConfig           oci.ImageConfig      `prefix:"oci-image-" embed:""`
 	InstanceName          string               `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
 	UserNamespace         string               `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
 	CronServiceAccount    string               `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
@@ -68,10 +69,10 @@ func main() {
 		}
 	}
 
-	artefactService, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
+	artefactService, err := oci.NewArtefactService(ctx, cli.ArtefactConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
-	imageService, err := oci.NewImageService(ctx, artefactService, cli.RegistryConfig)
+	imageService, err := oci.NewImageService(ctx, artefactService, &cli.ImageConfig)
 	kctx.FatalIfErrorf(err, "failed to create image service")
 
 	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
