@@ -15,6 +15,8 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
+var _ channels.Subscribable[string] = (*RouteTable)(nil)
+
 type RouteView struct {
 	byDeployment       map[string]*url.URL
 	moduleToDeployment map[string]key.Deployment
@@ -37,7 +39,7 @@ func New(ctx context.Context, changes *schemaeventsource.EventSource) *RouteTabl
 }
 
 func (r *RouteTable) run(ctx context.Context, changes *schemaeventsource.EventSource) {
-	for event := range channels.IterContext(ctx, changes.Subscribe(ctx)) {
+	for event := range channels.IterSubscribable[schema.Notification](ctx, changes) {
 		logger := log.FromContext(ctx)
 		logger.Tracef("Received schema event: %T", event)
 		old := r.routes.Load()
@@ -90,11 +92,13 @@ func (r RouteView) Schema() *schema.Schema {
 	return r.schema
 }
 
-func (r *RouteTable) Subscribe() chan string {
-	return r.changeNotification.Subscribe(nil)
-}
-func (r *RouteTable) Unsubscribe(s chan string) {
-	r.changeNotification.Unsubscribe(s)
+func (r *RouteTable) Subscribe(ctx context.Context) <-chan string {
+	ret := r.changeNotification.Subscribe(nil)
+	go func() {
+		<-ctx.Done()
+		r.changeNotification.Unsubscribe(ret)
+	}()
+	return ret
 }
 
 func extractRoutes(ctx context.Context, sch *schema.Schema) RouteView {
