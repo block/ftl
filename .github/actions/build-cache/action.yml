@@ -27,7 +27,7 @@ runs:
     - name: Restore Hermit Cache
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
       with:
-        path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/pkg' || '~/.cache/hermit/pkg' }}
+        path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/cache' || '~/.cache/hermit/cache' }}
         key: ${{ runner.os }}-${{ runner.arch }}-hermit-cache-${{ steps.bin-hash.outputs.hash }}
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-hermit-cache-${{ steps.bin-hash.outputs.hash }}
