@@ -27,8 +27,7 @@ type SecretsProvider func(ctx context.Context) map[string][]byte
 type ConfigProvider func(ctx context.Context) map[string][]byte
 
 type RouteProvider interface {
-	Subscribe() chan string
-	Unsubscribe(c chan string)
+	Subscribe(ctx context.Context) <-chan string
 	Route(module string) string
 }
 
@@ -74,20 +73,15 @@ func (r *routeTableRouting) Route(module string) string {
 }
 
 // Subscribe implements RouteProvider.
-func (r *routeTableRouting) Subscribe() chan string {
-	return r.table.Subscribe()
-}
-
-// Unsubscribe implements RouteProvider.
-func (r *routeTableRouting) Unsubscribe(c chan string) {
-	r.table.Unsubscribe(c)
+func (r *routeTableRouting) Subscribe(ctx context.Context) <-chan string {
+	return r.table.Subscribe(ctx)
 }
 
 // NewProvider retrieves config, secrets and DSNs for a module.
 func NewProvider(ctx context.Context, key key.Deployment, routeProvider RouteProvider, moduleSchema *schema.Module, secretsProvider SecretsProvider, configProvider ConfigProvider) (DeploymentContextProvider, error) {
 	ret := make(chan DeploymentContext)
 	logger := log.FromContext(ctx)
-	updates := routeProvider.Subscribe()
+	updates := routeProvider.Subscribe(ctx)
 	module := moduleSchema.Name
 
 	// Initialize checksum to -1; a zero checksum does occur when the context contains no settings
@@ -120,8 +114,6 @@ func NewProvider(ctx context.Context, key key.Deployment, routeProvider RoutePro
 	callableModuleNames = slices.Sort(callableModuleNames)
 	logger.Debugf("Modules %s can call %v", module, callableModuleNames)
 	go func() {
-		defer routeProvider.Unsubscribe(updates)
-
 		for {
 			h := sha.New()
 
