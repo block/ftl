@@ -11,7 +11,7 @@ jobs:
   write-hermit-cache:
     strategy:
       matrix:
-        runner: [ubuntu-latest, ftl]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
     name: Write Hermit Cache
     runs-on: ${{ matrix.runner }}
     steps:
@@ -44,7 +44,7 @@ jobs:
   write-pnpm-cache:
     strategy:
       matrix:
-        runner: [ubuntu-latest, ftl]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
     name: Write PNPM Cache
     runs-on: ${{ matrix.runner }}
     steps:
@@ -79,7 +79,7 @@ jobs:
   write-playright-cache:
     strategy:
       matrix:
-        runner: [ubuntu-latest, ftl]
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
     name: Write Playwright Cache
     runs-on: ${{ matrix.runner }}
     steps:
@@ -111,7 +111,10 @@ jobs:
 
   write-go-cache:
     name: Write Go Cache
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runners: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runners }}
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -125,18 +128,21 @@ jobs:
         run: |
           hash="${{ hashFiles('go.sum') }}"
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
-          key="${{ runner.os }}-go-${hash}"
+          key="${{ runner.os }}-${{ runner.arch }}-go-${hash}"
           echo "key=$key" >> "$GITHUB_OUTPUT"
           exists="$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/repos/block/ftl/actions/caches?key=$key" | jq '.actions_caches | length')"
           echo "exists=$exists" >> "$GITHUB_OUTPUT"
       - name: Download Go Dependencies
         if: ${{ steps.go-hash.outputs.exists == 0 }}
         run: go mod download -x
+      - name: Build Tests
+        if: ${{ steps.go-hash.outputs.exists == 0 }}
+        run: just build-backend-tests
       - id: find-go-build-cache
         if: ${{ steps.go-hash.outputs.exists == 0 }}
         shell: bash
         run: echo "cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
-      - name: Save Go Module Cache
+      - name: Save Go Cache
         if: ${{ steps.go-hash.outputs.exists == 0 }}
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         with:

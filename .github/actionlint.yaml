@@ -1,3 +1,5 @@
 self-hosted-runner:
   labels:
     - ftl
+    - ubuntu-24.04-arm
+    - ubuntu-24.04

@@ -282,7 +282,7 @@ test-integration *test:
 integration-tests *test:
   #!/bin/bash
   test -z "$CI" && retries=1 || retries=3
-  retry "$retries" /bin/bash -c "go test -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  retry "$retries" /bin/bash -c "go test -vet=off -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
 
 # Alias for infrastructure-tests
 test-infrastructure *test:
@@ -290,7 +290,7 @@ test-infrastructure *test:
 
 # Run integration test(s)
 infrastructure-tests *test:
-  go test -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')
+  go test -vet=off -fullpath -count 1 -v -tags infrastructure -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build infrastructure' | xargs -I {} dirname './{}' | tr '\n' ' ')
 
 # Run README doc tests
 test-readme *args:
