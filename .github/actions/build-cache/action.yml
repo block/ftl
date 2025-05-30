@@ -39,9 +39,9 @@ runs:
         path: |
           ~/go/pkg/mod
           ${{ steps.find-go-build-cache.outputs.cache }}
-        key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum', 'cmd/*/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum') }}
+          ${{ runner.os }}-${{ runner.arch }}-go-${{ hashFiles('go.sum', 'cmd/*/go.sum') }}
           ${{ runner.os }}-${{ runner.arch }}-go-
     - name: Restore Maven Modules Cache
       if: ${{ inputs.enable-maven == 'true' }}

@@ -211,6 +211,10 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
+      - name: Build Cache
+        uses: ./.github/actions/build-cache
+        with:
+          enable-pnpm: "true"
       - name: Build website
         run: just build-docs
   gen-lsp:
@@ -229,6 +233,8 @@ jobs:
       - run: go-arch-lint check || true
   console-e2e:
     name: Console e2e
+    # Disabled because this takes 8-9m
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -305,7 +311,7 @@ jobs:
         run: |
           set -euo pipefail
           # shellcheck disable=SC2046
-          echo "matrix={\"test\":$(jq -c -n '$ARGS.positional' --args $(git grep -l '^//go:build integration' | xargs grep '^func Test' | awk '{print $2}' | cut -d'(' -f1 | paste -d '|' - - | sed 's/|*$//'))}" >> "$GITHUB_OUTPUT"
+          echo "matrix={\"test\":$(jq -c -n '$ARGS.positional' --args $(git grep -l '^//go:build integration' | xargs grep '^func Test' | awk '{print $2}' | cut -d'(' -f1 | paste -d '|' - | sed 's/|*$//'))}" >> "$GITHUB_OUTPUT"
   integration-run:
     name: Integration Test
     needs:

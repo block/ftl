@@ -126,7 +126,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          hash="${{ hashFiles('go.sum') }}"
+          hash="${{ hashFiles('go.sum', 'cmd/*/go.sum') }}"
           echo "hash=$hash" >> "$GITHUB_OUTPUT"
           key="${{ runner.os }}-${{ runner.arch }}-go-${hash}"
           echo "key=$key" >> "$GITHUB_OUTPUT"
@@ -134,7 +134,7 @@ jobs:
           echo "exists=$exists" >> "$GITHUB_OUTPUT"
       - name: Download Go Dependencies
         if: ${{ steps.go-hash.outputs.exists == 0 }}
-        run: go mod download -x
+        run: just download-go-modules
       - name: Build Tests
         if: ${{ steps.go-hash.outputs.exists == 0 }}
         run: just build-backend-tests
