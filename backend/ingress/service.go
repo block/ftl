@@ -76,7 +76,7 @@ func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schem
 }
 
 func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/healthz" {
+	if r.URL.Path == "/_readiness" {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
