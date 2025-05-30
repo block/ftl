@@ -8,6 +8,7 @@ type CommandType int
 
 const (
 	CommandTypeExec CommandType = iota
+	CommandTypeExecresult
 	CommandTypeOne
 	CommandTypeMany
 )

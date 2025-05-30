@@ -76,8 +76,9 @@ enum TransactionStatus {
 enum CommandType {
   COMMAND_TYPE_UNSPECIFIED = 0;
   COMMAND_TYPE_EXEC = 1;
-  COMMAND_TYPE_ONE = 2;
-  COMMAND_TYPE_MANY = 3;
+  COMMAND_TYPE_EXECRESULT = 2;
+  COMMAND_TYPE_ONE = 3;
+  COMMAND_TYPE_MANY = 4;
 }
 
 service QueryService {

@@ -4,6 +4,9 @@ SELECT data FROM requests;
 -- name: CreateRequest :exec
 INSERT INTO requests (data) VALUES (?);
 
+-- name: UpdateAuthorBio :execresult
+UPDATE authors SET bio = ? WHERE id = ?;
+
 -- name: GetAllAuthors :many
 SELECT * FROM authors;
 

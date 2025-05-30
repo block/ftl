@@ -415,6 +415,29 @@ func (s *queryConn) executeQuery(ctx context.Context, db DB, req *querypb.Execut
 			return errors.Wrap(err, "failed to send exec result")
 		}
 
+	case querypb.CommandType_COMMAND_TYPE_EXECRESULT:
+		result, err := db.ExecContext(ctx, rawSQL, params...)
+		if err != nil {
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to execute query")))
+		}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return errors.WithStack(connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to get rows affected")))
+		}
+
+		protoResp := &querypb.ExecuteQueryResponse{
+			Result: &querypb.ExecuteQueryResponse_ExecResult{
+				ExecResult: &querypb.ExecResult{
+					RowsAffected: rowsAffected,
+				},
+			},
+		}
+
+		err = stream.Send(protoResp)
+		if err != nil {
+			return errors.Wrap(err, "failed to send exec result")
+		}
+
 	case querypb.CommandType_COMMAND_TYPE_ONE:
 		row := db.QueryRowContext(ctx, rawSQL, params...)
 		jsonRows, err := scanRowToMap(row, req.ResultColumns)
