@@ -9,8 +9,7 @@ import (
 
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/bind"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
@@ -24,8 +23,8 @@ type testCmd struct {
 
 func (d *testCmd) Run(
 	ctx context.Context,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm config.Provider[config.Configuration],
+	sm config.Provider[config.Secrets],
 	projConfig projectconfig.Config,
 ) error {
 	cli.AdminEndpoint = d.ServeCmd.Bind

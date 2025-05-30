@@ -1,4 +1,6 @@
 name = "testdata"
+secrets-provider = "file:.ftl/no-module-dirs-secrets.json"
+config-provider = "file:.ftl/no-module-dirs-configuration.json"
 
 [commands]
   startup = ["echo 'Executing global pre-build command'"]

@@ -7,7 +7,7 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
@@ -26,17 +26,17 @@ func TestASM(t *testing.T) {
 
 	// Do an OOB update to ensure the provider picks it up via background sync
 	_, err := client.UpdateSecret(ctx, &secretsmanager.UpdateSecretInput{
-		SecretId:     aws.String("age"),
-		SecretString: aws.String(`99`),
+		SecretId:     aws.String("name"),
+		SecretString: aws.String(`"Eve"`),
 	})
 	assert.NoError(t, err)
 	time.Sleep(time.Second * 2)
-	secrets, err := provider.List(ctx, true)
+	secrets, err := provider.List(ctx, true, None[string]())
 	assert.NoError(t, err)
 	assert.Equal(t, []config.Value{
 		{
-			Ref:   config.ParseRef("age"),
-			Value: optional.Some([]byte(`99`)),
+			Ref:   config.ParseRef("name"),
+			Value: Some([]byte(`"Eve"`)),
 		},
 	}, secrets)
 }

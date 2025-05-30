@@ -1,0 +1,5 @@
+# Configuration for the Taplo TOML formatter + LSP
+[formatting]
+  indent_tables = true
+  indent_string = "  "
+  indent_entries = true

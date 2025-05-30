@@ -1,19 +1,8 @@
 name = "ftl"
-secrets-provider = "inline"
-config-provider = "inline"
+secrets-provider = "file:.ftl/secrets.json"
+config-provider = "file:.ftl/configuration.json"
 module-dirs = ["examples/go"]
 disable-vscode-integration = true
-
-[global]
-  [global.configuration]
-    key = "inline://InZhbHVlIg"
-
-[modules]
-  [modules.echo]
-    [modules.echo.configuration]
-      default = "inline://ImFub255bW91cyI"
-  [modules.test]
-    [modules.test.secrets]
 
 [commands]
   startup = ["echo 'FTL startup command ⚡️'"]

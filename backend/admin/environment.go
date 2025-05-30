@@ -7,14 +7,15 @@ import (
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
+	. "github.com/alecthomas/types/optional"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/encoding"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	configuration "github.com/block/ftl/internal/config"
+	"github.com/block/ftl/internal/maps"
 )
 
 type SchemaClient interface {
@@ -24,11 +25,11 @@ type SchemaClient interface {
 // EnvironmentManager is a client that reads and writes secrets and config entries
 type EnvironmentManager struct {
 	schr SchemaClient
-	cm   *manager.Manager[configuration.Configuration]
-	sm   *manager.Manager[configuration.Secrets]
+	cm   configuration.Provider[configuration.Configuration]
+	sm   configuration.Provider[configuration.Secrets]
 }
 
-func NewEnvironmentClient(cm *manager.Manager[configuration.Configuration], sm *manager.Manager[configuration.Secrets], schr SchemaClient) *EnvironmentManager {
+func NewEnvironmentClient(cm configuration.Provider[configuration.Configuration], sm configuration.Provider[configuration.Secrets], schr SchemaClient) *EnvironmentManager {
 	return &EnvironmentManager{
 		schr: schr,
 		cm:   cm,
@@ -38,7 +39,7 @@ func NewEnvironmentClient(cm *manager.Manager[configuration.Configuration], sm *
 
 // ConfigList returns the list of configuration values, optionally filtered by module.
 func (s *EnvironmentManager) ConfigList(ctx context.Context, req *connect.Request[adminpb.ConfigListRequest]) (*connect.Response[adminpb.ConfigListResponse], error) {
-	listing, err := s.cm.List(ctx)
+	listing, err := s.cm.List(ctx, req.Msg.GetIncludeValues(), None[string]())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list configs")
 	}
@@ -56,16 +57,8 @@ func (s *EnvironmentManager) ConfigList(ctx context.Context, req *connect.Reques
 		}
 
 		var cv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.cm.Get(ctx, config.Ref, &value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get value for %v", ref)
-			}
-			cv, err = json.Marshal(value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal value for %s", ref)
-			}
+		if req.Msg.GetIncludeValues() {
+			cv = config.Value.MustGet()
 		}
 
 		configs = append(configs, &adminpb.ConfigListResponse_Config{
@@ -78,14 +71,10 @@ func (s *EnvironmentManager) ConfigList(ctx context.Context, req *connect.Reques
 
 // ConfigGet returns the configuration value for a given ref string.
 func (s *EnvironmentManager) ConfigGet(ctx context.Context, req *connect.Request[adminpb.ConfigGetRequest]) (*connect.Response[adminpb.ConfigGetResponse], error) {
-	var value any
-	err := s.cm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
+	ref := refFromConfigRef(req.Msg.GetRef())
+	vb, err := s.cm.Load(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get from config manager")
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal value")
+		return nil, errors.Wrap(err, ref.String())
 	}
 	return connect.NewResponse(&adminpb.ConfigGetResponse{Value: vb}), nil
 }
@@ -97,7 +86,7 @@ func (s *EnvironmentManager) ConfigSet(ctx context.Context, req *connect.Request
 		return nil, errors.WithStack(err)
 	}
 
-	err = s.cm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
+	err = s.cm.Store(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to set config")
 	}
@@ -106,7 +95,7 @@ func (s *EnvironmentManager) ConfigSet(ctx context.Context, req *connect.Request
 
 // ConfigUnset unsets the config value at the given ref.
 func (s *EnvironmentManager) ConfigUnset(ctx context.Context, req *connect.Request[adminpb.ConfigUnsetRequest]) (*connect.Response[adminpb.ConfigUnsetResponse], error) {
-	err := s.cm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
+	err := s.cm.Delete(ctx, refFromConfigRef(req.Msg.GetRef()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unset config")
 	}
@@ -115,7 +104,7 @@ func (s *EnvironmentManager) ConfigUnset(ctx context.Context, req *connect.Reque
 
 // SecretsList returns the list of secrets, optionally filtered by module.
 func (s *EnvironmentManager) SecretsList(ctx context.Context, req *connect.Request[adminpb.SecretsListRequest]) (*connect.Response[adminpb.SecretsListResponse], error) {
-	listing, err := s.sm.List(ctx)
+	listing, err := s.sm.List(ctx, req.Msg.GetIncludeValues(), None[string]())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list secrets")
 	}
@@ -130,16 +119,8 @@ func (s *EnvironmentManager) SecretsList(ctx context.Context, req *connect.Reque
 			ref = fmt.Sprintf("%s.%s", module, secret.Name)
 		}
 		var sv []byte
-		if *req.Msg.IncludeValues {
-			var value any
-			err := s.sm.Get(ctx, secret.Ref, &value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get value for %v", ref)
-			}
-			sv, err = json.Marshal(value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to marshal value for %s", ref)
-			}
+		if req.Msg.GetIncludeValues() {
+			sv = secret.Value.MustGet()
 		}
 		secrets = append(secrets, &adminpb.SecretsListResponse_Secret{
 			RefPath: ref,
@@ -151,14 +132,10 @@ func (s *EnvironmentManager) SecretsList(ctx context.Context, req *connect.Reque
 
 // SecretGet returns the secret value for a given ref string.
 func (s *EnvironmentManager) SecretGet(ctx context.Context, req *connect.Request[adminpb.SecretGetRequest]) (*connect.Response[adminpb.SecretGetResponse], error) {
-	var value any
-	err := s.sm.Get(ctx, refFromConfigRef(req.Msg.GetRef()), &value)
+	ref := refFromConfigRef(req.Msg.GetRef())
+	vb, err := s.sm.Load(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get from secret manager")
-	}
-	vb, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal value")
+		return nil, errors.Wrap(err, ref.String())
 	}
 	return connect.NewResponse(&adminpb.SecretGetResponse{Value: vb}), nil
 }
@@ -170,7 +147,7 @@ func (s *EnvironmentManager) SecretSet(ctx context.Context, req *connect.Request
 		return nil, errors.WithStack(err)
 	}
 
-	err = s.sm.SetJSON(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
+	err = s.sm.Store(ctx, refFromConfigRef(req.Msg.GetRef()), req.Msg.Value)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to set secret")
 	}
@@ -179,7 +156,7 @@ func (s *EnvironmentManager) SecretSet(ctx context.Context, req *connect.Request
 
 // SecretUnset unsets the secret value at the given ref.
 func (s *EnvironmentManager) SecretUnset(ctx context.Context, req *connect.Request[adminpb.SecretUnsetRequest]) (*connect.Response[adminpb.SecretUnsetResponse], error) {
-	err := s.sm.Unset(ctx, refFromConfigRef(req.Msg.GetRef()))
+	err := s.sm.Delete(ctx, refFromConfigRef(req.Msg.GetRef()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unset secret")
 	}
@@ -188,24 +165,32 @@ func (s *EnvironmentManager) SecretUnset(ctx context.Context, req *connect.Reque
 
 // MapConfigsForModule combines all configuration values visible to the module.
 func (s *EnvironmentManager) MapConfigsForModule(ctx context.Context, req *connect.Request[adminpb.MapConfigsForModuleRequest]) (*connect.Response[adminpb.MapConfigsForModuleResponse], error) {
-	values, err := s.cm.MapForModule(ctx, req.Msg.Module)
+	values, err := s.cm.List(ctx, true, Some(req.Msg.Module))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to map configs for module")
 	}
-	return connect.NewResponse(&adminpb.MapConfigsForModuleResponse{Values: values}), nil
+	return connect.NewResponse(&adminpb.MapConfigsForModuleResponse{
+		Values: maps.FromSlice(values, func(value configuration.Value) (string, []byte) {
+			return value.Name, value.Value.MustGet()
+		}),
+	}), nil
 }
 
 // MapSecretsForModule combines all secrets visible to the module.
 func (s *EnvironmentManager) MapSecretsForModule(ctx context.Context, req *connect.Request[adminpb.MapSecretsForModuleRequest]) (*connect.Response[adminpb.MapSecretsForModuleResponse], error) {
-	values, err := s.sm.MapForModule(ctx, req.Msg.Module)
+	values, err := s.sm.List(ctx, true, Some(req.Msg.Module))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to map secrets for module")
 	}
-	return connect.NewResponse(&adminpb.MapSecretsForModuleResponse{Values: values}), nil
+	return connect.NewResponse(&adminpb.MapSecretsForModuleResponse{
+		Values: maps.FromSlice(values, func(value configuration.Value) (string, []byte) {
+			return value.Name, value.Value.MustGet()
+		}),
+	}), nil
 }
 
 func refFromConfigRef(cr *adminpb.ConfigRef) configuration.Ref {
-	return configuration.NewRef(cr.GetModule(), cr.GetName())
+	return configuration.NewRef(Ptr(cr.Module), cr.Name)
 }
 
 func (s *EnvironmentManager) validateAgainstSchema(ctx context.Context, isSecret bool, ref configuration.Ref, value json.RawMessage) error {

@@ -15,7 +15,7 @@ import (
 
 	"github.com/block/ftl/backend/admin"
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
-	cf "github.com/block/ftl/internal/configuration"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/terminal"
 )
 
@@ -69,7 +69,7 @@ func (s *secretListCmd) Run(ctx context.Context, adminClient admin.EnvironmentCl
 }
 
 type secretGetCmd struct {
-	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
+	Ref config.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretGetCmd) Help() string {
@@ -90,8 +90,8 @@ func (s *secretGetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 }
 
 type secretSetCmd struct {
-	JSON bool   `help:"Assume input value is JSON. Note: For string secrets, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
-	Ref  cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
+	JSON bool       `help:"Assume input value is JSON. Note: For string secrets, the JSON value itself must be a string (e.g., '\"hello\"' or '\"{'key': 'value'}\"')."`
+	Ref  config.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
@@ -139,7 +139,7 @@ func (s *secretSetCmd) Run(ctx context.Context, adminClient admin.EnvironmentCli
 }
 
 type secretUnsetCmd struct {
-	Ref cf.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
+	Ref config.Ref `arg:"" help:"Secret reference in the form [<module>.]<name>." predictor:"secrets"`
 }
 
 func (s *secretUnsetCmd) Run(ctx context.Context, adminClient admin.EnvironmentClient) (err error) {
@@ -174,10 +174,7 @@ func (s *secretImportCmd) Run(ctx context.Context, adminClient admin.Environment
 		return errors.Wrap(err, "could not parse JSON")
 	}
 	for refPath, value := range entries {
-		ref, err := cf.ParseRef(refPath)
-		if err != nil {
-			return errors.Wrapf(err, "could not parse ref %q", refPath)
-		}
+		ref := config.ParseRef(refPath)
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			return errors.Wrapf(err, "could not marshal value for %q", refPath)

@@ -125,6 +125,7 @@ func SubTests(tests ...SubTest) Action {
 	return func(t testing.TB, ic TestContext) {
 		for _, test := range tests {
 			ic.Run(test.Name, func(t *testing.T) {
+				t.Helper()
 				ic.AssertWithRetry(t, test.Action)
 			})
 		}

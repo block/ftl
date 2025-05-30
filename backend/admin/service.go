@@ -33,8 +33,7 @@ import (
 	"github.com/block/ftl/common/sha256"
 	islices "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/channels"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	configuration "github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
@@ -81,8 +80,8 @@ func (c *streamSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, 
 // bindAllocator is optional and should be set if a local client is to be used that accesses schema from disk using language plugins.
 func NewAdminService(
 	config Config,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm configuration.Provider[configuration.Configuration],
+	sm configuration.Provider[configuration.Secrets],
 	schr ftlv1connect.SchemaServiceClient,
 	source *schemaeventsource.EventSource,
 	storage *oci.ArtefactService,

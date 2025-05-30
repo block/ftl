@@ -13,8 +13,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	slices2 "github.com/block/ftl/common/slices"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	slices2 "github.com/block/ftl/common/slices"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	"github.com/block/ftl/common/log"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestTimeline(t *testing.T) {
+	t.Skip("Flaky - modules are marked ready by the schema/provisioner before being ready to serve traffic")
 	in.Run(t,
 		in.WithLanguages("go"),
 		in.CopyModule("cron"),

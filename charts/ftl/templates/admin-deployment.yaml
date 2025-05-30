@@ -56,6 +56,8 @@ spec:
               value: "http://{{ include "ftl.fullname" . }}-schema:{{ .Values.schema.services.schema.port }}"
             - name: FTL_TIMELINE_ENDPOINT
               value: "http://{{ include "ftl.fullname" . }}-timeline:{{ .Values.timeline.port }}"
+            - name: FTL_REALM
+              value: {{ .Values.realmName }}
             - name: LOG_LEVEL
               value: "{{ .Values.admin.logLevel | default .Values.logLevel }}"
             - name: LOG_JSON
@@ -100,4 +102,3 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "ftl.fullname" . }}-admin
       {{- end }}
-

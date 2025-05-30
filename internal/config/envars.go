@@ -2,12 +2,13 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 )
 
 // EnvarDecorator overlays an existing provider with one that loads values from environment variables in the form
@@ -28,7 +29,7 @@ func (e *EnvarDecorator[R]) Store(ctx context.Context, ref Ref, value []byte) er
 	_ = os.Unsetenv(e.envarName(ref))
 	err := e.Provider.Store(ctx, ref, value)
 	if err != nil {
-		return errors.Wrap(err, "failed to store value")
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -37,7 +38,7 @@ func (e *EnvarDecorator[R]) Delete(ctx context.Context, ref Ref) error {
 	_ = os.Unsetenv(e.envarName(ref))
 	err := e.Provider.Delete(ctx, ref)
 	if err != nil {
-		return errors.Wrap(err, "failed to delete value")
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -48,21 +49,26 @@ func (e *EnvarDecorator[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	}
 	value, err := e.Provider.Load(ctx, ref)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load value")
+		return nil, errors.WithStack(err)
 	}
 	return value, nil
 }
 
-func (e *EnvarDecorator[R]) List(ctx context.Context, withValues bool) ([]Value, error) {
-	values, err := e.Provider.List(ctx, withValues)
+func (e *EnvarDecorator[R]) List(ctx context.Context, withValues bool, forModule Option[string]) ([]Value, error) {
+	values, err := e.Provider.List(ctx, withValues, forModule)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list")
 	}
 	// If values are requested, also try to load from environment variables.
 	if withValues {
 		for i, value := range values {
-			if envValue, ok := os.LookupEnv(e.envarName(value.Ref)); ok {
-				values[i].Value = optional.Some([]byte(envValue))
+			envarName := e.envarName(value.Ref)
+			if envValue, ok := os.LookupEnv(envarName); ok {
+				var discard any
+				if json.Unmarshal([]byte(envValue), &discard) != nil {
+					return nil, errors.Errorf("$%s: envar value must be valid JSON", envarName)
+				}
+				values[i].Value = Some([]byte(envValue))
 			}
 		}
 	}
@@ -72,11 +78,7 @@ func (e *EnvarDecorator[R]) List(ctx context.Context, withValues bool) ([]Value,
 func (e *EnvarDecorator[R]) envarName(ref Ref) string {
 	prefix := fmt.Sprintf("FTL_%s", strings.ToUpper(e.Role().String()))
 	if module, ok := ref.Module.Get(); ok {
-		return fmt.Sprintf("%s_%s_%s", prefix, strings.ToUpper(module), ref.Name)
+		return fmt.Sprintf("%s_%s_%s", prefix, strings.ToUpper(module), strings.ToUpper(ref.Name))
 	}
 	return fmt.Sprintf("%s_%s", prefix, strings.ToUpper(ref.Name))
-}
-
-func (e *EnvarDecorator[R]) Close(ctx context.Context) error {
-	return nil
 }

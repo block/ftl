@@ -46,13 +46,13 @@ func TestFtlTextContextExtension(t *testing.T) {
 
 	t.Run("extends with a new project file", func(t *testing.T) {
 		original := Context(WithProjectFile("testdata/go/wrapped/ftl-project.toml"))
-		extended := SubContext(original, WithProjectFile("testdata/go/wrapped/ftl-project-test-1.toml"))
+		extended := SubContext(original, WithProjectFile("testdata/go/wrapped/test1/ftl-project.toml"))
 
 		var config string
-		assert.NoError(t, internal.FromContext(original).(*fakeFTL).GetConfig(original, "config", &config)) //nolint:forcetypeassert
+		assert.NoError(t, internal.FromContext(original).GetConfig(original, "config", &config)) //nolint:forcetypeassert
 		assert.Equal(t, "bazbaz", config, "does not change the original context")
-		assert.NoError(t, internal.FromContext(extended).(*fakeFTL).GetConfig(extended, "config", &config)) //nolint:forcetypeassert
-		assert.Equal(t, "foobar", config, "overwrites configuration values from the new file")
+		assert.NoError(t, internal.FromContext(extended).GetConfig(extended, "config", &config)) //nolint:forcetypeassert
+		assert.Equal(t, "foobar", config, "overrides configuration values from the new file")
 	})
 	t.Run("extends with a new config value", func(t *testing.T) {
 		configA := ftl.Config[string]{Ref: reflection.Ref{Module: "ftl/test", Name: "configA"}}

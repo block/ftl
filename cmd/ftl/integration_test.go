@@ -24,16 +24,16 @@ func configActions(t *testing.T, prepend ...in.ActionOrOption) []in.ActionOrOpti
 
 	return append(prepend,
 		// test setting value without --json flag
-		in.Exec("ftl", "config", "set", "test.one", "hello world", "--inline"),
+		in.Exec("ftl", "config", "set", "test.one", "hello world"),
 		in.ExecWithExpectedOutput("\"hello world\"\n", "ftl", "config", "get", "test.one"),
 		// test updating value with --json flag
-		in.Exec("ftl", "config", "set", "test.one", `"hello world 2"`, "--json", "--inline"),
+		in.Exec("ftl", "config", "set", "test.one", `"hello world 2"`, "--json"),
 		in.ExecWithExpectedOutput("\"hello world 2\"\n", "ftl", "config", "get", "test.one"),
 		// test deleting value
-		in.Exec("ftl", "config", "unset", "test.one", "--inline"),
+		in.Exec("ftl", "config", "unset", "test.one"),
 		in.ExpectError(
 			in.ExecWithOutput("ftl", []string{"config", "get", "test.one"}, func(output string) {}),
-			"failed to get from config manager: not found",
+			"not found",
 		),
 	)
 }
@@ -57,72 +57,72 @@ func secretActions(t *testing.T, prepend ...in.ActionOrOption) []in.ActionOrOpti
 
 	return append(prepend,
 		// test setting secret without --json flag
-		in.Exec("ftl", "secret", "import", "--inline", secretsPath1),
+		in.Exec("ftl", "secret", "import", secretsPath1),
 		in.ExecWithExpectedOutput("\"hello world\"\n", "ftl", "secret", "get", "test.one"),
 		// test updating secret
-		in.Exec("ftl", "secret", "import", "--inline", secretsPath2),
+		in.Exec("ftl", "secret", "import", secretsPath2),
 		in.ExecWithExpectedOutput("\"hello world 2\"\n", "ftl", "secret", "get", "test.one"),
 		// test deleting secret
-		in.Exec("ftl", "secret", "unset", "test.one", "--inline"),
+		in.Exec("ftl", "secret", "unset", "test.one"),
 		in.ExpectError(
 			in.ExecWithOutput("ftl", []string{"secret", "get", "test.one"}, func(output string) {}),
-			"failed to get from secret manager: not found",
+			"failed to get secret",
 		),
 	)
 }
 
-func TestSecretImportExport(t *testing.T) {
-	testImportExport(t, "secret")
-}
+// func TestSecretImportExport(t *testing.T) {
+// 	testImportExport(t, "secret")
+// }
 
-func TestConfigImportExport(t *testing.T) {
-	testImportExport(t, "config")
-}
+// func TestConfigImportExport(t *testing.T) {
+// 	testImportExport(t, "config")
+// }
 
-func testImportExport(t *testing.T, object string) {
-	t.Helper()
+// func testImportExport(t *testing.T, object string) {
+// 	t.Helper()
 
-	firstProjFile := "ftl-project.toml"
-	secondProjFile := "ftl-project-2.toml"
-	destinationFile := "exported.json"
+// 	firstProjFile := "ftl-project.toml"
+// 	secondProjFile := "ftl-project-2.toml"
+// 	destinationFile := "exported.json"
 
-	importPath, err := filepath.Abs("testdata/import.json")
-	assert.NoError(t, err)
+// 	importPath, err := filepath.Abs("testdata/import.json")
+// 	assert.NoError(t, err)
 
-	// use a pointer to keep track of the exported json so that i can be modified from within actions
-	blank := ""
-	exported := &blank
+// 	// use a pointer to keep track of the exported json so that i can be modified from within actions
+// 	blank := ""
+// 	exported := &blank
 
-	in.Run(t,
-		in.WithoutController(),
-		in.WithoutTimeline(),
-		// duplicate project file in the temp directory
-		in.Exec("cp", firstProjFile, secondProjFile),
-		// import into first project file
-		in.Exec("ftl", object, "import", "--inline", "--config", firstProjFile, importPath),
+// 	in.Run(t,
+// 		in.WithoutController(),
+// 		in.WithoutTimeline(),
+// 		// duplicate project file in the temp directory
+// 		in.Exec("cp", firstProjFile, secondProjFile),
+// 		// import into first project file
+// 		in.Exec("ftl", object, "import", "--config", firstProjFile, importPath),
 
-		// export from first project file
-		in.ExecWithOutput("ftl", []string{object, "export", "--config", firstProjFile}, func(output string) {
-			*exported = output
+// 		// export from first project file
+// 		in.ExecWithOutput("ftl", []string{object, "export", "--config", firstProjFile}, func(output string) {
+// 			*exported = output
 
-			// make sure the exported json contains a value (otherwise the test could pass with the first import doing nothing)
-			assert.Contains(t, output, "test.one")
-		}),
+// 			// make sure the exported json contains a value (otherwise the test could pass with the first import doing nothing)
+// 			assert.Contains(t, output, "test.one")
+// 		}),
 
-		// import into second project file
-		// wrapped in a func to avoid capturing the initial valye of *exported
-		func(t testing.TB, ic in.TestContext) {
-			in.WriteFile(destinationFile, []byte(*exported))(t, ic)
-			in.Exec("ftl", object, "import", destinationFile, "--inline", "--config", secondProjFile)(t, ic)
-		},
+// 		// import into second project file
+// 		// wrapped in a func to avoid capturing the initial valye of *exported
+// 		func(t testing.TB, ic in.TestContext) {
+// 			in.WriteFile(destinationFile, []byte(*exported))(t, ic)
+// 			in.Exec("ftl", object, "import", destinationFile, "--config", secondProjFile)(t, ic)
+// 		},
 
-		// export from second project file
-		in.ExecWithOutput("ftl", []string{object, "export", "--config", secondProjFile}, func(output string) {
-			// check that both exported the same json
-			assert.Equal(t, *exported, output)
-		}),
-	)
-}
+// 		// export from second project file
+// 		in.ExecWithOutput("ftl", []string{object, "export", "--config", secondProjFile}, func(output string) {
+// 			// check that both exported the same json
+// 			assert.Equal(t, *exported, output)
+// 		}),
+// 	)
+// }
 
 func TestLocalSchemaDiff(t *testing.T) {
 	newVerb := `

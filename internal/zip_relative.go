@@ -20,9 +20,6 @@ func ZipRelativeToCaller(relativePath string) *zip.Reader {
 		panic(err)
 	}
 	defer os.Remove(w.Name()) // This is okay because the zip.Reader will keep it open.
-	if err != nil {
-		panic(err)
-	}
 
 	err = ZipDir(dir, w.Name())
 	if err != nil {

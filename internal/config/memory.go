@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
@@ -48,18 +48,21 @@ func (m *MemoryProvider[R]) Load(ctx context.Context, ref Ref) ([]byte, error) {
 	return data, nil
 }
 
-func (m *MemoryProvider[R]) List(ctx context.Context, withValues bool) ([]Value, error) {
+func (m *MemoryProvider[R]) List(ctx context.Context, withValues bool, forModule Option[string]) ([]Value, error) {
 	refs := make([]Value, 0, m.config.Size())
 	m.config.Range(func(ref Ref, data []byte) bool {
+		if module, ok := forModule.Get(); ok && ref.Module.Default(module) != module {
+			return true
+		}
 		value := Value{Ref: ref}
 		if withValues {
-			value.Value = optional.Some(data)
+			value.Value = Some(data)
 		}
 		refs = append(refs, value)
 		return true
 	})
 	slices.SortFunc(refs, func(a, b Value) int {
-		return strings.Compare(a.Ref.String(), b.Ref.String())
+		return strings.Compare(a.String(), b.String())
 	})
 	return refs, nil
 }

@@ -8,21 +8,18 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	cf "github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
-	"github.com/block/ftl/internal/configuration/providers"
-	"github.com/block/ftl/internal/configuration/routers"
+	configuration "github.com/block/ftl/internal/config"
 	in "github.com/block/ftl/internal/integration"
 	"github.com/block/ftl/internal/projectconfig"
 )
 
 func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
 	t.Helper()
-	projConfig, err := projectconfig.Load(ctx, optional.None[string]())
+	projConfig, err := projectconfig.Load(ctx, None[string]())
 	assert.NoError(t, err)
 	dsr := newDiskSchemaRetriever(projConfig)
 	return errors.WithStack2(dsr.GetSchema(ctx))
@@ -60,16 +57,12 @@ func TestDiskSchemaRetrieverWithNoSchema(t *testing.T) {
 }
 
 func TestAdminNoValidationWithNoSchema(t *testing.T) {
-	config := tempConfigPath(t, "testdata/ftl-project.toml", "admin")
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cm, err := manager.New(ctx, routers.ProjectConfig[cf.Configuration]{Config: config}, providers.NewInline[cf.Configuration]())
-	assert.NoError(t, err)
+	cm := configuration.NewMemoryProvider[configuration.Configuration]()
+	sm := configuration.NewMemoryProvider[configuration.Secrets]()
 
-	sm, err := manager.New(ctx, routers.ProjectConfig[cf.Secrets]{Config: config}, providers.NewInline[cf.Secrets]())
-	assert.NoError(t, err)
-
-	projConfig, err := projectconfig.Load(ctx, optional.None[string]())
+	projConfig, err := projectconfig.Load(ctx, None[string]())
 	assert.NoError(t, err)
 
 	dsr := newDiskSchemaRetriever(projConfig)

@@ -76,7 +76,9 @@ func (r *Registry[R]) Get(ctx context.Context, projectRoot string, key ProviderK
 		panic(fmt.Sprintf("provider %s must be either a SynchronousProvider or an AsynchronousProvider", key))
 	}
 
-	// Finally, wrap the provider in an environment variable decorator.
+	// Wrap the provider in an environment variable decorator.
 	syncProvider = NewEnvarDecorator(syncProvider)
+	// Wrap in global fallback decorator.
+	syncProvider = NewGlobalFallbackDecorator(syncProvider)
 	return syncProvider, nil
 }

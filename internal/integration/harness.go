@@ -495,6 +495,10 @@ func initWorkDir(t testing.TB, cwd string, opts options) string {
 		err := copy.Copy(opts.ftlConfigPath, projectPath)
 		if err == nil {
 			t.Setenv("FTL_CONFIG", projectPath)
+			err = copy.Copy(filepath.Join(filepath.Dir(opts.ftlConfigPath), ".ftl"), filepath.Join(filepath.Dir(projectPath), ".ftl")) //nolint
+			if err != nil {
+				t.Logf("Failed to copy .ftl: %s", err)
+			}
 		} else {
 			// Use a path into the testdata directory instead of one relative to
 			// tmpDir. Otherwise we have a chicken and egg situation where the config

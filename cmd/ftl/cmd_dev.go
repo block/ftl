@@ -16,8 +16,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/buildengine"
-	"github.com/block/ftl/internal/configuration"
-	"github.com/block/ftl/internal/configuration/manager"
+	configuration "github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
@@ -36,8 +35,8 @@ type devCmd struct {
 
 func (d *devCmd) Run(
 	ctx context.Context,
-	cm *manager.Manager[configuration.Configuration],
-	sm *manager.Manager[configuration.Secrets],
+	cm configuration.Provider[configuration.Configuration],
+	sm configuration.Provider[configuration.Secrets],
 	projConfig projectconfig.Config,
 	bindContext KongContextBinder,
 	csm *currentStatusManager,
