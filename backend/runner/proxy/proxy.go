@@ -15,6 +15,7 @@ import (
 	ftlleaseconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
+	"github.com/block/ftl/backend/runner/query"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
@@ -38,7 +39,9 @@ type Service struct {
 	controllerLeaseService    ftlleaseconnect.LeaseServiceClient
 	moduleVerbService         *xsync.MapOf[string, moduleVerbService]
 	timelineClient            *timelineclient.Client
+	queryService              *query.Service
 	localModuleName           string
+	schema                    *schema.Module
 	runnerBindAddress         string
 	localDeployment           key.Deployment
 	localRunner               bool
@@ -47,6 +50,8 @@ type Service struct {
 func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
 	timelineClient *timelineclient.Client,
+	queryService *query.Service,
+	schema *schema.Module,
 	localDeployment key.Deployment,
 	localRunners bool) *Service {
 	proxy := &Service{
@@ -54,7 +59,9 @@ func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 		controllerLeaseService:    leaseClient,
 		moduleVerbService:         xsync.NewMapOf[string, moduleVerbService](),
 		timelineClient:            timelineClient,
+		queryService:              queryService,
 		localModuleName:           localDeployment.Payload.Module,
+		schema:                    schema,
 		localDeployment:           localDeployment,
 		localRunner:               localRunners,
 	}
@@ -138,6 +145,14 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 		return nil, errors.WithStack(connect.NewError(connect.CodeNotFound, errors.Errorf("proxy failed to route request, deployment not found")))
 	}
 
+	maybeResp, err := MaybeProxyRequestToQueryService(ctx, req, r.schema, r.queryService)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to proxy to query service")
+	}
+	if maybeResp.Ok() {
+		return maybeResp.MustGet(), nil
+	}
+
 	callers, err := headers.GetCallers(req.Header())
 	if err != nil {
 		observability.Calls.Request(ctx, req.Msg.Verb, start, optional.Some("failed to get callers"))
@@ -185,4 +200,29 @@ func (r *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallReque
 	r.timelineClient.Publish(ctx, callEvent)
 	observability.Calls.Request(ctx, req.Msg.Verb, start, optional.None[string]())
 	return resp, nil
+}
+
+func MaybeProxyRequestToQueryService(ctx context.Context, req *connect.Request[ftlv1.CallRequest], module *schema.Module, queryService *query.Service) (optional.Option[*connect.Response[ftlv1.CallResponse]], error) {
+	if req.Msg.Verb.Module == module.Name {
+		ref, err := schema.RefFromProto(req.Msg.Verb)
+		if err != nil {
+			return optional.None[*connect.Response[ftlv1.CallResponse]](), errors.Wrap(err, "failed to parse verb ref")
+		}
+		verb := &schema.Verb{}
+		err = module.ResolveToType(*ref, verb)
+		if err != nil {
+			return optional.None[*connect.Response[ftlv1.CallResponse]](), errors.Wrap(err, "failed to resolve verb")
+		}
+
+		if verb.IsQuery() {
+			respdata, err := queryService.Call(ctx, module, verb, req.Msg.Body)
+			if err != nil {
+				return optional.None[*connect.Response[ftlv1.CallResponse]](), errors.Wrap(err, "failed to invoke local query verb")
+			}
+			return optional.Some(connect.NewResponse(&ftlv1.CallResponse{
+				Response: &ftlv1.CallResponse_Body{Body: respdata},
+			})), nil
+		}
+	}
+	return optional.None[*connect.Response[ftlv1.CallResponse]](), nil
 }

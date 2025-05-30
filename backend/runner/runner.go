@@ -219,6 +219,14 @@ type Service struct {
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	maybeResp, err := proxy.MaybeProxyRequestToQueryService(ctx, req, s.schema, s.queryService)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to proxy to query service")
+	}
+	if maybeResp.Ok() {
+		return maybeResp.MustGet(), nil
+	}
+
 	deployment, ok := s.deployment.Load().Get()
 	if !ok {
 		return nil, errors.WithStack(connect.NewError(connect.CodeUnavailable, errors.New("no deployment")))
@@ -265,7 +273,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient, s.config.Deployment, s.config.LocalRunners)
+	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient, s.queryService, s.schema, s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {

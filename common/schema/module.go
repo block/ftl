@@ -104,6 +104,28 @@ func (m *Module) Resolve(ref Ref) *ModuleDecl {
 	return nil
 }
 
+// ResolveToType returns the declaration in this module with the given name and assigns it to out.
+//
+// If the declaration is not found or not of the expected type, an error is returned.
+func (m *Module) ResolveToType(ref Ref, out Decl) error {
+	if ref.Module != "" && ref.Module != m.Name {
+		return nil
+	}
+	for _, decl := range m.Decls {
+		if decl.GetName() == ref.Name {
+			declType := reflect.TypeOf(decl)
+			outType := reflect.TypeOf(out)
+			if declType.Elem().AssignableTo(outType.Elem()) {
+				reflect.ValueOf(out).Elem().Set(reflect.ValueOf(decl).Elem())
+				return nil
+			}
+			return errors.Errorf("resolved declaration is not of the expected type: want %s, got %s",
+				outType, declType)
+		}
+	}
+	return errors.Errorf("declaration %s not found in module %s", ref.Name, m.Name)
+}
+
 func (m *Module) schemaSymbol()      {}
 func (m *Module) Position() Position { return m.Pos }
 func (m *Module) schemaChildren() []Node {
