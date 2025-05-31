@@ -282,7 +282,7 @@ jobs:
           path: ~/.m2/repository
   integration-shard:
     name: Shard Integration Tests
-    runs-on: ftl
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.extract-tests.outputs.matrix }}
     steps:
@@ -290,22 +290,22 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - name: Init Hermit
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
-      - name: Build Cache
-        uses: ./.github/actions/build-cache
-        with:
-          enable-pnpm: "true"
-      - name: Build Go Binaries
-        shell: bash
-        run: |
-          set -euo pipefail
-          export GOARCH=amd64
-          just build ftl ftl-sqlc
-          just build-language-plugins
-      - name: Upload Release Binaries
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
-        with:
-          name: backend-binaries
-          path: build/release
+      # - name: Build Cache
+      #   uses: ./.github/actions/build-cache
+      #   with:
+      #     enable-pnpm: "true"
+      # - name: Build Go Binaries
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
+      #     export GOARCH=amd64
+      #     just build ftl ftl-sqlc
+      #     just build-language-plugins
+      # - name: Upload Release Binaries
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
+      #   with:
+      #     name: backend-binaries
+      #     path: build/release
       - name: Extract test cases
         id: extract-tests
         run: |
@@ -316,7 +316,7 @@ jobs:
     name: Integration Test
     needs:
       - integration-shard
-      - build-jvm-artifacts
+      # - build-jvm-artifacts
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -328,22 +328,22 @@ jobs:
         uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - name: Build Cache
         uses: ./.github/actions/build-cache
-      - name: Download Release Binaries
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: backend-binaries
-          path: build/release
-      - name: Download JVM Binaries
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: maven-repo
-          path: ~/.m2/repository
+      # - name: Download Release Binaries
+      #   uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      #   with:
+      #     name: backend-binaries
+      #     path: build/release
+      # - name: Download JVM Binaries
+      #   uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      #   with:
+      #     name: maven-repo
+      #     path: ~/.m2/repository
       - name: Run ${{ matrix.test }}
         run: |
           set -euo pipefail
-          chmod +x build/release/*
+          # chmod +x build/release/*
           # shellcheck disable=SC2046
-          echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just --set USE_RELEASE_BINARIES "1" integration-tests
+          echo '${{ matrix.test }}' | tr '|' ' ' | xargs -n1 just integration-tests
       # Temporarily disabled because it conflicts on every failure except the first.
       # - name: Archive Report
       #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # ratchet:actions/upload-artifact@v4
