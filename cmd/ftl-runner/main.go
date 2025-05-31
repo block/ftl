@@ -26,6 +26,8 @@ var cli struct {
 	DeploymentDir       string               `help:"Directory to store deployments in." default:"/deployments"`
 	SchemaLocation      string               `help:"Location of the schema file." env:"FTL_SCHEMA_LOCATION"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
 	RouteTemplate       string               `help:"Template to use to construct routes to other services" env:"FTL_ROUTE_TEMPLATE" defaut:"{}"`
+	SecretsPath         string               `help:"Path to the directory containing secret files" env:"FTL_SECRETS_PATH" default:"/etc/ftl/secrets"`
+	ConfigsPath         string               `help:"Path to the directory containing config files" env:"FTL_CONFIGS_PATH" default:"/etc/ftl/configs"`
 }
 
 func main() {
@@ -68,10 +70,11 @@ and route to user code.
 		kctx.Fatalf("Failed to find module %s in schema, found %s", cli.RunnerConfig.Deployment.Payload.Module, found)
 	}
 
-	var secProvider deploymentcontext.SecretsProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
-	var configProvider deploymentcontext.ConfigProvider = func(ctx context.Context) map[string][]byte { return map[string][]byte{} }
-
-	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, &templateRouteTable{template: cli.RouteTemplate, realm: cli.RunnerConfig.Deployment.Payload.Realm}, module, secProvider, configProvider)
+	secProvider := deploymentcontext.NewDiskSecretsProvider(cli.SecretsPath)
+	configProvider := deploymentcontext.NewDiskConfigProvider(cli.ConfigsPath)
+	routeProvider, err := deploymentcontext.NewDiskRouteProvider(ctx, cli.SchemaLocation)
+	kctx.FatalIfErrorf(err, "failed to load route provider")
+	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, routeProvider, module, secProvider, configProvider)
 	deploymentProvider := func() (string, error) {
 
 		return cli.DeploymentDir, nil
@@ -95,34 +98,4 @@ func schemaFromDisk(path string) (*schema.Schema, error) {
 		return nil, errors.Wrap(err, "failed to parse schema")
 	}
 	return sch, nil
-}
-
-var _ deploymentcontext.RouteProvider = (*templateRouteTable)(nil)
-
-type templateRouteTable struct {
-	template string
-	realm    string
-}
-
-// Route implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Route(module string) string {
-	return os.Expand(t.template, func(s string) string {
-		switch s {
-		case "module":
-			return module
-		case "realm":
-			return t.realm
-		}
-		return ""
-	})
-}
-
-// Subscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Subscribe() chan string {
-	return make(chan string)
-}
-
-// Unsubscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Unsubscribe(c chan string) {
-	close(c)
 }

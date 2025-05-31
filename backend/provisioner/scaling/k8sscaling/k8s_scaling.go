@@ -324,7 +324,8 @@ func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
 func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
 	logger := log.FromContext(ctx)
 	userNamespace := r.namespaceMapper(module, realm, r.systemNamespace)
-	cm, err := r.client.CoreV1().ConfigMaps(r.systemNamespace).Get(ctx, configMapName, v1.GetOptions{})
+	cmClient := r.client.CoreV1().ConfigMaps(r.systemNamespace)      // for deploymentTemplate, serviceTemplate etc.
+	cmData, err := cmClient.Get(ctx, configMapName, v1.GetOptions{}) // This is ftl-provisioner-deployment-config
 	if err != nil {
 		return errors.Wrapf(err, "failed to get configMap %s", configMapName)
 	}
@@ -343,8 +344,8 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 			return errors.Wrapf(err, "failed to get service %s", module)
 		}
 		logger.Debugf("Creating new kube service %s", module)
-		err = decodeBytesToObject([]byte(cm.Data[serviceTemplate]), service)
-		if err != nil {
+		service = &kubecore.Service{}
+		if err = decodeBytesToObject([]byte(cmData.Data[serviceTemplate]), service); err != nil {
 			return errors.Wrapf(err, "failed to decode service from configMap %s", configMapName)
 		}
 		service.Name = module
@@ -368,8 +369,8 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 			return errors.Wrapf(err, "failed to get service account %s", name)
 		}
 		logger.Debugf("Creating new kube service account %s", name)
-		err = decodeBytesToObject([]byte(cm.Data[serviceAccountTemplate]), serviceAccount)
-		if err != nil {
+		serviceAccount = &kubecore.ServiceAccount{}
+		if err = decodeBytesToObject([]byte(cmData.Data[serviceAccountTemplate]), serviceAccount); err != nil {
 			return errors.Wrapf(err, "failed to decode service account from configMap %s", configMapName)
 		}
 		serviceAccount.Name = module
@@ -379,28 +380,65 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		serviceAccount.Labels[moduleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
-			return errors.Wrapf(err, "failed to create service account%s", name)
+			return errors.Wrapf(err, "failed to create service account %s", name)
 		}
-		logger.Debugf("Created kube service  account%s", name)
+		logger.Debugf("Created kube service account %s", name)
 	} else {
 		logger.Debugf("Service account %s already exists", name)
 	}
 
-	// Sync the istio policy if applicable
 	if sec, ok := r.istioSecurity.Get(); ok {
-		err = r.syncIstioPolicy(ctx, sec, userNamespace, realm, module, name, service, provisionerDeployment, sch, cron, ingress)
-		if err != nil {
+		if err = r.syncIstioPolicy(ctx, sec, userNamespace, realm, module, name, service, provisionerDeployment, sch, cron, ingress); err != nil {
 			return errors.WithStack(err)
 		}
 	}
 
-	// Now create the deployment
+	// Create ConfigMaps for secrets and configs
+	userConfigMapClient := r.client.CoreV1().ConfigMaps(userNamespace)
+	secretsConfigMapName := fmt.Sprintf("ftl-module-%s-secrets", module)
+	configsConfigMapName := fmt.Sprintf("ftl-module-%s-configs", module)
 
-	logger.Debugf("Creating new kube deployment %s", name)
-	data := cm.Data[deploymentTemplate]
-	deployment := &kubeapps.Deployment{}
-	err = decodeBytesToObject([]byte(data), deployment)
+	// Create/Update Secrets ConfigMap (initially empty, to be populated by FTL CLI or other means)
+	_, err = userConfigMapClient.Get(ctx, secretsConfigMapName, v1.GetOptions{})
 	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to check for existing secrets ConfigMap %s", secretsConfigMapName)
+		}
+		secretsCm := &kubecore.ConfigMap{
+			ObjectMeta: v1.ObjectMeta{Name: secretsConfigMapName},
+			Data:       map[string]string{}, // Initially empty
+		}
+		addLabels(&secretsCm.ObjectMeta, realm, module, name) // Add labels for consistency
+		_, err = userConfigMapClient.Create(ctx, secretsCm, v1.CreateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to create secrets ConfigMap %s", secretsConfigMapName)
+		}
+		logger.Debugf("Created/Ensured ConfigMap %s in namespace %s", secretsConfigMapName, userNamespace)
+	}
+
+	// Create/Update Configs ConfigMap (initially empty)
+	_, err = userConfigMapClient.Get(ctx, configsConfigMapName, v1.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to check for existing configs ConfigMap %s", configsConfigMapName)
+		}
+		configsCm := &kubecore.ConfigMap{
+			ObjectMeta: v1.ObjectMeta{Name: configsConfigMapName},
+			Data:       map[string]string{}, // Initially empty
+		}
+		addLabels(&configsCm.ObjectMeta, realm, module, name) // Add labels for consistency
+		_, err = userConfigMapClient.Create(ctx, configsCm, v1.CreateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to create configs ConfigMap %s", configsConfigMapName)
+		}
+		logger.Debugf("Created/Ensured ConfigMap %s in namespace %s", configsConfigMapName, userNamespace)
+	}
+
+	// Now create the deployment
+	logger.Debugf("Creating new kube deployment %s", name)
+	deploymentTemplateData := cmData.Data[deploymentTemplate]
+	deployment := &kubeapps.Deployment{}
+	if err = decodeBytesToObject([]byte(deploymentTemplateData), deployment); err != nil {
 		return errors.Wrapf(err, "failed to decode deployment from configMap %s", configMapName)
 	}
 
@@ -412,14 +450,54 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		deployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
 	}
 
-	deployment.Spec.Template.Spec.ServiceAccountName = module
-	changes, err := r.syncDeployment(deployment, sch.Runtime.Scaling.MinReplicas)
+	// Define volume mounts for secrets and configs directories
+	secretsVolumeName := "ftl-secrets-volume" //nolint:gosec
+	configsVolumeName := "ftl-configs-volume"
+	secretsMountPath := "/etc/ftl/secrets" //nolint:gosec
+	configsMountPath := "/etc/ftl/configs"
 
+	deployment.Spec.Template.Spec.Volumes = []kubecore.Volume{
+		{
+			Name: secretsVolumeName,
+			VolumeSource: kubecore.VolumeSource{
+				ConfigMap: &kubecore.ConfigMapVolumeSource{
+					LocalObjectReference: kubecore.LocalObjectReference{Name: secretsConfigMapName},
+				},
+			},
+		},
+		{
+			Name: configsVolumeName,
+			VolumeSource: kubecore.VolumeSource{
+				ConfigMap: &kubecore.ConfigMapVolumeSource{
+					LocalObjectReference: kubecore.LocalObjectReference{Name: configsConfigMapName},
+				},
+			},
+		},
+	}
+
+	// Add volume mounts to the container
+	// It's safer to replace existing VolumeMounts if any were predefined in the template,
+	// or ensure this list is built carefully if appending to existing ones.
+	// For simplicity, assuming we are defining them fresh for FTL purposes here.
+	deployment.Spec.Template.Spec.Containers[0].VolumeMounts = []kubecore.VolumeMount{
+		{
+			Name:      secretsVolumeName,
+			MountPath: secretsMountPath,
+			ReadOnly:  true, // Secrets and Configs mounted from ConfigMaps are read-only by default anyway
+		},
+		{
+			Name:      configsVolumeName,
+			MountPath: configsMountPath,
+			ReadOnly:  true,
+		},
+	}
+
+	deployment.Spec.Template.Spec.ServiceAccountName = module
+	changes, err := r.syncDeployment(deployment, sch.Runtime.Scaling.MinReplicas, secretsMountPath, configsMountPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	for _, change := range changes {
-
 		change(deployment)
 	}
 
@@ -456,14 +534,34 @@ func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
 }
 
 func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *kubeapps.Deployment, replicas int32) error {
+	var secretsMountPath string
+	var configsMountPath string
 
-	changes, err := r.syncDeployment(deployment, replicas)
+	defaultSecretsMountPath := "/etc/ftl/secrets" //nolint:gosec
+	defaultConfigsMountPath := "/etc/ftl/configs"
+
+	secretsMountPath = defaultSecretsMountPath
+	configsMountPath = defaultConfigsMountPath
+
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		for _, volMount := range container.VolumeMounts {
+			if strings.HasSuffix(volMount.MountPath, "/secrets") {
+				secretsMountPath = volMount.MountPath
+			}
+			if strings.HasSuffix(volMount.MountPath, "/configs") {
+				configsMountPath = volMount.MountPath
+			}
+		}
+		if secretsMountPath != defaultSecretsMountPath || configsMountPath != defaultConfigsMountPath {
+			break
+		}
+	}
+
+	changes, err := r.syncDeployment(deployment, replicas, secretsMountPath, configsMountPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	// If we have queued changes we apply them here. Changes can fail and need to be retried
-	// Which is why they are supplied as a list of functions
 	if len(changes) > 0 {
 		err = r.updateDeployment(ctx, deployment.Namespace, deployment.Name, func(deployment *kubeapps.Deployment) {
 			for _, change := range changes {
@@ -477,10 +575,9 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 	return nil
 }
 
-func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas int32) ([]func(*kubeapps.Deployment), error) {
+func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas int32, secretsMountPath string, configsMountPath string) ([]func(*kubeapps.Deployment), error) {
 	changes := []func(*kubeapps.Deployment){}
 
-	// For now we just make sure the number of replicas match
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != replicas {
 		changes = append(changes, func(deployment *kubeapps.Deployment) {
 			deployment.Spec.Replicas = &replicas
@@ -488,6 +585,8 @@ func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas in
 	}
 	changes = r.updateEnvVar(deployment, "FTL_DEPLOYMENT", deployment.Name, changes)
 	changes = r.updateEnvVar(deployment, "FTL_ROUTE_TEMPLATE", r.routeTemplate, changes)
+	changes = r.updateEnvVar(deployment, "FTL_SECRETS_PATH", secretsMountPath, changes)
+	changes = r.updateEnvVar(deployment, "FTL_CONFIGS_PATH", configsMountPath, changes)
 	return changes, nil
 }
 

@@ -28,7 +28,7 @@ rules:
     resources: [ "configmaps" ]
     resourceNames:
       - ftl-provisioner-deployment-config
-    verbs: [ "get"]
+    verbs: [ "get", "list", "watch", "delete", "create", "update", "patch"]
   - apiGroups: [ "security.istio.io" ]
     resources: [ "authorizationpolicies" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch" ]
