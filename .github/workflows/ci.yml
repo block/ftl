@@ -233,8 +233,6 @@ jobs:
       - run: go-arch-lint check || true
   console-e2e:
     name: Console e2e
-    # Disabled because this takes 8-9m
-    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
