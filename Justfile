@@ -317,7 +317,7 @@ test-frontend: build-frontend
 
 # Run end-to-end tests on the frontend
 e2e-frontend: build-frontend
-  @cd {{CONSOLE_ROOT}} && npx playwright install --with-deps && pnpm run e2e
+  @cd {{CONSOLE_ROOT}} && npx playwright install chromium-headless-shell chromium --with-deps --no-shell && pnpm run e2e
 
 # Download Go modules
 download-go-modules:
