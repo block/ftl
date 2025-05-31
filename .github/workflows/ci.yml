@@ -8,7 +8,7 @@ concurrency:
 jobs:
   test:
     name: Test Go
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
 
   # intellij-release:
   #   name: Release IntelliJ Plugin
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-24.04-arm
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
   #         just publish-intellij-plugin
   test-readme:
     name: Test README
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
         run: just test-readme
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
   proto-breaking:
     name: Proto Breaking Change Check
     if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip-proto-breaking') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
           buf breaking --against 'https://github.com/block/ftl.git#branch=main' | to-annotation || true
   console:
     name: Console
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -128,7 +128,7 @@ jobs:
         run: just test-frontend
   test-wasm:
     name: Test sqlc-gen-ftl
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -148,7 +148,7 @@ jobs:
           fi
   extension:
     name: VSCode Extension
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -167,7 +167,7 @@ jobs:
         run: just package-extension
   plugin:
     name: Intellij Plugin
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -183,7 +183,7 @@ jobs:
         run: just build-intellij-plugin
   build-all:
     name: Rebuild All
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -207,7 +207,7 @@ jobs:
           fi
   docs:
     name: Build Docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
@@ -219,14 +219,14 @@ jobs:
         run: just build-docs
   gen-lsp:
     name: Generate LSP Help
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
       - run: just lsp-generate
   arch-lint:
     name: Lint Architecture
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
       - uses: cashapp/activate-hermit@12a728b03ad41eace0f9abaf98a035e7e8ea2318 # ratchet:cashapp/activate-hermit@v1.1.4
@@ -235,7 +235,7 @@ jobs:
     name: Console e2e
     # Disabled because this takes 8-9m
     if: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -261,7 +261,7 @@ jobs:
         run: just e2e-frontend
   build-jvm-artifacts:
     name: Build JVM Artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
@@ -317,7 +317,7 @@ jobs:
     needs:
       - integration-shard
       - build-jvm-artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.integration-shard.outputs.matrix)}}
@@ -354,7 +354,7 @@ jobs:
   integration-success:
     name: Integration Success
     needs: [integration-run]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     if: ${{ always() }}
     steps:
       - name: Check integration tests result
