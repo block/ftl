@@ -3,8 +3,8 @@ module github.com/block/ftl
 go 1.24.0
 
 require (
-	connectrpc.com/grpcreflect v1.3.0
 	connectrpc.com/connect v1.17.0
+	connectrpc.com/grpcreflect v1.3.0
 	connectrpc.com/otelconnect v0.7.2
 	github.com/BurntSushi/toml v1.5.0
 	github.com/IBM/sarama v1.45.1
