@@ -163,7 +163,9 @@ build-backend:
 
 # Build all backend tests
 build-backend-tests:
-  go test -run ^NONE -tags integration,infrastructure ./... > /dev/null
+  # Build with and without tags so that build caches are populated correctly.
+  go test -vet=off -fullpath -count 1 -run ^NONE -tags integration,infrastructure ./... > /dev/null
+  go test -vet=off -fullpath -count 1 -run ^NONE ./... > /dev/null
 
 # Build JVM runtime
 build-jvm *args:
@@ -316,6 +318,13 @@ test-frontend: build-frontend
 # Run end-to-end tests on the frontend
 e2e-frontend: build-frontend
   @cd {{CONSOLE_ROOT}} && npx playwright install --with-deps && pnpm run e2e
+
+# Download Go modules
+download-go-modules:
+  #!/bin/bash
+  set -euo pipefail
+  go mod download -x
+  for gosum in cmd/*/go.sum; do cd "$(dirname "$gosum")" && go mod download -x; done
 
 # Lint the frontend
 lint-frontend: build-frontend
