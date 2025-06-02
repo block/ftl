@@ -43,24 +43,28 @@ func (o *errorDetector) Write(p []byte) (n int, err error) {
 		}
 
 		if line[0] == '{' {
-			record := JvmLogRecord{}
-			err := json.Unmarshal([]byte(line), &record)
-			if err == nil {
-				// We do not want to dump any raw json output
-				skip = true
-				entry := record.ToEntry()
-				// Huge hack, Quarkus can currently NPE when being pinged at startup, due to a race generating the 404 page before it has started
-				// this should be fixed in a later version of Quarkus
-				if !strings.Contains(entry.Message, "Request to /xyz.block.ftl.v1.VerbService/Ping failed") {
-					o.logger.Log(entry)
-					last = func(format string, args ...interface{}) {
-						o.logger.Logf(entry.Level, format, args...)
-					}
-				}
-			} else if strings.Contains(err.Error(), "unexpected end of JSON input") {
+			if !strings.HasSuffix(line, "}") {
 				o.jsonBuffer = line
 			} else {
-				o.logger.Errorf(err, "Log Parse Failure: %s", line) //nolint
+				record := JvmLogRecord{}
+				err := json.Unmarshal([]byte(line), &record)
+				if err == nil {
+					// We do not want to dump any raw json output
+					skip = true
+					entry := record.ToEntry()
+					// Huge hack, Quarkus can currently NPE when being pinged at startup, due to a race generating the 404 page before it has started
+					// this should be fixed in a later version of Quarkus
+					if !strings.Contains(entry.Message, "Request to /xyz.block.ftl.v1.VerbService/Ping failed") {
+						o.logger.Log(entry)
+						last = func(format string, args ...interface{}) {
+							o.logger.Logf(entry.Level, format, args...)
+						}
+					}
+				} else if strings.Contains(err.Error(), "unexpected end of JSON input") {
+					o.jsonBuffer = line
+				} else {
+					o.logger.Errorf(err, "Log Parse Failure: %s", line) //nolint
+				}
 			}
 		} else if cleanLine, ok := strings.CutPrefix(line, "[ERROR] "); ok {
 			o.logger.Logf(log.Error, "%s", cleanLine)
