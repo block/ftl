@@ -22,13 +22,12 @@ func TestLogger(t *testing.T) {
 	log.Tracef("trace: %s", "trace")
 	log.Log(Entry{Level: Trace, Message: "trace: trace"})
 	assert.Equal(t, strings.TrimSpace(`
-{"level":"trace","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"trace: trace"}
-{"level":"debug","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"debug: debug"}
-{"level":"info","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"info: info"}
-{"level":"warn","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"warn: warn"}
-{"level":"error","time":"1970-01-01T00:00:00Z","error":"error","timestamp":"0001-01-01T00:00:00Z","message":"error: error: error"}
-{"attributes":{"key":"value","scope":"scoped"},"level":"trace","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"trace: trace"}
-{"attributes":{"key":"value","scope":"scoped"},"level":"trace","time":"1970-01-01T00:00:00Z","timestamp":"0001-01-01T00:00:00Z","message":"trace: trace"}
-
+{"level":"trace","timestamp":"1970-01-01T00:00:00Z","message":"trace: trace"}
+{"level":"debug","timestamp":"1970-01-01T00:00:00Z","message":"debug: debug"}
+{"level":"info","timestamp":"1970-01-01T00:00:00Z","message":"info: info"}
+{"level":"warn","timestamp":"1970-01-01T00:00:00Z","message":"warn: warn"}
+{"level":"error","error":"error","timestamp":"1970-01-01T00:00:00Z","message":"error: error: error"}
+{"attributes":{"key":"value","scope":"scoped"},"level":"trace","timestamp":"1970-01-01T00:00:00Z","message":"trace: trace"}
+{"attributes":{"key":"value","scope":"scoped"},"level":"trace","timestamp":"1970-01-01T00:00:00Z","message":"trace: trace"}
 `)+"\n", w.String())
 }
