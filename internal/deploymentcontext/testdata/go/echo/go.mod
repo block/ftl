@@ -39,7 +39,6 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
