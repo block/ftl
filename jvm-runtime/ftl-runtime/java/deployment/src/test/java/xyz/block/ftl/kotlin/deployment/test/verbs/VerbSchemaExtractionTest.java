@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.enums;
+package xyz.block.ftl.kotlin.deployment.test.verbs;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
