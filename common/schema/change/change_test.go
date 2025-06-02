@@ -66,13 +66,71 @@ func TestBreaking(t *testing.T) {
 			name:     "TypeAliasRenamed",
 			prev:     `typealias A Int`,
 			next:     `typealias B Int`,
-			breaking: `previous.schema:1:1: A: type alias name changed to B`,
+			breaking: `previous.schema:1:1: typealias A: type alias name changed to B`,
 		},
 		{
 			name:     "TypeAliasChanged",
 			prev:     `typealias A Int`,
 			next:     `typealias A String`,
 			breaking: `previous.schema:1:13: typealias A: type changed from int to string`,
+		},
+		{
+			name: "EnumOrderChanged",
+			prev: `enum Enum: Int {
+				A = 0
+				B = 1
+			}`,
+			next: `enum Enum: Int {
+				B = 1
+				A = 0
+			}`,
+		},
+		{
+			name: "EnumValueAdded",
+			prev: `enum Enum: Int {
+				A = 0
+				B = 1
+			}`,
+			next: `enum Enum: Int {
+				A = 0
+				B = 1
+				C = 2
+			}`,
+			breaking: `previous.schema:1:1: enum values changed`,
+		},
+		{
+			name: "EnumValueRemoved",
+			prev: `enum Enum: Int {
+				A = 0
+				B = 1
+			}`,
+			next: `enum Enum: Int {
+				A = 0
+			}`,
+			breaking: `previous.schema:1:1: enum values changed`,
+		},
+		{
+			name: "TypeEnumOrder",
+			prev: `enum Enum {
+				Age Int
+				Name String
+			}`,
+			next: `enum Enum {
+				Name String
+				Age Int
+			}`,
+		},
+		{
+			name: "TypeEnumTypeChange",
+			prev: `enum Enum {
+				Age Int
+				Name String
+			}`,
+			next: `enum Enum {
+				Age Time
+				Name String
+			}`,
+			breaking: `previous.schema:1:1: enum values changed`,
 		},
 	}
 	for _, tt := range tests {
