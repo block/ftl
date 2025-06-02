@@ -20,6 +20,7 @@ import xyz.block.ftl.hotreload.RunnerNotification;
 import xyz.block.ftl.v1.GetDeploymentContextResponse;
 
 public class FTLController implements LeaseClient, RunnerNotification.RunnerCallback {
+    public static final String USE_MOCK_CONNECTION = "ftl.controller.use-mock-connection";
     private static final Logger log = Logger.getLogger(FTLController.class);
     private final List<AtomicBoolean> waiters = new ArrayList<>();
     final String moduleName;
@@ -54,7 +55,8 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         if (LaunchMode.current() == LaunchMode.NORMAL) {
             runnerDetails = DefaultRunnerDetails.INSTANCE;
         } else if (LaunchMode.current() == LaunchMode.TEST
-                && getClass().getClassLoader().toString().contains("(QuarkusUnitTest)")) { // huge hack to run QuarkusUnitTest
+                && (getClass().getClassLoader().toString().contains("(QuarkusUnitTest)")
+                        || Boolean.getBoolean(USE_MOCK_CONNECTION))) { // huge hack to run QuarkusUnitTest
             runnerDetails = DefaultRunnerDetails.INSTANCE;
             runnerConnection = new MockRunnerConnection();
         } else {

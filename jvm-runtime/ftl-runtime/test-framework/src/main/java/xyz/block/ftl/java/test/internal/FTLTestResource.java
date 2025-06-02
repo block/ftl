@@ -3,21 +3,18 @@ package xyz.block.ftl.java.test.internal;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import xyz.block.ftl.runtime.FTLController;
 
 public class FTLTestResource implements QuarkusTestResourceLifecycleManager {
 
-    FTLTestServer server;
-
     @Override
     public Map<String, String> start() {
-        server = new FTLTestServer();
-        server.start();
+        System.setProperty(FTLController.USE_MOCK_CONNECTION, "true");
         return Map.of();
     }
 
     @Override
     public void stop() {
-        server.stop();
     }
 
     @Override
