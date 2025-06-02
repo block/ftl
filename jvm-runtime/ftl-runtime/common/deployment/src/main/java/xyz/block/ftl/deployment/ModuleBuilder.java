@@ -48,6 +48,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.quarkus.arc.processor.DotNames;
@@ -894,6 +895,12 @@ public class ModuleBuilder {
                                             MetadataAlias.newBuilder().setKind(AliasKind.ALIAS_KIND_JSON)
                                                     .setAlias(alias)));
                         }
+                    }
+                }
+                if (field.hasAnnotation(JsonProperty.class)) {
+                    var jsonProperty = field.annotation(JsonProperty.class);
+                    if (jsonProperty.value() != null && !jsonProperty.value().asString().isEmpty()) {
+                        builder.setName(jsonProperty.value().asString());
                     }
                 }
                 data.addFields(builder.build());
