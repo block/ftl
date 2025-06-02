@@ -213,14 +213,19 @@ func (s *ImageService) BuildOCIImage(
 		return errors.Wrapf(err, "failed to parse target image")
 	}
 
-	desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
+	base, err := daemon.Image(ref)
 	if err != nil {
-		return errors.Errorf("getting base image metadata: %w", err)
-	}
+		desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
+		if err != nil {
+			return errors.Errorf("getting base image metadata: %w", err)
+		}
 
-	base, err := desc.Image()
-	if err != nil {
-		return errors.Errorf("loading base image: %w", err)
+		base, err = desc.Image()
+		if err != nil {
+			return errors.Errorf("loading base image: %w", err)
+		}
+	} else {
+		logger.Infof("Using image %s from local docker daemon", ref.String()) //nolint
 	}
 
 	layer, err := createLayer(apath, artifacts)
