@@ -53,10 +53,10 @@ func (c cronJob) String() string {
 }
 
 type Config struct {
-	Bind                  *url.URL        `help:"Address to bind to." env:"FTL_BIND" default:"http://127.0.0.1:8990"`
-	SchemaServiceEndpoint *url.URL        `name:"ftl-endpoint" help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint      *url.URL        `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Raft                  raft.RaftConfig `embed:"" prefix:"raft-"`
+	Bind                  *url.URL              `help:"Address to bind to." env:"FTL_BIND" default:"http://127.0.0.1:8990"`
+	SchemaServiceEndpoint *url.URL              `name:"ftl-endpoint" help:"Schema Service endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineConfig        timelineclient.Config `embed:""`
+	Raft                  raft.RaftConfig       `embed:"" prefix:"raft-"`
 }
 
 // Start the cron service. Blocks until the context is cancelled.

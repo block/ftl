@@ -66,10 +66,7 @@ func TestCron(t *testing.T) {
 	assert.NoError(t, eventSource.PublishModuleForTest(module))
 
 	ctx := log.ContextWithLogger(context.Background(), log.Configure(os.Stderr, log.Config{Level: log.Trace}))
-	timelineEndpoint, err := url.Parse("http://localhost:8080")
-	assert.NoError(t, err)
-
-	timelineClient := timelineclient.NewClient(ctx, timelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, timelineclient.NullConfig)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	t.Cleanup(cancel)
 
@@ -78,7 +75,7 @@ func TestCron(t *testing.T) {
 
 	cfg := Config{
 		SchemaServiceEndpoint: schemaEndpoint,
-		TimelineEndpoint:      timelineEndpoint,
+		TimelineConfig:        timelineclient.NullConfig,
 		Raft:                  raft.RaftConfig{},
 	}
 

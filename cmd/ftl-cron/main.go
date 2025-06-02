@@ -39,7 +39,7 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.CronConfig.SchemaServiceEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "cron", schemaClient)
 
-	timelineClient := timelineclient.NewClient(ctx, cli.CronConfig.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.CronConfig.TimelineConfig)
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
 
 	err = cron.Start(ctx, cli.CronConfig, eventSource, routeManager, timelineClient)

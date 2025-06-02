@@ -23,13 +23,13 @@ import (
 )
 
 var cli struct {
-	Version             kong.VersionFlag     `help:"Show version."`
-	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config           `embed:"" prefix:"log-"`
-	ConsoleConfig       console.Config       `embed:"" prefix:"console-"`
-	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	AdminEndpoint       *url.URL             `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Version             kong.VersionFlag      `help:"Show version."`
+	Bind                *url.URL              `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	ObservabilityConfig observability.Config  `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config            `embed:"" prefix:"log-"`
+	ConsoleConfig       console.Config        `embed:"" prefix:"console-"`
+	TimelineConfig      timelineclient.Config `embed:""`
+	AdminEndpoint       *url.URL              `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 }
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-console", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.TimelineConfig)
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, cli.AdminEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "console", adminClient)

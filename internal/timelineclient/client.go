@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
+	"github.com/alecthomas/types/must"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -21,6 +22,10 @@ const (
 	maxBatchDelay = 100 * time.Millisecond
 )
 
+type Config struct {
+	TimelineEndpoint *url.URL `help:"Timeline endpoint (discard:// to disable)." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+}
+
 type Client struct {
 	timelinepbconnect.TimelineServiceClient
 
@@ -33,13 +38,28 @@ func (c *Client) Ping(context.Context, *connect.Request[v1.PingRequest]) (*conne
 	return connect.NewResponse(&v1.PingResponse{}), nil
 }
 
-func NewClient(ctx context.Context, endpoint *url.URL) *Client {
-	c := rpc.Dial(timelinepbconnect.NewTimelineServiceClient, endpoint.String(), log.Error)
+var NullConfig = Config{
+	TimelineEndpoint: must.Get(url.Parse("discard://")),
+}
+
+// NewClient creates a new Timeline client.
+//
+// If endpoint is discard:// the client will not create an RPC client or send any RPC requests, and all events
+// will be immediately discarded.
+func NewClient(ctx context.Context, config Config) *Client {
+	var c timelinepbconnect.TimelineServiceClient
+	if config.TimelineEndpoint.Scheme != "discard" {
+		c = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, config.TimelineEndpoint.String(), log.Error)
+	}
 	client := &Client{
 		TimelineServiceClient: c,
 		entries:               make(chan *timelinepb.CreateEventsRequest_EventEntry, 1000),
 	}
-	go client.processEvents(ctx)
+	if config.TimelineEndpoint.Scheme == "discard" {
+		go client.noopEvents(ctx)
+	} else {
+		go client.processEvents(ctx)
+	}
 	return client
 }
 
@@ -63,6 +83,16 @@ func (c *Client) Publish(ctx context.Context, event Event) {
 		if time.Since(c.lastDroppedError.Load()) > 10*time.Second {
 			log.FromContext(ctx).Warnf("Dropping event %T due to full queue", event)
 			c.lastDroppedError.Store(time.Now())
+		}
+	}
+}
+
+func (c *Client) noopEvents(ctx context.Context) {
+	for {
+		select {
+		case <-c.entries:
+		case <-ctx.Done():
+			return
 		}
 	}
 }

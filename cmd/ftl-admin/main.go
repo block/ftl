@@ -25,16 +25,16 @@ import (
 )
 
 var cli struct {
-	Bind                *url.URL             `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Version             kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig           log.Config           `embed:"" prefix:"log-"`
-	AdminConfig         admin.Config         `embed:"" prefix:"admin-"`
-	SchemaEndpoint      *url.URL             `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint    *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Realm               string               `help:"Realm name." env:"FTL_REALM" required:""`
-	Config              string               `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
-	RegistryConfig      oci.ArtefactConfig   `embed:"" prefix:"oci-"`
+	Bind                *url.URL              `help:"Socket to bind to." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	Version             kong.VersionFlag      `help:"Show version."`
+	ObservabilityConfig observability.Config  `embed:"" prefix:"o11y-"`
+	LogConfig           log.Config            `embed:"" prefix:"log-"`
+	AdminConfig         admin.Config          `embed:"" prefix:"admin-"`
+	SchemaEndpoint      *url.URL              `help:"Schema endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineConfig      timelineclient.Config `embed:""`
+	Realm               string                `help:"Realm name." env:"FTL_REALM" required:""`
+	Config              string                `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
+	RegistryConfig      oci.ArtefactConfig    `embed:"" prefix:"oci-"`
 }
 
 func main() {
@@ -65,7 +65,7 @@ func main() {
 
 	storage, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
-	client := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+	client := timelineclient.NewClient(ctx, cli.TimelineConfig)
 	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, []string{})
 
 	kctx.FatalIfErrorf(err, "failed to start admin service handlers")

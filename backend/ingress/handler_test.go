@@ -71,9 +71,6 @@ func TestIngress(t *testing.T) {
 	}
 
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
-	timelineEndpoint, err := url.Parse("http://localhost:8080")
-	assert.NoError(t, err)
-
 	for _, test := range []struct {
 		name       string
 		method     string
@@ -126,7 +123,7 @@ func TestIngress(t *testing.T) {
 			svc := &service{
 				view:           syncView(ctx, eventSource),
 				client:         fv,
-				timelineClient: timelineclient.NewClient(ctx, timelineEndpoint),
+				timelineClient: timelineclient.NewClient(ctx, timelineclient.NullConfig),
 				routeTable:     routing.New(ctx, eventSource),
 			}
 			svc.handleHTTP(time.Now(), sch, reqKey, routes, rec, req, fv)

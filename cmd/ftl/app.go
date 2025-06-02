@@ -38,12 +38,12 @@ import (
 )
 
 type SharedCLI struct {
-	Version          kong.VersionFlag `help:"Show version."`
-	Project          string           `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
-	ConfigFlag       string           `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
-	TimelineEndpoint *url.URL         `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
-	AdminEndpoint    *url.URL         `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
-	Trace            string           `help:"File to write golang runtime/trace output to." hidden:""`
+	Version        kong.VersionFlag      `help:"Show version."`
+	Project        string                `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
+	ConfigFlag     string                `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
+	TimelineConfig timelineclient.Config `embed:""`
+	AdminEndpoint  *url.URL              `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Trace          string                `help:"File to write golang runtime/trace output to." hidden:""`
 
 	Ping       pingCmd       `cmd:"" help:"Ping the FTL cluster."`
 	Init       initCmd       `cmd:"" help:"Initialize a new FTL project."`
@@ -261,7 +261,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.Bind(&cli.SharedCLI)
 
 		err = kctx.BindToProvider(func() (*timelineclient.Client, error) {
-			return timelineclient.NewClient(ctx, cli.TimelineEndpoint), nil
+			return timelineclient.NewClient(ctx, cli.TimelineConfig), nil
 		})
 		kctx.FatalIfErrorf(err)
 		err = kctx.BindToProvider(func() (adminpbconnect.AdminServiceClient, error) {

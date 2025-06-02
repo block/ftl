@@ -58,7 +58,7 @@ type Config struct {
 	HealthBind            *url.URL                `help:"Endpoint the Runner should bind to for health check" env:"FTL_HEALTH_BIND"`
 	Key                   key.Runner              `help:"Runner key (auto)."`
 	LeaseEndpoint         *url.URL                `name:"ftl-lease-endpoint" help:"Lease endpoint endpoint." env:"FTL_LEASE_ENDPOINT" default:"http://127.0.0.1:8895"`
-	TimelineEndpoint      *url.URL                `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineConfig        timeline.Config         `embed:""`
 	DeploymentKeepHistory int                     `help:"Number of deployments to keep history for." default:"3"`
 	HeartbeatPeriod       time.Duration           `help:"Minimum period between heartbeats." default:"3s"`
 	HeartbeatJitter       time.Duration           `help:"Jitter to add to heartbeat period." default:"2s"`
@@ -106,7 +106,7 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider oci.De
 		observability.Runner.StartupFailed(ctx)
 		return errors.Wrap(err, "failed to marshal labels")
 	}
-	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
+	timelineClient := timeline.NewClient(ctx, config.TimelineConfig)
 
 	svc := &Service{
 		key:                       runnerKey,

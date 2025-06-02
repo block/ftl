@@ -49,7 +49,7 @@ func main() {
 
 	logger := log.Configure(os.Stderr, cli.LogConfig).Scope("provisioner")
 	ctx := log.ContextWithLogger(context.Background(), logger)
-	timelineClient := timeline.NewClient(ctx, cli.ProvisionerConfig.TimelineEndpoint)
+	timelineClient := timeline.NewClient(ctx, cli.ProvisionerConfig.TimelineConfig)
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.ProvisionerConfig.AdminEndpoint.String(), log.Error)
 	err := observability.Init(ctx, false, "", "ftl-provisioner", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
