@@ -16,7 +16,7 @@ var (
 	declUnion            = []Decl{&Data{}, &Verb{}, &Database{}, &Enum{}, &TypeAlias{}, &Config{}, &Secret{}, &Topic{}}
 	nonOptionalTypeUnion = []Type{
 		&Int{}, &Float{}, &String{}, &Bytes{}, &Bool{}, &Time{}, &Array{},
-		&Map{}, &Any{}, &Unit{}, &Data{}, &TypeAlias{},
+		&Map{}, &Any{}, &Unit{}, &Data{}, &TypeAlias{}, &Enum{},
 		// Note: any types resolved by identifier (eg. "Any", "Unit", etc.) must
 		// be prior to Ref.
 		&Ref{},

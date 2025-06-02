@@ -97,7 +97,7 @@ func validate(s *schema.Schema, seen map[schema.Kind]bool, prev, next schema.Typ
 	case *schema.TypeAlias:
 		next := next.(*schema.TypeAlias) //nolint:forcetypeassert
 		if prev.Name != next.Name {
-			return errorf(prev, "%s: type alias name changed to %s", prev.Name, next.Name)
+			return errorf(prev, "typealias %s: type alias name changed to %s", prev.Name, next.Name)
 		}
 		return contextf(validate(s, seen, prev.Type, next.Type), "typealias %s", prev.Name)
 

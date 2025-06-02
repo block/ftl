@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/alecthomas/types/optional"
+
+	"github.com/block/ftl/internal/maps"
 )
 
 //protobuf:4
@@ -30,14 +32,19 @@ func (e *Enum) Equal(other Type) bool {
 	if !ok {
 		return false
 	}
-	if !e.Type.Equal(o.Type) {
+	if (e.Type == nil) != (o.Type == nil) {
+		return false
+	}
+	if e.Type != nil && !e.Type.Equal(o.Type) {
 		return false
 	}
 	if len(e.Variants) != len(o.Variants) {
 		return false
 	}
-	for i, variant := range e.Variants {
-		if !variant.Equal(o.Variants[i]) {
+	ourVariants := maps.FromSlice(e.Variants, func(v *EnumVariant) (string, *EnumVariant) { return v.Name, v })
+	otherVariants := maps.FromSlice(o.Variants, func(v *EnumVariant) (string, *EnumVariant) { return v.Name, v })
+	for name, variant := range ourVariants {
+		if otherVariant, ok := otherVariants[name]; !ok || !variant.Value.Equal(otherVariant.Value) {
 			return false
 		}
 	}
