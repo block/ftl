@@ -20,7 +20,7 @@ type mcpCmd struct{}
 
 func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient, bindContext KongContextBinder) error {
-	timelineClient := rpc.Dial(timelinepbconnect.NewTimelineServiceClient, cli.TimelineEndpoint.String(), log.Error)
+	timelineClient := rpc.Dial(timelinepbconnect.NewTimelineServiceClient, cli.TimelineConfig.TimelineEndpoint.String(), log.Error)
 
 	s := newMCPServer(ctx, k, projectConfig, buildEngineClient, adminClient, timelineClient, bindContext)
 	k.FatalIfErrorf(s.Serve(), "failed to serve MCP")

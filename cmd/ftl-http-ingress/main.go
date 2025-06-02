@@ -20,13 +20,13 @@ import (
 )
 
 var cli struct {
-	Bind                 *url.URL             `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
-	Version              kong.VersionFlag     `help:"Show version."`
-	ObservabilityConfig  observability.Config `embed:"" prefix:"o11y-"`
-	LogConfig            log.Config           `embed:"" prefix:"log-"`
-	HTTPIngressConfig    ingress.Config       `embed:""`
-	SchemaServerEndpoint *url.URL             `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
-	TimelineEndpoint     *url.URL             `help:"Timeline endpoint." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
+	Bind                 *url.URL              `help:"Socket to bind to for ingress." default:"http://127.0.0.1:8892" env:"FTL_BIND"`
+	Version              kong.VersionFlag      `help:"Show version."`
+	ObservabilityConfig  observability.Config  `embed:"" prefix:"o11y-"`
+	LogConfig            log.Config            `embed:"" prefix:"log-"`
+	HTTPIngressConfig    ingress.Config        `embed:""`
+	SchemaServerEndpoint *url.URL              `name:"ftl-endpoint" help:"Controller endpoint." env:"FTL_SCHEMA_ENDPOINT" default:"http://127.0.0.1:8892"`
+	TimelineConfig       timelineclient.Config `embed:""`
 }
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaServerEndpoint.String(), log.Error)
-	timelineClient := timelineclient.NewClient(ctx, cli.TimelineEndpoint)
+	timelineClient := timelineclient.NewClient(ctx, cli.TimelineConfig)
 	eventSource := schemaeventsource.New(ctx, "http-ingress", schemaClient)
 	routeManager := routing.NewVerbRouter(ctx, eventSource, timelineClient)
 	err = ingress.Start(ctx, cli.Bind, cli.HTTPIngressConfig, eventSource, routeManager, timelineClient)

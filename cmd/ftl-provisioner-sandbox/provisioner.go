@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/url"
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
@@ -30,7 +29,7 @@ type Config struct {
 	MySQLEndpoint             string   `help:"Endpoint for the mysql database" env:"FTL_SANDBOX_MYSQL_ENDPOINT"`
 	KafkaBrokers              []string `help:"Brokers for the kafka cluster" env:"FTL_SANDBOX_KAFKA_BROKERS"`
 
-	TimelineEndpoint *url.URL `help:"Endpoint for the timeline service" env:"FTL_TIMELINE_ENDPOINT"`
+	TimelineConfig timeline.Config `embed:""`
 }
 
 type SandboxProvisioner struct {
@@ -51,7 +50,7 @@ func NewSandboxProvisioner(ctx context.Context, config Config) (context.Context,
 		return nil, nil, errors.Wrap(err, "failed to create secretsmanager client")
 	}
 
-	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
+	timelineClient := timeline.NewClient(ctx, config.TimelineConfig)
 	timelineLogSink := timeline.NewLogSink(timelineClient, log.Debug)
 	go timelineLogSink.RunLogLoop(ctx)
 	logger = logger.AddSink(timelineLogSink)

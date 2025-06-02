@@ -111,7 +111,7 @@ func (s *serveCommonConfig) run(
 	logger := log.FromContext(ctx)
 	services := additionalServices
 
-	timelineClient := timelineclient.NewClient(ctx, s.Bind)
+	timelineClient := timelineclient.NewClient(ctx, timelineclient.Config{TimelineEndpoint: s.Bind})
 	adminClient := rpc.Dial(adminpbconnect.NewAdminServiceClient, s.Bind.String(), log.Error)
 	buildEngineClient := rpc.Dial(buildenginepbconnect.NewBuildEngineServiceClient, s.Bind.String(), log.Error)
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, s.Bind.String(), log.Error)
@@ -305,7 +305,7 @@ func (s *serveCommonConfig) run(
 		ctx := log.ContextWithLogger(ctx, log.FromContext(ctx).Scope("cron"))
 		c := cron.Config{
 			SchemaServiceEndpoint: s.Bind,
-			TimelineEndpoint:      s.Bind,
+			TimelineConfig:        timelineclient.Config{TimelineEndpoint: s.Bind},
 		}
 		err := cron.Start(ctx, c, schemaEventSource, router, timelineClient)
 		if err != nil {

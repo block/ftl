@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -44,7 +43,7 @@ type Config struct {
 	DatabaseSecurityGroup string `help:"SG for databases" env:"FTL_PROVISIONER_CF_DB_SECURITY_GROUP"`
 	MysqlSecurityGroup    string `help:"SG for mysql" env:"FTL_PROVISIONER_CF_MYSQL_SECURITY_GROUP"`
 
-	TimelineEndpoint *url.URL `help:"Endpoint for the timeline service" env:"FTL_TIMELINE_ENDPOINT"`
+	TimelineConfig timeline.Config `embed:""`
 }
 
 type CloudformationProvisioner struct {
@@ -70,7 +69,7 @@ func NewCloudformationProvisioner(ctx context.Context, config Config) (context.C
 		return nil, nil, errors.Wrap(err, "failed to create secretsmanager client")
 	}
 
-	timelineClient := timeline.NewClient(ctx, config.TimelineEndpoint)
+	timelineClient := timeline.NewClient(ctx, config.TimelineConfig)
 	timelineLogSink := timeline.NewLogSink(timelineClient, log.Debug)
 	go timelineLogSink.RunLogLoop(ctx)
 	logger = logger.AddSink(timelineLogSink)
