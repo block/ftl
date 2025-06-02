@@ -94,7 +94,11 @@ func Start(ctx context.Context, config Config, deploymentArtifactProvider oci.De
 		return errors.WithStack(err)
 	}
 
-	logger.Debugf("Listening on %s", config.Bind)
+	logger.Debugf("FTL_BIND = %s", config.Bind)
+	logger.Debugf("FTL_HEALTH_BIND = %s", config.HealthBind)
+	logger.Debugf("FTL_DEPLOYMENT = %s", config.Deployment)
+	logger.Debugf("FTL_TIMELINE_ENDPOINT = %s", config.TimelineEndpoint)
+	logger.Debugf("FTL_LEASE_ENDPOINT = %s", config.LeaseEndpoint)
 
 	labels, err := structpb.NewStruct(map[string]any{
 		"hostname": hostname,
