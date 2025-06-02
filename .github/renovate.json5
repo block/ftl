@@ -101,6 +101,12 @@
       enabled: false,
     },
     {
+      matchPackageNames: [
+        'io.grpc',
+      ],
+      enabled: false,
+    },
+    {
       matchCategories: [
         'docker',
       ],
