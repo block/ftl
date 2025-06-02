@@ -31,6 +31,8 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.module.kotlin.KotlinFeature;
+import com.fasterxml.jackson.module.kotlin.KotlinModule;
 
 import io.quarkus.arc.Unremovable;
 import io.quarkus.jackson.ObjectMapperCustomizer;
@@ -71,6 +73,10 @@ public class JsonSerializationConfig implements ObjectMapperCustomizer {
         module.addSerializer(byte[].class, new ByteArraySerializer());
         module.addDeserializer(byte[].class, new ByteArrayDeserializer());
         mapper.disable(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE);
+        mapper.registerModule(new KotlinModule.Builder()
+                .configure(KotlinFeature.NullToEmptyCollection, true)
+                .configure(KotlinFeature.NullToEmptyMap, true)
+                .build());
         for (var i : instances) {
             var object = extractTypeAliasParam(i.getClass(), 0);
             var serialized = extractTypeAliasParam(i.getClass(), 1);
