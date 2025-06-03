@@ -5,8 +5,6 @@ import (
 
 	errors "github.com/alecthomas/errors"
 
-	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -20,11 +18,9 @@ type buildCmd struct {
 
 func (b *buildCmd) Run(
 	ctx context.Context,
-	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
-	logger := log.FromContext(ctx)
 	if len(b.Dirs) == 0 {
 		b.Dirs = projConfig.AbsModuleDirs()
 	}
@@ -35,24 +31,20 @@ func (b *buildCmd) Run(
 	// Cancel build engine context to ensure all language plugins are killed.
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errors.Wrap(context.Canceled, "build stopped"))
-	engine, err := buildengine.New(
+	engine, err := buildengine.NewV2(
 		ctx,
-		adminClient,
 		schemaSource,
 		projConfig,
 		b.Dirs,
 		false,
-		buildengine.BuildEnv(b.BuildEnv),
-		buildengine.Parallelism(b.Parallelism),
+		buildengine.BuildEnvV2(b.BuildEnv),
+		buildengine.ParallelismV2(b.Parallelism),
 	)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if len(engine.Modules()) == 0 {
-		logger.Warnf("No modules were found to build")
-		return nil
-	}
-	if err := engine.Build(ctx); err != nil {
+
+	if err := engine.BuildV2(ctx, true); err != nil {
 		return errors.Wrap(err, "build failed")
 	}
 	return nil
