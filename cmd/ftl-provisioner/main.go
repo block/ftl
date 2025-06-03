@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/alecthomas/kong"
@@ -32,12 +31,12 @@ var cli struct {
 	ArtefactConfig        oci.ArtefactConfig   `prefix:"oci-artefact-" embed:""`
 	ImageConfig           oci.ImageConfig      `prefix:"oci-image-" embed:""`
 	Realm                 string               `help:"The realm." env:"FTL_REALM" default:"ftl"`
-	UserNamespace         string               `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
 	CronServiceAccount    string               `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
 	ConsoleServiceAccount string               `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
 	AdminServiceAccount   string               `help:"Service account for admin." env:"FTL_ADMIN_SERVICE_ACCOUNT"`
 	HTTPServiceAccount    string               `help:"Service account for http." env:"FTL_HTTP_SERVICE_ACCOUNT"`
 	DefaultRunnerImage    string               `help:"Default image to use for a runner." env:"FTL_DEFAULT_RUNNER_IMAGE" default:"ftl0/ftl-runner"`
+	KubeConfig            kube.KubeConfig      `embed:""`
 }
 
 func main() {
@@ -56,19 +55,14 @@ func main() {
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.ProvisionerConfig.SchemaEndpoint.String(), log.Error)
-	mapper := kube.NewNamespaceMapper(cli.UserNamespace)
+	mapper := cli.KubeConfig.NamespaceMapper()
 	artefactService, err := oci.NewArtefactService(ctx, cli.ArtefactConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
 	imageService, err := oci.NewImageService(ctx, artefactService, &cli.ImageConfig)
 	kctx.FatalIfErrorf(err, "failed to create image service")
-	var routeTemplate string
-	if cli.UserNamespace != "" {
-		routeTemplate = fmt.Sprintf("http://${module}.%s:8892", cli.UserNamespace)
-	} else {
-		routeTemplate = "http://${module}.${module}-${realm}:8892"
-	}
-	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+
+	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, cli.KubeConfig.RouteTemplate(), cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService)

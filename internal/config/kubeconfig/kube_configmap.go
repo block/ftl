@@ -1,14 +1,16 @@
-package config
+package kubeconfig
 
 import (
 	"context"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	kubecore "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/kube"
 )
@@ -31,12 +33,12 @@ func (k *KubeConfigMapProvider) Close(ctx context.Context) error {
 // Delete implements Provider.
 func (k *KubeConfigMapProvider) Delete(ctx context.Context, ref config.Ref) error {
 	if module, ok := ref.Module.Get(); ok {
-		conf, err := k.load(ctx, module)
+		conf, cm, err := k.load(ctx, module)
 		if err != nil {
 			return errors.Wrapf(err, "set %s", ref)
 		}
 		delete(conf, ref.Name)
-		if err = k.save(ctx, module, conf); err != nil {
+		if err = k.save(ctx, module, conf, cm); err != nil {
 			return errors.Wrapf(err, "set %s", ref)
 		}
 		return nil
@@ -52,27 +54,42 @@ func (k *KubeConfigMapProvider) Key() config.ProviderKey {
 // List implements Provider.
 func (k *KubeConfigMapProvider) List(ctx context.Context, withValues bool, forModule optional.Option[string]) ([]config.Value, error) {
 	// Not implementd yet
-	return []config.Value{}, nil
+	maps, err := k.client.CoreV1().ConfigMaps("").List(ctx, v1.ListOptions{LabelSelector: kube.RealmLabel + "=" + k.realm})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get ConfigMaps")
+	}
+	ret := []config.Value{}
+	for _, cm := range maps.Items {
+		module := cm.Labels[kube.ModuleLabel]
+		if module == "" {
+			continue
+		}
+		for k, v := range cm.Data {
+			ret = append(ret, config.Value{Ref: config.NewRef(optional.Some(module), k), Value: optional.Some([]byte(v))})
+		}
+	}
+	return ret, nil
 }
 
 // Load implements Provider.
 func (k *KubeConfigMapProvider) Load(ctx context.Context, ref config.Ref) ([]byte, error) {
-	if module, ok := ref.Module.Get(); ok {
-		ns := k.mapper(module, k.realm)
-		cm, err := k.client.CoreV1().ConfigMaps(ns).Get(ctx, kube.ConfigMapName(module), v1.GetOptions{})
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				return nil, nil
-			}
-			return nil, errors.Wrap(err, "failed to get ConfigMap")
-		}
-		val := cm.Data[ref.Name]
-		if val == "" {
-			return nil, nil
-		}
-		return []byte(val), nil
+	module, ok := ref.Module.Get()
+	if !ok {
+		return nil, config.ErrNotFound
 	}
-	return nil, nil
+	ns := k.mapper(module, k.realm)
+	cm, err := k.client.CoreV1().ConfigMaps(ns).Get(ctx, kube.ConfigMapName(module), v1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, config.ErrNotFound
+		}
+		return nil, errors.Wrap(err, "failed to get ConfigMap")
+	}
+	val, ok := cm.Data[ref.Name]
+	if !ok {
+		return nil, config.ErrNotFound
+	}
+	return []byte(val), nil
 }
 
 // Role implements Provider.
@@ -82,47 +99,50 @@ func (k *KubeConfigMapProvider) Role() config.Configuration {
 
 // Store implements Provider.
 func (k *KubeConfigMapProvider) Store(ctx context.Context, ref config.Ref, value []byte) error {
-
-	if module, ok := ref.Module.Get(); ok {
-		conf, err := k.load(ctx, module)
-		if err != nil {
-			return errors.Wrapf(err, "set %s", ref)
-		}
-		conf[ref.Name] = value
-		if err = k.save(ctx, module, conf); err != nil {
-			return errors.Wrapf(err, "set %s", ref)
-		}
-		return nil
+	module, ok := ref.Module.Get()
+	if !ok {
+		return errors.Errorf("unable to set global config")
 	}
-	return errors.Errorf("unable to set global config")
+	conf, cm, err := k.load(ctx, module)
+	if err != nil {
+		return errors.Wrapf(err, "set %s", ref)
+	}
+	conf[ref.Name] = value
+	if err = k.save(ctx, module, conf, cm); err != nil {
+		return errors.Wrapf(err, "set %s", ref)
+	}
+	return nil
 }
 
 func NewKubeConfigProvider(client *kubernetes.Clientset, mapper kube.NamespaceMapper, realm string) *KubeConfigMapProvider {
 	return &KubeConfigMapProvider{client: client, mapper: mapper, realm: realm}
 }
 
-func (k *KubeConfigMapProvider) load(ctx context.Context, module string) (map[string][]byte, error) {
+func (k *KubeConfigMapProvider) load(ctx context.Context, module string) (map[string][]byte, *kubecore.ConfigMap, error) {
 	ns := k.mapper(module, k.realm)
 	cm, err := k.client.CoreV1().ConfigMaps(ns).Get(ctx, kube.ConfigMapName(module), v1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return map[string][]byte{}, nil
+			return map[string][]byte{}, nil, nil
 		}
-		return nil, errors.Wrap(err, "failed to get ConfigMap")
+		return nil, nil, errors.Wrap(err, "failed to get ConfigMap")
 	}
 	serialisable := cm.Data
 	if cm.Data == nil {
-		return make(map[string][]byte), nil
+		cm.Data = map[string]string{}
 	}
 
 	out := map[string][]byte{}
 	for refStr, keyStr := range serialisable {
 		out[refStr] = []byte(keyStr)
 	}
-	return out, nil
+	// Note that we return the ConfigMap so if it is changed in the background our update will fail
+	// This prevents any possible data loss
+	return out, cm, nil
 }
 
-func (k *KubeConfigMapProvider) save(ctx context.Context, module string, data map[string][]byte) error {
+func (k *KubeConfigMapProvider) save(ctx context.Context, module string, data map[string][]byte, cm *kubecore.ConfigMap) error {
+	logger := log.FromContext(ctx)
 	serialisable := map[string]string{}
 	for ref, key := range data {
 		serialisable[ref] = string(key)
@@ -132,14 +152,12 @@ func (k *KubeConfigMapProvider) save(ctx context.Context, module string, data ma
 	if err != nil {
 		return errors.Wrapf(err, "unable to create namespace")
 	}
-	cm, err := k.client.CoreV1().ConfigMaps(ns).Get(ctx, kube.ConfigMapName(module), v1.GetOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return errors.Wrap(err, "failed to get ConfigMap")
-		}
+	if cm == nil {
+		cm = &kubecore.ConfigMap{}
+		kube.AddLabels(&cm.ObjectMeta, k.realm, module)
 		cm.Name = kube.ConfigMapName(module)
 		cm.Namespace = ns
-		cm.Labels = map[string]string{"app.kubernetes.io/managed-by": "ftl"}
+		logger.Debugf("Creating configmap %s/%s", ns, cm.Name)
 		cm, err = k.client.CoreV1().ConfigMaps(ns).Create(ctx, cm, v1.CreateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to create ConfigMap")

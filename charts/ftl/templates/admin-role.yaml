@@ -18,6 +18,9 @@ rules:
   - apiGroups: [ "" ]
     resources: [ "configmaps" ]
     verbs: [ "get", "list", "watch", "delete", "create", "update", "patch"]
+  - apiGroups: [ "" ]
+    resources: [ "secrets" ]
+    verbs: [ "get", "list", "watch", "delete", "create", "update", "patch"]
   {{ if not .Values.provisioner.userNamespace }}
   - apiGroups: [""]
     resources: ["namespaces"]

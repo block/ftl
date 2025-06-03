@@ -43,9 +43,7 @@ const configMapName = "ftl-provisioner-deployment-config"
 const deploymentTemplate = "deploymentTemplate"
 const serviceTemplate = "serviceTemplate"
 const serviceAccountTemplate = "serviceAccountTemplate"
-const moduleLabel = "ftl.dev/module"
 const deploymentLabel = "ftl.dev/deployment"
-const realmLabel = "ftl.dev/realm"
 const deployTimeout = time.Minute * 5
 
 var _ scaling.RunnerScaling = &k8sScaling{}
@@ -233,15 +231,6 @@ func (r *k8sScaling) updateDeployment(ctx context.Context, namespace string, nam
 	return errors.Errorf("failed to update deployment %s, 10 clonflicts in a row", name)
 }
 
-func (r *k8sScaling) thisContainerImage(ctx context.Context) (string, error) {
-	deploymentClient := r.client.AppsV1().Deployments(r.systemNamespace)
-	thisDeployment, err := deploymentClient.Get(ctx, provisionerDeploymentName, v1.GetOptions{})
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get admin deployment %s", provisionerDeploymentName)
-	}
-	return thisDeployment.Spec.Template.Spec.Containers[0].Image, nil
-}
-
 func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, module string, name string, sch *schema.Module, cron bool, ingress bool) error {
 	logger := log.FromContext(ctx)
 	userNamespace := r.namespaceMapper(module, realm)
@@ -270,7 +259,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 			return errors.Wrapf(err, "failed to decode service from configMap %s", configMapName)
 		}
 		service.Name = module
-		service.Spec.Selector = map[string]string{moduleLabel: module}
+		service.Spec.Selector = map[string]string{kube.ModuleLabel: module}
 		addLabels(&service.ObjectMeta, realm, module, module)
 		service, err = servicesClient.Create(ctx, service, v1.CreateOptions{})
 		if err != nil {
@@ -298,7 +287,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		if serviceAccount.Labels == nil {
 			serviceAccount.Labels = map[string]string{}
 		}
-		serviceAccount.Labels[moduleLabel] = module
+		serviceAccount.Labels[kube.ModuleLabel] = module
 		_, err = serviceAccountClient.Create(ctx, serviceAccount, v1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create service account %s", name)
@@ -428,13 +417,9 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 }
 
 func addLabels(obj *v1.ObjectMeta, realm string, module string, deployment string) {
-	if obj.Labels == nil {
-		obj.Labels = map[string]string{}
-	}
+	kube.AddLabels(obj, realm, module)
 	obj.Labels["app"] = deployment
 	obj.Labels[deploymentLabel] = deployment
-	obj.Labels[moduleLabel] = module
-	obj.Labels[realmLabel] = realm
 }
 
 func decodeBytesToObject(bytes []byte, deployment runtime.Object) error {
@@ -556,7 +541,7 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 	err := r.createOrUpdateIstioPolicy(ctx, sec, namespace, name, func(policy *istiosec.AuthorizationPolicy) {
 		addLabels(&policy.ObjectMeta, realm, module, name)
 		policy.OwnerReferences = []v1.OwnerReference{{APIVersion: "v1", Kind: "service", Name: module, UID: service.UID}}
-		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{moduleLabel: module}}
+		policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{kube.ModuleLabel: module}}
 		policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 		principals := []string{
 			"cluster.local/ns/" + r.systemNamespace + "/sa/" + provisionerDeployment.Spec.Template.Spec.ServiceAccountName,
@@ -610,8 +595,8 @@ func (r *k8sScaling) syncIstioPolicy(ctx context.Context, sec istioclient.Client
 			if policy.Labels == nil {
 				policy.Labels = map[string]string{}
 			}
-			policy.Labels[moduleLabel] = module
-			policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{moduleLabel: callableModule}}
+			policy.Labels[kube.ModuleLabel] = module
+			policy.Spec.Selector = &v1beta1.WorkloadSelector{MatchLabels: map[string]string{kube.ModuleLabel: callableModule}}
 			policy.Spec.Action = istiosecmodel.AuthorizationPolicy_ALLOW
 			policy.Spec.Rules = []*istiosecmodel.Rule{
 				{

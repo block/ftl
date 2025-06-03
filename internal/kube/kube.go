@@ -15,6 +15,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type KubeConfig struct {
+	UserNamespace string `help:"Namespace to use for kube user resources." env:"FTL_USER_NAMESPACE"`
+}
+
+const ModuleLabel = "ftl.dev/module"
+
+const RealmLabel = "ftl.dev/realm"
+
 type NamespaceMapper func(module string, realm string) string
 
 func CreateClientSet() (*kubernetes.Clientset, error) {
@@ -85,15 +93,22 @@ func GetCurrentNamespace() (string, error) {
 	return c.Namespace, nil
 }
 
-func NewNamespaceMapper(userNamespace string) NamespaceMapper {
-	if userNamespace != "" {
+func (k *KubeConfig) NamespaceMapper() NamespaceMapper {
+	if k.UserNamespace != "" {
 		return func(module string, realm string) string {
-			return userNamespace
+			return k.UserNamespace
 		}
 	}
 	return func(module string, realm string) string {
 		return module + "-" + realm
 	}
+}
+
+func (k *KubeConfig) RouteTemplate() string {
+	if k.UserNamespace != "" {
+		return fmt.Sprintf("http://${module}.%s:8892", k.UserNamespace)
+	}
+	return "http://${module}.${module}-${realm}:8892"
 }
 
 func ConfigMapName(module string) string {
@@ -135,4 +150,13 @@ func EnsureNamespace(ctx context.Context, client *kubernetes.Clientset, namespac
 		return errors.Wrapf(err, "failed to create namespace %s", namespace)
 	}
 	return nil
+}
+
+func AddLabels(obj *v1.ObjectMeta, realm string, module string) {
+	if obj.Labels == nil {
+		obj.Labels = map[string]string{}
+	}
+	obj.Labels["app.kubernetes.io/managed-by"] = "ftl"
+	obj.Labels[ModuleLabel] = module
+	obj.Labels[RealmLabel] = realm
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
-	kubeconfig "github.com/block/ftl/internal/config/kubeconfig"
+	"github.com/block/ftl/internal/config/kubeconfig"
 	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/oci"
@@ -36,8 +36,8 @@ var cli struct {
 	Realm               string                `help:"Realm name." env:"FTL_REALM" required:""`
 	Config              string                `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	RegistryConfig      oci.ArtefactConfig    `embed:"" prefix:"oci-"`
-	UserNamespace       string                `help:"Namespace to use for kube user resources." env:"FTL_USER_NAMESPACE"`
 	UseASM              bool                  `help:"Use AWS Secrets Manager to administer secrets" default:"false" env:"FTL_USE_ASM"`
+	KubeConfig          kube.KubeConfig       `embed:""`
 }
 
 func main() {
@@ -56,7 +56,7 @@ func main() {
 
 	kubeClient, err := kube.CreateClientSet()
 	kctx.FatalIfErrorf(err, "failed to initialize kube client")
-	mapper := kube.NewNamespaceMapper(cli.UserNamespace)
+	mapper := cli.KubeConfig.NamespaceMapper()
 	cm := kubeconfig.NewKubeConfigProvider(kubeClient, mapper, cli.Realm)
 
 	var sm config.Provider[config.Secrets]
