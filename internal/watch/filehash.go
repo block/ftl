@@ -78,9 +78,6 @@ func ComputeFileHashes(dir string, skipGitIgnoredFiles bool, patterns []string) 
 				return errors.WithStack(err)
 			}
 			if !matched {
-				if patterns[0] == "*" {
-					return errors.Errorf("file %s:%s does not match any: %s", rootDir, srcPath, patterns)
-				}
 				return nil
 			}
 			fileHashes[srcPath] = hash
