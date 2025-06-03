@@ -1368,12 +1368,22 @@ public class ModuleBuilder {
                 valueBuilder.setStringValue(StringValue.newBuilder().setValue(aString).build());
             }
             EnumVariant variant = EnumVariant.newBuilder()
-                    .setName(constant.toString())
+                    .setName(upperSnakeToLowerCamel(constant.toString()))
                     .setValue(valueBuilder)
                     .build();
             enumBuilder.addVariants(variant);
         }
         return Decl.newBuilder().setEnum(enumBuilder).build();
+    }
+
+    private static String upperSnakeToLowerCamel(String snakeStr) {
+        String[] components = snakeStr.toLowerCase().split("_");
+        StringBuilder camelCase = new StringBuilder();
+        for (var i : components) {
+            camelCase.append(i.substring(0, 1).toUpperCase())
+                    .append(i.substring(1));
+        }
+        return camelCase.toString();
     }
 
     private record TypeEnum(Decl decl, Map<String, Class<?>> variantClasses, List<Class<?>> holders) {
