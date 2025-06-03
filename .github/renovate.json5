@@ -101,9 +101,7 @@
       enabled: false,
     },
     {
-      matchPackageNames: [
-        'io.grpc',
-      ],
+      matchPackagePatterns: ["^io\\.grpc"],
       enabled: false,
     },
     {
