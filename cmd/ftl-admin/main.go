@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/url"
 	"os"
-	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -15,6 +14,8 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
+	"github.com/block/ftl/internal/config/kubeconfig"
+	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/oci"
 	_ "github.com/block/ftl/internal/prodinit"
@@ -35,6 +36,8 @@ var cli struct {
 	Realm               string                `help:"Realm name." env:"FTL_REALM" required:""`
 	Config              string                `help:"Path to FTL configuration file." env:"FTL_CONFIG" required:""`
 	RegistryConfig      oci.ArtefactConfig    `embed:"" prefix:"oci-"`
+	UseASM              bool                  `help:"Use AWS Secrets Manager to administer secrets" default:"false" env:"FTL_USE_ASM"`
+	KubeConfig          kube.KubeConfig       `embed:""`
 }
 
 func main() {
@@ -51,15 +54,21 @@ func main() {
 	err := observability.Init(ctx, false, "", "ftl-admin", ftl.Version, cli.ObservabilityConfig)
 	kctx.FatalIfErrorf(err, "failed to initialize observability")
 
-	cm, err := config.NewFileProvider[config.Configuration](filepath.Dir(cli.Config), filepath.Base(cli.Config))
-	kctx.FatalIfErrorf(err)
+	kubeClient, err := kube.CreateClientSet()
+	kctx.FatalIfErrorf(err, "failed to initialize kube client")
+	mapper := cli.KubeConfig.NamespaceMapper()
+	cm := kubeconfig.NewKubeConfigProvider(kubeClient, mapper, cli.Realm)
 
-	// FTL currently only supports AWS Secrets Manager as a secrets provider.
-	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
-	kctx.FatalIfErrorf(err)
-	asm := config.NewASM(cli.Realm, secretsmanager.NewFromConfig(awsConfig))
-	sm := config.NewCacheDecorator(ctx, asm)
-
+	var sm config.Provider[config.Secrets]
+	if cli.UseASM {
+		// FTL currently only supports AWS Secrets Manager as a secrets provider.
+		awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
+		kctx.FatalIfErrorf(err)
+		asm := config.NewASM(cli.Realm, secretsmanager.NewFromConfig(awsConfig))
+		sm = config.NewCacheDecorator(ctx, asm)
+	} else {
+		sm = kubeconfig.NewKubeSecretProvider(kubeClient, mapper, cli.Realm)
+	}
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 

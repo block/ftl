@@ -56,8 +56,8 @@ spec:
               value: "{{ .Values.registry.repository }}"
             - name: FTL_ARTEFACT_REPOSITORY_ALLOW_INSECURE
               value: "{{ .Values.registry.allowInsecure }}"
-            - name: FTL_INSTANCE_NAME
-              value: "{{ include "ftl.fullname" . }}"
+            - name: FTL_REALM
+              value: {{ .Values.realmName }}
             {{- if .Values.provisioner.userNamespace}}
             - name: FTL_USER_NAMESPACE
               value: "{{ .Values.provisioner.userNamespace }}"

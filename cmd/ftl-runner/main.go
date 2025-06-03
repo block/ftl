@@ -25,7 +25,7 @@ var cli struct {
 	RunnerConfig        runner.Config        `embed:""`
 	DeploymentDir       string               `help:"Directory to store deployments in." default:"/deployments"`
 	SchemaLocation      string               `help:"Location of the schema file." env:"FTL_SCHEMA_LOCATION"` // This is temporary, a quick temp hack to allow kube to get secrets / config, remove once this is fixed
-	RouteTemplate       string               `help:"Template to use to construct routes to other services" env:"FTL_ROUTE_TEMPLATE" defaut:"{}"`
+	RouteTemplate       string               `help:"Template to use to construct routes to other services" env:"FTL_ROUTE_TEMPLATE"`
 	SecretsPath         string               `help:"Path to the directory containing secret files" env:"FTL_SECRETS_PATH" default:"/etc/ftl/secrets"`
 	ConfigsPath         string               `help:"Path to the directory containing config files" env:"FTL_CONFIGS_PATH" default:"/etc/ftl/configs"`
 }

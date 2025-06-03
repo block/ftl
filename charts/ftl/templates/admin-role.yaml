@@ -7,3 +7,41 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: {{ .Values.admin.adminRoleArn }}
   {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.realmName }}-{{ include "ftl.fullname" . }}-admin
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get", "list", "watch", "delete", "create", "update", "patch"]
+  - apiGroups: [ "" ]
+    resources: [ "secrets" ]
+    verbs: [ "get", "list", "watch", "delete", "create", "update", "patch"]
+  {{ if not .Values.provisioner.userNamespace }}
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: [ "get", "list", "watch", "create" ]
+  {{ else }}
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: [ "get" ]
+  {{- end}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.realmName }}-{{ .Release.Namespace }}-{{ include "ftl.fullname" . }}-admin
+  labels:
+    {{- include "ftl.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.realmName }}-{{ include "ftl.fullname" . }}-admin
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.admin.serviceAccountName }}
+    namespace: {{ .Release.Namespace }}
