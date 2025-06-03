@@ -40,7 +40,6 @@ wait-for-kube:
   kubectl wait --for=condition=available deployment/ftl-console --timeout=5m
   kubectl rollout status --watch statefulset/ftl-cron --timeout=5m
   kubectl wait --for=condition=available deployment/ftl-http-ingress --timeout=5m
-  kubectl wait --for=condition=available deployment/registry --timeout=5m
   sleep 1
   ftl-k3d schema get || sleep 5 && ftl-k3d schema get
 
