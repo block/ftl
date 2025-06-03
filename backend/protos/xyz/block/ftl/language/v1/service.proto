@@ -225,7 +225,7 @@ service LanguageService {
   // FTL will ensure that these dependencies are built before requesting a build for this module.
   rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesResponse);
 
-  // Build the module and recive the result
+  // Build the module and receive the result
   //
   //
   rpc Build(BuildRequest) returns (BuildResponse);

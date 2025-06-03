@@ -9,8 +9,6 @@ import (
 
 type InternalClient func(context.Context, TimeRequest) (TimeResponse, error)
 
-type InternalFossssClient func(context.Context, TimeRequest) (TimeResponse, error)
-
 type TimeClient func(context.Context, TimeRequest) (TimeResponse, error)
 
 func init() {
@@ -18,10 +16,6 @@ func init() {
 
 		reflection.ProvideResourcesForVerb(
 			Internal,
-		),
-
-		reflection.ProvideResourcesForVerb(
-			InternalFossss,
 		),
 
 		reflection.ProvideResourcesForVerb(

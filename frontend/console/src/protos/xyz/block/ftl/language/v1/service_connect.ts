@@ -40,7 +40,7 @@ export const LanguageService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Build the module and recive the result
+     * Build the module and receive the result
      *
      *
      *

@@ -76,15 +76,15 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         var rc = runnerConnection;
         if (rc == null) {
             synchronized (this) {
-                if (runnerConnection != null) {
-                    return runnerConnection;
-                }
                 if (runnerDetails == null) {
                     waitForRunner();
                     if (runnerDetails == null) {
                         log.debugf("Failed to get runner details");
                         return this.runnerConnection = new MockRunnerConnection();
                     }
+                }
+                if (runnerConnection != null) {
+                    return runnerConnection;
                 }
                 runnerConnection = new FTLRunnerConnectionImpl(runnerDetails.getProxyAddress(),
                         runnerDetails.getDeploymentKey(), moduleName, new Consumer<FTLRunnerConnection>() {

@@ -56,7 +56,7 @@ type LanguageServiceClient interface {
 	// Extract dependencies for a module
 	// FTL will ensure that these dependencies are built before requesting a build for this module.
 	GetDependencies(context.Context, *connect.Request[v11.GetDependenciesRequest]) (*connect.Response[v11.GetDependenciesResponse], error)
-	// Build the module and recive the result
+	// Build the module and receive the result
 	Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error)
 	// Generate stubs for a module.
 	//
@@ -163,7 +163,7 @@ type LanguageServiceHandler interface {
 	// Extract dependencies for a module
 	// FTL will ensure that these dependencies are built before requesting a build for this module.
 	GetDependencies(context.Context, *connect.Request[v11.GetDependenciesRequest]) (*connect.Response[v11.GetDependenciesResponse], error)
-	// Build the module and recive the result
+	// Build the module and receive the result
 	Build(context.Context, *connect.Request[v11.BuildRequest]) (*connect.Response[v11.BuildResponse], error)
 	// Generate stubs for a module.
 	//

@@ -57,6 +57,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     private volatile GetDeploymentContextResponse moduleContextResponse;
     private boolean waiters = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closing = new AtomicBoolean(false);
 
     final VerbServiceGrpc.VerbServiceStub verbService;
     final DeploymentContextServiceGrpc.DeploymentContextServiceStub deploymentService;
@@ -265,6 +266,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     public void close() {
         log.debugf("Closing FTL runner connection");
         channel.shutdown();
+        closing.set(true);
     }
 
     @Override
@@ -509,7 +511,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                     waiters = false;
                 }
             }
-            if (!channel.isShutdown()) {
+            if (!closed.get() && !closing.get()) {
                 deploymentService.getDeploymentContext(
                         GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
                         moduleObserver);
