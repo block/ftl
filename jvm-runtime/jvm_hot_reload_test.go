@@ -49,15 +49,6 @@ func TestLifecycleJVM(t *testing.T) {
 		in.Call("echo", "hello", map[string]string{"name": "Bob"}, func(t testing.TB, response map[string]string) {
 			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
-		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
-			// Non structurally changing edits should not trigger a new deployment.
-			assert.Equal(t, 2, len(sch.InternalModules()))
-			for _, m := range sch.InternalModules() {
-				if !m.Builtin {
-					assert.Equal(t, deployment, m.Runtime.Deployment.DeploymentKey.String())
-				}
-			}
-		}),
 		//now break compilation
 		in.IfLanguage("java", in.EditFile("echo", func(content []byte) []byte {
 			return []byte(strings.ReplaceAll(string(content), "@Export", "broken"))
@@ -77,7 +68,6 @@ func TestLifecycleJVM(t *testing.T) {
 			assert.Equal(t, "Bye, Bob!", response["message"])
 		}),
 		in.VerifySchema(func(ctx context.Context, t testing.TB, sch *schema.Schema) {
-			// Non structurally changing edits should not trigger a new deployment.
 			assert.Equal(t, 2, len(sch.InternalModules()))
 			for _, m := range sch.InternalModules() {
 				if !m.Builtin {

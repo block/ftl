@@ -270,45 +270,40 @@ export class GetDependenciesResponse extends Message<GetDependenciesResponse> {
  */
 export class BuildContext extends Message<BuildContext> {
   /**
-   * @generated from field: string id = 1;
-   */
-  id = "";
-
-  /**
    * The configuration for the module
    *
-   * @generated from field: xyz.block.ftl.language.v1.ModuleConfig module_config = 2;
+   * @generated from field: xyz.block.ftl.language.v1.ModuleConfig module_config = 1;
    */
   moduleConfig?: ModuleConfig;
 
   /**
    * The FTL schema including all dependencies
    *
-   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Schema schema = 2;
    */
   schema?: Schema;
 
   /**
    * The dependencies for the module
    *
-   * @generated from field: repeated string dependencies = 4;
+   * @generated from field: repeated string dependencies = 3;
    */
   dependencies: string[] = [];
 
   /**
    * Build environment provides environment variables to be set for the build command
    *
-   * @generated from field: repeated string build_env = 5;
+   * @generated from field: repeated string build_env = 4;
    */
   buildEnv: string[] = [];
 
   /**
-   * @generated from field: string os = 6;
+   * @generated from field: string os = 5;
    */
   os = "";
 
   /**
-   * @generated from field: string arch = 7;
+   * @generated from field: string arch = 6;
    */
   arch = "";
 
@@ -320,13 +315,12 @@ export class BuildContext extends Message<BuildContext> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.BuildContext";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "module_config", kind: "message", T: ModuleConfig },
-    { no: 3, name: "schema", kind: "message", T: Schema },
-    { no: 4, name: "dependencies", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 5, name: "build_env", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 6, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "module_config", kind: "message", T: ModuleConfig },
+    { no: 2, name: "schema", kind: "message", T: Schema },
+    { no: 3, name: "dependencies", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "build_env", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 5, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "arch", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildContext {
@@ -647,9 +641,9 @@ export class BuildRequest extends Message<BuildRequest> {
   /**
    * Indicates whether to watch for file changes and automatically rebuild
    *
-   * @generated from field: bool rebuild_automatically = 3;
+   * @generated from field: bool dev_mode_build = 3;
    */
-  rebuildAutomatically = false;
+  devModeBuild = false;
 
   /**
    * @generated from field: xyz.block.ftl.language.v1.BuildContext build_context = 4;
@@ -666,7 +660,7 @@ export class BuildRequest extends Message<BuildRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "project_config", kind: "message", T: ProjectConfig },
     { no: 2, name: "stubs_root", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "rebuild_automatically", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "dev_mode_build", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "build_context", kind: "message", T: BuildContext },
   ]);
 
@@ -688,50 +682,6 @@ export class BuildRequest extends Message<BuildRequest> {
 }
 
 /**
- * AutoRebuildStarted should be sent when the plugin decides to start rebuilding automatically.
- *
- * It is not required to send this event, though it helps inform the user that their changes are not yet built.
- * FTL may ignore this event if it does not match FTL's current build context and state.
- * If the plugin decides to cancel the build because another build started, no failure or cancellation event needs
- * to be sent.
- *
- * @generated from message xyz.block.ftl.language.v1.AutoRebuildStarted
- */
-export class AutoRebuildStarted extends Message<AutoRebuildStarted> {
-  /**
-   * @generated from field: string context_id = 1;
-   */
-  contextId = "";
-
-  constructor(data?: PartialMessage<AutoRebuildStarted>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "xyz.block.ftl.language.v1.AutoRebuildStarted";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "context_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AutoRebuildStarted {
-    return new AutoRebuildStarted().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AutoRebuildStarted {
-    return new AutoRebuildStarted().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AutoRebuildStarted {
-    return new AutoRebuildStarted().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: AutoRebuildStarted | PlainMessage<AutoRebuildStarted> | undefined, b: AutoRebuildStarted | PlainMessage<AutoRebuildStarted> | undefined): boolean {
-    return proto3.util.equals(AutoRebuildStarted, a, b);
-  }
-}
-
-/**
  * BuildSuccess should be sent when a build succeeds.
  *
  * FTL may ignore this event if it does not match FTL's current build context and state.
@@ -740,37 +690,23 @@ export class AutoRebuildStarted extends Message<AutoRebuildStarted> {
  */
 export class BuildSuccess extends Message<BuildSuccess> {
   /**
-   * The id of build context used while building.
-   *
-   * @generated from field: string context_id = 1;
-   */
-  contextId = "";
-
-  /**
-   * Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-   *
-   * @generated from field: bool is_automatic_rebuild = 2;
-   */
-  isAutomaticRebuild = false;
-
-  /**
    * Module schema for the built module
    *
-   * @generated from field: xyz.block.ftl.schema.v1.Module module = 3;
+   * @generated from field: xyz.block.ftl.schema.v1.Module module = 1;
    */
   module?: Module;
 
   /**
    * Paths for files/directories to be deployed
    *
-   * @generated from field: repeated string deploy = 4;
+   * @generated from field: repeated string deploy = 2;
    */
   deploy: string[] = [];
 
   /**
    * Name of the docker image to use for the runner
    *
-   * @generated from field: string docker_image = 5;
+   * @generated from field: string docker_image = 3;
    */
   dockerImage = "";
 
@@ -779,7 +715,7 @@ export class BuildSuccess extends Message<BuildSuccess> {
    * No errors can have a level of ERROR, instead a BuildFailure should be sent
    * Instead this is useful for INFO and WARN level errors.
    *
-   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 6;
+   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 4;
    */
   errors?: ErrorList;
 
@@ -787,28 +723,42 @@ export class BuildSuccess extends Message<BuildSuccess> {
    * Dev mode endpoint URI. If this is set then rather than trying to deploy the module, FTL will start a runner that
    * connects to this endpoint.
    *
-   * @generated from field: optional string dev_endpoint = 7;
+   * @generated from field: optional string dev_endpoint = 5;
    */
   devEndpoint?: string;
 
   /**
    * Dev mode debug port
    *
-   * @generated from field: optional int32 debug_port = 8;
+   * @generated from field: optional int32 debug_port = 6;
    */
   debugPort?: number;
 
   /**
    * Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
    *
-   * @generated from field: optional string dev_hot_reload_endpoint = 9;
+   * @generated from field: optional string dev_hot_reload_endpoint = 7;
    */
   devHotReloadEndpoint?: string;
 
   /**
-   * @generated from field: optional int64 dev_hot_reload_version = 10;
+   * @generated from field: optional int64 dev_hot_reload_version = 8;
    */
   devHotReloadVersion?: bigint;
+
+  /**
+   * Files modified during the build, relative to the build dir
+   *
+   * @generated from field: repeated string modified_files = 9;
+   */
+  modifiedFiles: string[] = [];
+
+  /**
+   * If there have been no structural changes it is possible that no further action is required
+   *
+   * @generated from field: bool redeploy_not_required = 10;
+   */
+  redeployNotRequired = false;
 
   constructor(data?: PartialMessage<BuildSuccess>) {
     super();
@@ -818,16 +768,16 @@ export class BuildSuccess extends Message<BuildSuccess> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.BuildSuccess";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "context_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "is_automatic_rebuild", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: "module", kind: "message", T: Module },
-    { no: 4, name: "deploy", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 5, name: "docker_image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "errors", kind: "message", T: ErrorList },
-    { no: 7, name: "dev_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 8, name: "debug_port", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
-    { no: 9, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 10, name: "dev_hot_reload_version", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
+    { no: 1, name: "module", kind: "message", T: Module },
+    { no: 2, name: "deploy", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "docker_image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "errors", kind: "message", T: ErrorList },
+    { no: 5, name: "dev_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 6, name: "debug_port", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
+    { no: 7, name: "dev_hot_reload_endpoint", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 8, name: "dev_hot_reload_version", kind: "scalar", T: 3 /* ScalarType.INT64 */, opt: true },
+    { no: 9, name: "modified_files", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 10, name: "redeploy_not_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildSuccess {
@@ -856,23 +806,9 @@ export class BuildSuccess extends Message<BuildSuccess> {
  */
 export class BuildFailure extends Message<BuildFailure> {
   /**
-   * The id of build context used while building.
-   *
-   * @generated from field: string context_id = 1;
-   */
-  contextId = "";
-
-  /**
-   * Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-   *
-   * @generated from field: bool is_automatic_rebuild = 2;
-   */
-  isAutomaticRebuild = false;
-
-  /**
    * Errors contains any errors that occurred during the build
    *
-   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 3;
+   * @generated from field: xyz.block.ftl.language.v1.ErrorList errors = 1;
    */
   errors?: ErrorList;
 
@@ -881,9 +817,16 @@ export class BuildFailure extends Message<BuildFailure> {
    * If a Build stream is being kept open for automatic rebuilds, FTL will call GetDependencies, followed by
    * BuildContextUpdated.
    *
-   * @generated from field: bool invalidate_dependencies = 4;
+   * @generated from field: bool invalidate_dependencies = 2;
    */
   invalidateDependencies = false;
+
+  /**
+   * Files modified during the build, relative to the build dir
+   *
+   * @generated from field: repeated string modified_files = 9;
+   */
+  modifiedFiles: string[] = [];
 
   constructor(data?: PartialMessage<BuildFailure>) {
     super();
@@ -893,10 +836,9 @@ export class BuildFailure extends Message<BuildFailure> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.BuildFailure";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "context_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "is_automatic_rebuild", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 3, name: "errors", kind: "message", T: ErrorList },
-    { no: 4, name: "invalidate_dependencies", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: "errors", kind: "message", T: ErrorList },
+    { no: 2, name: "invalidate_dependencies", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 9, name: "modified_files", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildFailure {
@@ -927,19 +869,13 @@ export class BuildResponse extends Message<BuildResponse> {
    */
   event: {
     /**
-     * @generated from field: xyz.block.ftl.language.v1.AutoRebuildStarted auto_rebuild_started = 2;
-     */
-    value: AutoRebuildStarted;
-    case: "autoRebuildStarted";
-  } | {
-    /**
-     * @generated from field: xyz.block.ftl.language.v1.BuildSuccess build_success = 3;
+     * @generated from field: xyz.block.ftl.language.v1.BuildSuccess build_success = 1;
      */
     value: BuildSuccess;
     case: "buildSuccess";
   } | {
     /**
-     * @generated from field: xyz.block.ftl.language.v1.BuildFailure build_failure = 4;
+     * @generated from field: xyz.block.ftl.language.v1.BuildFailure build_failure = 2;
      */
     value: BuildFailure;
     case: "buildFailure";
@@ -953,9 +889,8 @@ export class BuildResponse extends Message<BuildResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.BuildResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 2, name: "auto_rebuild_started", kind: "message", T: AutoRebuildStarted, oneof: "event" },
-    { no: 3, name: "build_success", kind: "message", T: BuildSuccess, oneof: "event" },
-    { no: 4, name: "build_failure", kind: "message", T: BuildFailure, oneof: "event" },
+    { no: 1, name: "build_success", kind: "message", T: BuildSuccess, oneof: "event" },
+    { no: 2, name: "build_failure", kind: "message", T: BuildFailure, oneof: "event" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BuildResponse {

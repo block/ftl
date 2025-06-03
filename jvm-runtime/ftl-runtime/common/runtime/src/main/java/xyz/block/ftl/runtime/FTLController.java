@@ -76,15 +76,15 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
         var rc = runnerConnection;
         if (rc == null) {
             synchronized (this) {
-                if (runnerConnection != null) {
-                    return runnerConnection;
-                }
                 if (runnerDetails == null) {
                     waitForRunner();
                     if (runnerDetails == null) {
                         log.debugf("Failed to get runner details");
                         return this.runnerConnection = new MockRunnerConnection();
                     }
+                }
+                if (runnerConnection != null) {
+                    return runnerConnection;
                 }
                 runnerConnection = new FTLRunnerConnectionImpl(runnerDetails.getProxyAddress(),
                         runnerDetails.getDeploymentKey(), moduleName, new Consumer<FTLRunnerConnection>() {
@@ -184,13 +184,14 @@ public class FTLController implements LeaseClient, RunnerNotification.RunnerCall
             // Not outdated, but we already have these details
             return false;
         }
-        log.debugf("Runner details: runner no: %s schema no: %s", info.runnerSeq(), info.schemaSeq());
+        log.infof("Runner details: runner no: %s schema no: %s address: %s", info.runnerSeq(), info.schemaSeq(),
+                info.address());
         this.runnerNumber = info.runnerSeq();
+        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment());
         if (this.runnerConnection != null) {
             this.runnerConnection.close();
             this.runnerConnection = null;
         }
-        runnerDetails = new DevModeRunnerDetails(info.databases(), info.address(), info.deployment());
         for (var waiter : waiters) {
             waiter.set(true);
         }

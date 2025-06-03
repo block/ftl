@@ -61,17 +61,16 @@ message GetDependenciesResponse {
 // Plugins must include the build context's id when a build succeeds or fails.
 // For automatic rebuilds, plugins must use the most recent build context they have received.
 message BuildContext {
-  string id = 1;
   // The configuration for the module
-  ModuleConfig module_config = 2;
+  ModuleConfig module_config = 1;
   // The FTL schema including all dependencies
-  ftl.schema.v1.Schema schema = 3;
+  ftl.schema.v1.Schema schema = 2;
   // The dependencies for the module
-  repeated string dependencies = 4;
+  repeated string dependencies = 3;
   // Build environment provides environment variables to be set for the build command
-  repeated string build_env = 5;
-  string os = 6;
-  string arch = 7;
+  repeated string build_env = 4;
+  string os = 5;
+  string arch = 6;
 }
 
 message BuildContextUpdatedRequest {
@@ -124,77 +123,63 @@ message BuildRequest {
   string stubs_root = 2;
 
   // Indicates whether to watch for file changes and automatically rebuild
-  bool rebuild_automatically = 3;
+  bool dev_mode_build = 3;
 
   BuildContext build_context = 4;
-}
-
-// AutoRebuildStarted should be sent when the plugin decides to start rebuilding automatically.
-//
-// It is not required to send this event, though it helps inform the user that their changes are not yet built.
-// FTL may ignore this event if it does not match FTL's current build context and state.
-// If the plugin decides to cancel the build because another build started, no failure or cancellation event needs
-// to be sent.
-message AutoRebuildStarted {
-  string context_id = 1;
 }
 
 // BuildSuccess should be sent when a build succeeds.
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
 message BuildSuccess {
-  // The id of build context used while building.
-  string context_id = 1;
-  // Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-  bool is_automatic_rebuild = 2;
   // Module schema for the built module
-  ftl.schema.v1.Module module = 3;
+  ftl.schema.v1.Module module = 1;
   // Paths for files/directories to be deployed
-  repeated string deploy = 4;
+  repeated string deploy = 2;
   // Name of the docker image to use for the runner
-  string docker_image = 5;
+  string docker_image = 3;
 
   // Errors contains any errors that occurred during the build
   // No errors can have a level of ERROR, instead a BuildFailure should be sent
   // Instead this is useful for INFO and WARN level errors.
-  ErrorList errors = 6;
+  ErrorList errors = 4;
 
   // Dev mode endpoint URI. If this is set then rather than trying to deploy the module, FTL will start a runner that
   // connects to this endpoint.
-  optional string dev_endpoint = 7;
+  optional string dev_endpoint = 5;
 
   // Dev mode debug port
-  optional int32 debug_port = 8;
+  optional int32 debug_port = 6;
 
   // Dev mode hot reload endpoint, this is used to allow the runner to communicate info back to the running process
-  optional string dev_hot_reload_endpoint = 9;
-  optional int64 dev_hot_reload_version = 10;
+  optional string dev_hot_reload_endpoint = 7;
+  optional int64 dev_hot_reload_version = 8;
+  // Files modified during the build, relative to the build dir
+  repeated string modified_files = 9;
+  // If there have been no structural changes it is possible that no further action is required
+  bool redeploy_not_required = 10;
 }
 
 // BuildFailure should be sent when a build fails.
 //
 // FTL may ignore this event if it does not match FTL's current build context and state.
 message BuildFailure {
-  // The id of build context used while building.
-  string context_id = 1;
-  // Indicates whether the build was automatically started by the plugin, rather than due to a Build rpc call.
-  bool is_automatic_rebuild = 2;
-
   // Errors contains any errors that occurred during the build
-  ErrorList errors = 3;
+  ErrorList errors = 1;
 
   // Indicates the plugin determined that the dependencies in the BuildContext are out of date.
   // If a Build stream is being kept open for automatic rebuilds, FTL will call GetDependencies, followed by
   // BuildContextUpdated.
-  bool invalidate_dependencies = 4;
+  bool invalidate_dependencies = 2;
+  // Files modified during the build, relative to the build dir
+  repeated string modified_files = 9;
 }
 
 // Every type of message that can be streamed from the language plugin for a build.
 message BuildResponse {
   oneof event {
-    AutoRebuildStarted auto_rebuild_started = 2;
-    BuildSuccess build_success = 3;
-    BuildFailure build_failure = 4;
+    BuildSuccess build_success = 1;
+    BuildFailure build_failure = 2;
   }
 }
 
@@ -240,26 +225,10 @@ service LanguageService {
   // FTL will ensure that these dependencies are built before requesting a build for this module.
   rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesResponse);
 
-  // Build the module and stream back build events.
+  // Build the module and receive the result
   //
-  // A BuildSuccess or BuildFailure event must be streamed back with the request's context id to indicate the
-  // end of the build.
   //
-  // The request can include the option to "rebuild_automatically". In this case the plugin should watch for
-  // file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
-  // rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
-  // calls.
-  rpc Build(BuildRequest) returns (stream BuildResponse);
-
-  // While a Build call with "rebuild_automatically" set is active, BuildContextUpdated is called whenever the
-  // build context is updated.
-  //
-  // Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-  // event with the updated build context id with "is_automatic_rebuild" as false.
-  //
-  // If the plugin will not be able to return a BuildSuccess or BuildFailure, such as when there is no active
-  // build stream, it must fail the BuildContextUpdated call.
-  rpc BuildContextUpdated(BuildContextUpdatedRequest) returns (BuildContextUpdatedResponse);
+  rpc Build(BuildRequest) returns (BuildResponse);
 
   // Generate stubs for a module.
   //

@@ -52,8 +52,9 @@ type HotReloadServiceClient interface {
 	// Forces an explicit Reload from the plugin. This is useful for when the plugin needs to trigger a Reload,
 	// such as when the Reload context changes.
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
-	// Watch for hot reloads not initiated by an explicit Reload call.
-	Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.ServerStreamForClient[v11.WatchResponse], error)
+	// Watch for a reload not initiated by an explicit Reload call.
+	// This is generally used to get the initial state of the runner.
+	Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.Response[v11.WatchResponse], error)
 	// Invoked by the runner to provide runner information to the plugin.
 	RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error)
 }
@@ -116,8 +117,8 @@ func (c *hotReloadServiceClient) Reload(ctx context.Context, req *connect.Reques
 }
 
 // Watch calls xyz.block.ftl.hotreload.v1.HotReloadService.Watch.
-func (c *hotReloadServiceClient) Watch(ctx context.Context, req *connect.Request[v11.WatchRequest]) (*connect.ServerStreamForClient[v11.WatchResponse], error) {
-	return c.watch.CallServerStream(ctx, req)
+func (c *hotReloadServiceClient) Watch(ctx context.Context, req *connect.Request[v11.WatchRequest]) (*connect.Response[v11.WatchResponse], error) {
+	return c.watch.CallUnary(ctx, req)
 }
 
 // RunnerInfo calls xyz.block.ftl.hotreload.v1.HotReloadService.RunnerInfo.
@@ -133,8 +134,9 @@ type HotReloadServiceHandler interface {
 	// Forces an explicit Reload from the plugin. This is useful for when the plugin needs to trigger a Reload,
 	// such as when the Reload context changes.
 	Reload(context.Context, *connect.Request[v11.ReloadRequest]) (*connect.Response[v11.ReloadResponse], error)
-	// Watch for hot reloads not initiated by an explicit Reload call.
-	Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error
+	// Watch for a reload not initiated by an explicit Reload call.
+	// This is generally used to get the initial state of the runner.
+	Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.Response[v11.WatchResponse], error)
 	// Invoked by the runner to provide runner information to the plugin.
 	RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error)
 }
@@ -159,7 +161,7 @@ func NewHotReloadServiceHandler(svc HotReloadServiceHandler, opts ...connect.Han
 		connect.WithSchema(hotReloadServiceMethods.ByName("Reload")),
 		connect.WithHandlerOptions(opts...),
 	)
-	hotReloadServiceWatchHandler := connect.NewServerStreamHandler(
+	hotReloadServiceWatchHandler := connect.NewUnaryHandler(
 		HotReloadServiceWatchProcedure,
 		svc.Watch,
 		connect.WithSchema(hotReloadServiceMethods.ByName("Watch")),
@@ -198,8 +200,8 @@ func (UnimplementedHotReloadServiceHandler) Reload(context.Context, *connect.Req
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Reload is not implemented"))
 }
 
-func (UnimplementedHotReloadServiceHandler) Watch(context.Context, *connect.Request[v11.WatchRequest], *connect.ServerStream[v11.WatchResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Watch is not implemented"))
+func (UnimplementedHotReloadServiceHandler) Watch(context.Context, *connect.Request[v11.WatchRequest]) (*connect.Response[v11.WatchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.hotreload.v1.HotReloadService.Watch is not implemented"))
 }
 
 func (UnimplementedHotReloadServiceHandler) RunnerInfo(context.Context, *connect.Request[v11.RunnerInfoRequest]) (*connect.Response[v11.RunnerInfoResponse], error) {

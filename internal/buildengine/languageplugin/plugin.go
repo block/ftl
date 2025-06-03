@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/either"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/alecthomas/types/result"
@@ -17,8 +18,10 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/watch"
 )
 
 const BuildLockTimeout = time.Minute
@@ -41,8 +44,10 @@ type BuildResult struct {
 	// File that the runner can use to pass info into the hot reload endpoint
 	HotReloadEndpoint optional.Option[string]
 	HotReloadVersion  optional.Option[int64]
+	modifiedFiles     []string
 
-	DebugPort int
+	DebugPort           int
+	redeployNotRequired bool
 }
 
 // PluginEvent is used to notify of updates from the plugin.
@@ -108,44 +113,31 @@ func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, er
 
 func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlugin {
 	plugin := &LanguagePlugin{
-		client:   client,
-		commands: make(chan buildCommand, 64),
-		updates:  pubsub.New[PluginEvent](),
+		client:       client,
+		updates:      pubsub.New[PluginEvent](),
+		bctx:         atomic.New[*buildInfo](nil),
+		buildRunning: &sync.Mutex{},
 	}
-
-	var runCtx context.Context
-	runCtx, plugin.cancel = context.WithCancelCause(ctx)
-	go plugin.run(runCtx)
-	go plugin.watchForCmdError(runCtx)
+	go plugin.watchForCmdError(ctx)
 
 	return plugin
-}
-
-type buildCommand struct {
-	BuildContext
-	projectConfig        projectconfig.Config
-	stubsRoot            string
-	rebuildAutomatically bool
-
-	startTime time.Time
-	result    chan result.Result[BuildResult]
 }
 
 type LanguagePlugin struct {
 	client pluginClient
 
 	// cancels the run() context
-	cancel context.CancelCauseFunc
-
-	// commands to execute
-	commands chan buildCommand
-
-	updates *pubsub.Topic[PluginEvent]
+	updates      *pubsub.Topic[PluginEvent]
+	watch        *pubsub.Topic[watch.WatchEvent]
+	bctx         *atomic.Value[*buildInfo]
+	buildRunning *sync.Mutex
 }
 
 // Kill stops the plugin and cleans up any resources.
 func (p *LanguagePlugin) Kill() error {
-	p.cancel(errors.Wrap(context.Canceled, "killing language plugin"))
+	if p == nil {
+		return nil
+	}
 	if err := p.client.kill(); err != nil {
 		return errors.Wrap(err, "failed to kill language plugin")
 	}
@@ -227,250 +219,90 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // In dev mode, plugin is responsible for automatically rebuilding as relevant files within the module change,
 // and publishing these automatic builds updates to Updates().
 func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
-	cmd := buildCommand{
-		BuildContext:         bctx,
-		projectConfig:        projectConfig,
-		stubsRoot:            stubsRoot,
-		rebuildAutomatically: rebuildAutomatically,
-		startTime:            time.Now(),
-		result:               make(chan result.Result[BuildResult]),
+	p.buildRunning.Lock()
+	defer p.buildRunning.Unlock()
+	startTime := time.Now()
+	p.bctx.Store(&buildInfo{projectConfig: projectConfig, stubsRoot: stubsRoot, bctx: bctx})
+
+	configProto, err := langpb.ModuleConfigToProto(bctx.Config.Abs())
+	if err != nil {
+		return BuildResult{}, errors.Wrapf(err, "failed to marshal module config")
 	}
-	p.commands <- cmd
-	select {
-	case r := <-cmd.result:
-		result, err := r.Result()
+
+	schemaProto := bctx.Schema.ToProto()
+	result, err := p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
+		ProjectConfig: langpb.ProjectConfigToProto(projectConfig),
+		StubsRoot:     stubsRoot,
+		DevModeBuild:  rebuildAutomatically,
+		BuildContext: &langpb.BuildContext{
+			ModuleConfig: configProto,
+			Schema:       schemaProto,
+			Dependencies: bctx.Dependencies,
+			BuildEnv:     bctx.BuildEnv,
+			Os:           bctx.Os,
+			Arch:         bctx.Arch,
+		},
+	}))
+
+	if err != nil {
+		return BuildResult{}, errors.Wrap(err, "failed to invoke build command")
+	}
+	if rebuildAutomatically && p.watch == nil {
+		watcher := watch.NewWatcher(optional.None[string](), bctx.Config.Watch...)
+		updates, err := watcher.Watch(ctx, time.Second, []string{bctx.Config.Dir})
 		if err != nil {
-			return BuildResult{}, errors.WithStack(err) //nolint:wrapcheck
+			log.FromContext(ctx).Errorf(err, "Failed to watch module directory")
+			return buildResultFromProto(result.Msg, startTime)
 		}
-		return result, nil
-	case <-ctx.Done():
-		return BuildResult{}, errors.Wrap(ctx.Err(), "error waiting for build to complete")
+		p.watch = updates
+		go p.runWatch(ctx, watcher)
 	}
+
+	return buildResultFromProto(result.Msg, startTime)
+
 }
 
-func (p *LanguagePlugin) watchForCmdError(ctx context.Context) {
-	select {
-	case err := <-p.client.cmdErr():
-		if err == nil {
-			// closed
-			return
-		}
-		p.updates.Publish(PluginDiedEvent{
-			Plugin: p,
-			Error:  err,
-		})
-
-	case <-ctx.Done():
-
-	}
-}
-
-func (p *LanguagePlugin) run(ctx context.Context) {
-
-	// State
-	var bctx BuildContext
-	var stubsRoot string
-	var projectConfig *langpb.ProjectConfig
-
-	// if a current build stream is active, this is non-nil
-	// this does not indicate if the stream is listening to automatic rebuilds
-	var streamChan chan result.Result[*langpb.BuildResponse]
-	var streamCancel streamCancelFunc
-
-	// if an explicit build command is active, this is non-nil
-	// if this is nil, streamChan may still be open for automatic rebuilds
-	var activeBuildCmd optional.Option[buildCommand]
-
-	// if an automatic rebuild was started, this is the time it started
-	var autoRebuildStartTime optional.Option[time.Time]
-
-	// build counter is used to generate build request ids
-	var contextCounter = 0
-
-	// can not scope logger initially without knowing module name
+func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 	logger := log.FromContext(ctx)
-
-	for {
-		select {
-		// Process incoming commands
-		case c := <-p.commands:
-			bctx = c.BuildContext
-			projectConfig = langpb.ProjectConfigToProto(c.projectConfig)
-			stubsRoot = c.stubsRoot
-
-			// module name may have changed, update logger scope
-			logger = log.FromContext(ctx).Scope(bctx.Config.Module)
-
-			if _, ok := activeBuildCmd.Get(); ok {
-				c.result <- result.Err[BuildResult](errors.Errorf("build already in progress"))
-				continue
-			}
-			configProto, err := langpb.ModuleConfigToProto(bctx.Config.Abs())
+	defer func() {
+		p.watch = nil
+	}()
+	updates := make(chan watch.WatchEvent)
+	p.watch.Subscribe(updates)
+	for i := range channels.IterContext(ctx, updates) {
+		if _, ok := i.(watch.WatchEventModuleChanged); ok {
+			info := p.bctx.Load()
+			tx := watcher.GetTransaction(info.bctx.Config.Dir)
+			err := tx.Begin()
 			if err != nil {
-				c.result <- result.Err[BuildResult](err)
-				continue
+				logger.Errorf(err, "Failed to start watch transaction")
 			}
-
-			schemaProto := bctx.Schema.ToProto()
-
-			// update state
-			contextCounter++
-			if streamChan != nil {
-				// tell plugin about new build context so that it rebuilds in existing build stream
-				_, err = p.client.buildContextUpdated(ctx, connect.NewRequest(&langpb.BuildContextUpdatedRequest{
-					BuildContext: &langpb.BuildContext{
-						Id:           contextID(bctx.Config, contextCounter),
-						ModuleConfig: configProto,
-						Schema:       schemaProto,
-						Dependencies: bctx.Dependencies,
-						BuildEnv:     c.BuildEnv,
-						Os:           c.Os,
-						Arch:         c.Arch,
-					},
-				}))
+			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
+			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, true)
+			if err != nil {
+				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
+			} else {
+				err = tx.ModifiedFiles(br.modifiedFiles...)
 				if err != nil {
-					c.result <- result.Err[BuildResult](errors.Wrap(err, "failed to send updated build context to plugin"))
-					continue
-				}
-				activeBuildCmd = optional.Some[buildCommand](c)
-				continue
-			}
-
-			newStreamChan, newCancelFunc, err := p.client.build(ctx, connect.NewRequest(&langpb.BuildRequest{
-				ProjectConfig:        projectConfig,
-				StubsRoot:            stubsRoot,
-				RebuildAutomatically: c.rebuildAutomatically,
-				BuildContext: &langpb.BuildContext{
-					Id:           contextID(bctx.Config, contextCounter),
-					ModuleConfig: configProto,
-					Schema:       schemaProto,
-					Dependencies: bctx.Dependencies,
-					BuildEnv:     c.BuildEnv,
-					Os:           c.Os,
-					Arch:         c.Arch,
-				},
-			}))
-			if err != nil {
-				c.result <- result.Err[BuildResult](errors.Wrap(err, "failed to start build stream"))
-				continue
-			}
-			activeBuildCmd = optional.Some[buildCommand](c)
-			streamChan = newStreamChan
-			streamCancel = newCancelFunc
-
-		// Receive messages from the current build stream
-		case r := <-streamChan:
-			e, err := r.Result()
-			if err != nil {
-				// Stream failed
-				if c, ok := activeBuildCmd.Get(); ok {
-					c.result <- result.Err[BuildResult](err)
-					activeBuildCmd = optional.None[buildCommand]()
-				}
-				streamCancel = nil
-				streamChan = nil
-			}
-			if e == nil {
-				streamChan = nil
-				streamCancel = nil
-				continue
-			}
-
-			switch e.Event.(type) {
-			case *langpb.BuildResponse_AutoRebuildStarted:
-				if _, ok := activeBuildCmd.Get(); ok {
-					logger.Debugf("ignoring automatic rebuild started during explicit build")
-					continue
-				}
-				autoRebuildStartTime = optional.Some(time.Now())
-				p.updates.Publish(AutoRebuildStartedEvent{
-					Module: bctx.Config.Module,
-				})
-			case *langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure:
-				streamEnded := false
-				cmdEnded := false
-				result, eventContextID, isAutomaticRebuild := getBuildSuccessOrFailure(e)
-				if activeBuildCmd.Ok() == isAutomaticRebuild {
-					if isAutomaticRebuild {
-						logger.Debugf("ignoring automatic rebuild while expecting explicit build")
-					} else {
-						// This is likely a language plugin bug, but we can ignore it
-						logger.Warnf("ignoring explicit build while none was requested")
+					if !br.redeployNotRequired {
+						p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
 					}
-					continue
-				} else if eventContextID != contextID(bctx.Config, contextCounter) {
-					logger.Debugf("received build for outdated context %q; expected %q", eventContextID, contextID(bctx.Config, contextCounter))
-					continue
-				}
-
-				var startTime time.Time
-				if cmd, ok := activeBuildCmd.Get(); ok {
-					startTime = cmd.startTime
-				} else if t, ok := autoRebuildStartTime.Get(); ok {
-					startTime = t
 				} else {
-					// Plugin did not declare when it started to build.
-					startTime = time.Now()
-				}
-				streamEnded, cmdEnded = p.handleBuildResult(bctx.Config.Module, result, activeBuildCmd, startTime)
-				if streamEnded {
-					streamCancel()
-					streamCancel = nil
-					streamChan = nil
-				}
-				if cmdEnded {
-					activeBuildCmd = optional.None[buildCommand]()
+					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
 				}
 			}
-
-		case <-ctx.Done():
-			if streamCancel != nil {
-				streamCancel()
+			err = tx.End()
+			if err != nil {
+				logger.Errorf(err, "Failed to end watch transaction")
 			}
-			return
 		}
 	}
 }
 
-// getBuildSuccessOrFailure takes a BuildFailure or BuildSuccess event and returns the shared fields and an either wrapped result.
-// This makes it easier to have some shared logic for both event types.
-func getBuildSuccessOrFailure(e *langpb.BuildResponse) (result either.Either[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure], contextID string, isAutomaticRebuild bool) {
-	switch e := e.Event.(type) {
+func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (buildResult BuildResult, err error) {
+	switch et := result.Event.(type) {
 	case *langpb.BuildResponse_BuildSuccess:
-		return either.LeftOf[*langpb.BuildResponse_BuildFailure](e), e.BuildSuccess.ContextId, e.BuildSuccess.IsAutomaticRebuild
-	case *langpb.BuildResponse_BuildFailure:
-		return either.RightOf[*langpb.BuildResponse_BuildSuccess](e), e.BuildFailure.ContextId, e.BuildFailure.IsAutomaticRebuild
-	default:
-		panic(fmt.Sprintf("unexpected event type %T", e))
-	}
-}
-
-// handleBuildResult processes the result of a build and publishes the appropriate events.
-func (p *LanguagePlugin) handleBuildResult(module string, r either.Either[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure],
-	activeBuildCmd optional.Option[buildCommand], startTime time.Time) (streamEnded, cmdEnded bool) {
-	buildResult, err := buildResultFromProto(r, startTime)
-	if cmd, ok := activeBuildCmd.Get(); ok {
-		// handle explicit build
-		cmd.result <- result.From(buildResult, err)
-
-		cmdEnded = true
-		if !cmd.rebuildAutomatically {
-			streamEnded = true
-		}
-		return
-	}
-	// handle auto rebuild
-	p.updates.Publish(AutoRebuildEndedEvent{
-		Module: module,
-		Result: result.From(buildResult, err),
-	})
-	return
-}
-
-func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure], startTime time.Time) (buildResult BuildResult, err error) {
-	switch result := result.(type) {
-	case either.Left[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:
-		buildSuccess := result.Get().BuildSuccess
+		buildSuccess := et.BuildSuccess
 
 		moduleSch, err := schema.ModuleFromProto(buildSuccess.Module)
 		if err != nil {
@@ -487,17 +319,19 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 			port = int(*buildSuccess.DebugPort)
 		}
 		return BuildResult{
-			Errors:            errs,
-			Schema:            moduleSch,
-			Deploy:            buildSuccess.Deploy,
-			StartTime:         startTime,
-			DevEndpoint:       optional.Ptr(buildSuccess.DevEndpoint),
-			HotReloadEndpoint: optional.Ptr(buildSuccess.DevHotReloadEndpoint),
-			HotReloadVersion:  optional.Ptr(buildSuccess.DevHotReloadVersion),
-			DebugPort:         port,
+			Errors:              errs,
+			Schema:              moduleSch,
+			Deploy:              buildSuccess.Deploy,
+			StartTime:           startTime,
+			DevEndpoint:         optional.Ptr(buildSuccess.DevEndpoint),
+			HotReloadEndpoint:   optional.Ptr(buildSuccess.DevHotReloadEndpoint),
+			HotReloadVersion:    optional.Ptr(buildSuccess.DevHotReloadVersion),
+			DebugPort:           port,
+			modifiedFiles:       buildSuccess.ModifiedFiles,
+			redeployNotRequired: buildSuccess.RedeployNotRequired,
 		}, nil
-	case either.Right[*langpb.BuildResponse_BuildSuccess, *langpb.BuildResponse_BuildFailure]:
-		buildFailure := result.Get().BuildFailure
+	case *langpb.BuildResponse_BuildFailure:
+		buildFailure := et.BuildFailure
 
 		errs := langpb.ErrorsFromProto(buildFailure.Errors)
 		builderrors.SortErrorsByPosition(errs)
@@ -516,6 +350,7 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 			StartTime:              startTime,
 			Errors:                 errs,
 			InvalidateDependencies: buildFailure.InvalidateDependencies,
+			modifiedFiles:          buildFailure.ModifiedFiles,
 		}, nil
 	default:
 		panic(fmt.Sprintf("unexpected result type %T", result))
@@ -524,4 +359,27 @@ func buildResultFromProto(result either.Either[*langpb.BuildResponse_BuildSucces
 
 func contextID(config moduleconfig.ModuleConfig, counter int) string {
 	return fmt.Sprintf("%v-%v", config.Module, counter)
+}
+
+type buildInfo struct {
+	projectConfig projectconfig.Config
+	stubsRoot     string
+	bctx          BuildContext
+}
+
+func (p *LanguagePlugin) watchForCmdError(ctx context.Context) {
+	select {
+	case err := <-p.client.cmdErr():
+		if err == nil {
+			// closed
+			return
+		}
+		p.updates.Publish(PluginDiedEvent{
+			Plugin: p,
+			Error:  err,
+		})
+
+	case <-ctx.Done():
+
+	}
 }

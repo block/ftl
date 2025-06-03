@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { BuildContextUpdatedRequest, BuildContextUpdatedResponse, BuildRequest, BuildResponse, GenerateStubsRequest, GenerateStubsResponse, GetDependenciesRequest, GetDependenciesResponse, SyncStubReferencesRequest, SyncStubReferencesResponse } from "./service_pb.js";
+import { BuildRequest, BuildResponse, GenerateStubsRequest, GenerateStubsResponse, GetDependenciesRequest, GetDependenciesResponse, SyncStubReferencesRequest, SyncStubReferencesResponse } from "./service_pb.js";
 
 /**
  * LanguageService allows a plugin to add support for a programming language.
@@ -40,15 +40,9 @@ export const LanguageService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Build the module and stream back build events.
+     * Build the module and receive the result
      *
-     * A BuildSuccess or BuildFailure event must be streamed back with the request's context id to indicate the
-     * end of the build.
      *
-     * The request can include the option to "rebuild_automatically". In this case the plugin should watch for
-     * file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
-     * rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
-     * calls.
      *
      * @generated from rpc xyz.block.ftl.language.v1.LanguageService.Build
      */
@@ -56,24 +50,6 @@ export const LanguageService = {
       name: "Build",
       I: BuildRequest,
       O: BuildResponse,
-      kind: MethodKind.ServerStreaming,
-    },
-    /**
-     * While a Build call with "rebuild_automatically" set is active, BuildContextUpdated is called whenever the
-     * build context is updated.
-     *
-     * Each time this call is made, the Build call must send back a corresponding BuildSuccess or BuildFailure
-     * event with the updated build context id with "is_automatic_rebuild" as false.
-     *
-     * If the plugin will not be able to return a BuildSuccess or BuildFailure, such as when there is no active
-     * build stream, it must fail the BuildContextUpdated call.
-     *
-     * @generated from rpc xyz.block.ftl.language.v1.LanguageService.BuildContextUpdated
-     */
-    buildContextUpdated: {
-      name: "BuildContextUpdated",
-      I: BuildContextUpdatedRequest,
-      O: BuildContextUpdatedResponse,
       kind: MethodKind.Unary,
     },
     /**

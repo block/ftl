@@ -6,7 +6,6 @@ import (
 
 	"connectrpc.com/connect"
 	errors "github.com/alecthomas/errors"
-	"github.com/alecthomas/types/result"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
@@ -24,8 +23,7 @@ type pluginClient interface {
 	generateStubs(ctx context.Context, req *connect.Request[langpb.GenerateStubsRequest]) (*connect.Response[langpb.GenerateStubsResponse], error)
 	syncStubReferences(ctx context.Context, req *connect.Request[langpb.SyncStubReferencesRequest]) (*connect.Response[langpb.SyncStubReferencesResponse], error)
 
-	build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (chan result.Result[*langpb.BuildResponse], streamCancelFunc, error)
-	buildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error)
+	build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (*connect.Response[langpb.BuildResponse], error)
 
 	kill() error
 	cmdErr() <-chan error
@@ -140,39 +138,11 @@ func (p *pluginClientImpl) syncStubReferences(ctx context.Context, req *connect.
 	return resp, nil
 }
 
-func (p *pluginClientImpl) build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (chan result.Result[*langpb.BuildResponse], streamCancelFunc, error) {
-	if err := p.checkCmdIsAlive(); err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	stream, err := p.plugin.Client.Build(ctx, req)
-	if err != nil {
-		return nil, nil, errors.WithStack(err) //nolint:wrapcheck
-	}
-
-	streamChan := make(chan result.Result[*langpb.BuildResponse], 64)
-	go streamToChan(stream, streamChan)
-
-	return streamChan, func() {
-		// closing the stream causes the steamToChan goroutine to close the chan
-		stream.Close()
-	}, nil
-}
-
-func streamToChan(stream *connect.ServerStreamForClient[langpb.BuildResponse], ch chan result.Result[*langpb.BuildResponse]) {
-	for stream.Receive() {
-		ch <- result.From(stream.Msg(), nil)
-	}
-	if err := stream.Err(); err != nil {
-		ch <- result.Err[*langpb.BuildResponse](err)
-	}
-	close(ch)
-}
-
-func (p *pluginClientImpl) buildContextUpdated(ctx context.Context, req *connect.Request[langpb.BuildContextUpdatedRequest]) (*connect.Response[langpb.BuildContextUpdatedResponse], error) {
+func (p *pluginClientImpl) build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (*connect.Response[langpb.BuildResponse], error) {
 	if err := p.checkCmdIsAlive(); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	resp, err := p.plugin.Client.BuildContextUpdated(ctx, req)
+	resp, err := p.plugin.Client.Build(ctx, req)
 	if err != nil {
 		return nil, errors.WithStack(err) //nolint:wrapcheck
 	}

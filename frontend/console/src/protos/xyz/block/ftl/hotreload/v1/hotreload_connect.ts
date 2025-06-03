@@ -41,7 +41,8 @@ export const HotReloadService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Watch for hot reloads not initiated by an explicit Reload call.
+     * Watch for a reload not initiated by an explicit Reload call.
+     * This is generally used to get the initial state of the runner.
      *
      * @generated from rpc xyz.block.ftl.hotreload.v1.HotReloadService.Watch
      */
@@ -49,7 +50,7 @@ export const HotReloadService = {
       name: "Watch",
       I: WatchRequest,
       O: WatchResponse,
-      kind: MethodKind.ServerStreaming,
+      kind: MethodKind.Unary,
     },
     /**
      * Invoked by the runner to provide runner information to the plugin.

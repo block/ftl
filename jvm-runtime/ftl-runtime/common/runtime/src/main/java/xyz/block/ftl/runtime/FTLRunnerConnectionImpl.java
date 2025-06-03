@@ -57,6 +57,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     private volatile GetDeploymentContextResponse moduleContextResponse;
     private boolean waiters = false;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closing = new AtomicBoolean(false);
 
     final VerbServiceGrpc.VerbServiceStub verbService;
     final DeploymentContextServiceGrpc.DeploymentContextServiceStub deploymentService;
@@ -265,6 +266,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
     public void close() {
         log.debugf("Closing FTL runner connection");
         channel.shutdown();
+        closing.set(true);
     }
 
     @Override
@@ -478,7 +480,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         @Override
         public void onNext(GetDeploymentContextResponse moduleContextResponse) {
             synchronized (this) {
-                log.debugf("Received module context for %s: %s, waiters: %s", deploymentName, moduleContextResponse.getModule(),
+                log.infof("Received module context for %s: %s, waiters: %s", deploymentName, moduleContextResponse.getModule(),
                         waiters);
                 currentError = null;
                 FTLRunnerConnectionImpl.this.moduleContextResponse = moduleContextResponse;
@@ -509,9 +511,11 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                     waiters = false;
                 }
             }
-            deploymentService.getDeploymentContext(
-                    GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
-                    moduleObserver);
+            if (!closed.get() && !closing.get()) {
+                deploymentService.getDeploymentContext(
+                        GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
+                        moduleObserver);
+            }
         }
     }
 

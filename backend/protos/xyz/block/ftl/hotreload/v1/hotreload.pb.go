@@ -610,11 +610,11 @@ const file_xyz_block_ftl_hotreload_v1_hotreload_proto_rawDesc = "" +
 	"\x06module\x18\x01 \x01(\v2\x1f.xyz.block.ftl.schema.v1.ModuleR\x06module\x12<\n" +
 	"\x06errors\x18\x02 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x12.\n" +
 	"\x13new_runner_required\x18\x03 \x01(\bR\x11newRunnerRequired\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\x03R\aversion2\x8c\x03\n" +
+	"\aversion\x18\x04 \x01(\x03R\aversion2\x8a\x03\n" +
 	"\x10HotReloadService\x12J\n" +
 	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12_\n" +
-	"\x06Reload\x12).xyz.block.ftl.hotreload.v1.ReloadRequest\x1a*.xyz.block.ftl.hotreload.v1.ReloadResponse\x12^\n" +
-	"\x05Watch\x12(.xyz.block.ftl.hotreload.v1.WatchRequest\x1a).xyz.block.ftl.hotreload.v1.WatchResponse0\x01\x12k\n" +
+	"\x06Reload\x12).xyz.block.ftl.hotreload.v1.ReloadRequest\x1a*.xyz.block.ftl.hotreload.v1.ReloadResponse\x12\\\n" +
+	"\x05Watch\x12(.xyz.block.ftl.hotreload.v1.WatchRequest\x1a).xyz.block.ftl.hotreload.v1.WatchResponse\x12k\n" +
 	"\n" +
 	"RunnerInfo\x12-.xyz.block.ftl.hotreload.v1.RunnerInfoRequest\x1a..xyz.block.ftl.hotreload.v1.RunnerInfoResponseBNP\x01ZJgithub.com/block/ftl/backend/protos/xyz/block/ftl/hotreload/v1;hotreloadpbb\x06proto3"
 
