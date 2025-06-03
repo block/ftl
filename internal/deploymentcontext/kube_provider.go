@@ -1,5 +1,0 @@
-package deploymentcontext
-
-func NewKubeProvider() {
-
-}

@@ -1,10 +1,15 @@
 package kube
 
 import (
+	"context"
+	"fmt"
 	"os"
 
 	errors "github.com/alecthomas/errors"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	kubecore "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -85,9 +90,49 @@ func NewNamespaceMapper(userNamespace string) NamespaceMapper {
 		return func(module string, realm string) string {
 			return userNamespace
 		}
-	} else {
-		return func(module string, realm string) string {
-			return module + "-" + realm
-		}
 	}
+	return func(module string, realm string) string {
+		return module + "-" + realm
+	}
+}
+
+func ConfigMapName(module string) string {
+	return fmt.Sprintf("ftl-module-%s-configs", module)
+}
+
+func SecretName(module string) string {
+	return fmt.Sprintf("ftl-module-%s-secrets", module)
+}
+
+func EnsureNamespace(ctx context.Context, client *kubernetes.Clientset, namespace string, instanceName string) error {
+	ns, err := client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
+	if err == nil {
+		if ns.Labels != nil {
+			// We can deploy into non managed namespaces
+			// But if they are managed we check that they are managed by this instance
+			if ns.Labels["app.kubernetes.io/managed-by"] == "ftl" {
+				if part, ok := ns.Labels["app.kubernetes.io/part-of"]; ok {
+					if part != instanceName {
+						return errors.Errorf("namespace %s is managed by a different ftl instance: %s, this instance is %s", namespace, part, instanceName)
+					}
+				}
+			}
+		}
+		return nil
+	}
+	if !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get namespace %s", namespace)
+	}
+	ns = &kubecore.Namespace{
+		Spec: kubecore.NamespaceSpec{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:   namespace,
+			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": instanceName, "istio-injection": "enabled"},
+		},
+	}
+	_, err = client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to create namespace %s", namespace)
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ package deploymentcontext_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,14 +14,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	in "github.com/block/ftl/internal/integration"
+	"github.com/block/ftl/internal/kube"
 )
 
 func TestKubeDeploymentContext(t *testing.T) {
+	secretsPath, err := filepath.Abs("testdata/secrets.json")
+	assert.NoError(t, err)
+	secretsCmName := kube.SecretName("echo")
+	configsCmName := kube.ConfigMapName("echo")
 	in.Run(t,
 		in.WithKubernetes(),
+		in.Exec("ftl", "config", "set", "echo.greeting", "Bonjour"),
+		in.Exec("ftl", "secret", "import", secretsPath),
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 			// setup config / secrets
-			secretsCmName := "ftl-module-echo-secrets"
 			s := &corev1.Secret{}
 			s.Name = secretsCmName
 			s.Data = map[string][]byte{
@@ -29,14 +36,6 @@ func TestKubeDeploymentContext(t *testing.T) {
 			_, err := client.CoreV1().Secrets("demo").Create(ctx, s, v1.CreateOptions{})
 			assert.NoError(t, err, "Failed to create secret %s", secretsCmName)
 
-			configsCmName := "ftl-module-echo-configs"
-			cfg := &corev1.ConfigMap{}
-			cfg.Name = configsCmName
-			cfg.Data = map[string]string{
-				"greeting": "\"Bonjour\"",
-			}
-			_, err = client.CoreV1().ConfigMaps("demo").Create(ctx, cfg, v1.CreateOptions{})
-			assert.NoError(t, err, "Failed to create ConfigMap %s", configsCmName)
 		}),
 		in.CopyModule("echo"),
 		in.Deploy("echo"),
@@ -47,14 +46,12 @@ func TestKubeDeploymentContext(t *testing.T) {
 		in.VerifyKubeState(func(ctx context.Context, t testing.TB, client kubernetes.Clientset) {
 
 			// Update secrets and configs.
-			secretsCmName := "ftl-module-echo-secrets"
 			secretsCm, err := client.CoreV1().Secrets("demo").Get(ctx, secretsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get Secrets %s", secretsCmName)
 			secretsCm.Data["apiKey"] = []byte("\"prod-api-key-123\"")
 			_, err = client.CoreV1().Secrets("demo").Update(ctx, secretsCm, v1.UpdateOptions{})
 			assert.NoError(t, err, "Failed to update Secrets %s", secretsCmName)
 
-			configsCmName := "ftl-module-echo-configs"
 			configsCm, err := client.CoreV1().ConfigMaps("demo").Get(ctx, configsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get ConfigMap %s", configsCmName)
 			configsCm.Data["greeting"] = "\"Hola\""

@@ -31,7 +31,7 @@ var cli struct {
 	ConfigFlag            string               `name:"config" short:"C" help:"Path to FTL project cf file." env:"FTL_CONFIG" placeholder:"FILE"`
 	ArtefactConfig        oci.ArtefactConfig   `prefix:"oci-artefact-" embed:""`
 	ImageConfig           oci.ImageConfig      `prefix:"oci-image-" embed:""`
-	InstanceName          string               `help:"Instance name, use to differentiate ownership when there are multiple FTL instances ina cluster." env:"FTL_INSTANCE_NAME" default:"ftl"`
+	Realm                 string               `help:"The realm." env:"FTL_REALM" default:"ftl"`
 	UserNamespace         string               `help:"Namespace to use for user resources." env:"FTL_USER_NAMESPACE"`
 	CronServiceAccount    string               `help:"Service account for cron." env:"FTL_CRON_SERVICE_ACCOUNT"`
 	ConsoleServiceAccount string               `help:"Service account for console." env:"FTL_CONSOLE_SERVICE_ACCOUNT"`
@@ -68,7 +68,7 @@ func main() {
 	} else {
 		routeTemplate = "http://${module}.${module}-${realm}:8892"
 	}
-	scaling := k8sscaling.NewK8sScaling(false, cli.InstanceName, mapper,routeTemplate,  cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, routeTemplate, cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService)

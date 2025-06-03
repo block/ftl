@@ -33,11 +33,11 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/console/v1/consolepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
-	"github.com/block/ftl/backend/provisioner/scaling/k8sscaling"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	ftlexec "github.com/block/ftl/internal/exec"
+	"github.com/block/ftl/internal/kube"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -282,9 +282,9 @@ func run(t *testing.T, actionsOrOptions ...ActionOrOption) {
 				err = ftlexec.Command(ctx, log.Debug, rootDir, "just", "build", "ftl").RunBuffered(ctx)
 				assert.NoError(t, err)
 			}
-			kubeClient, err = k8sscaling.CreateClientSet()
+			kubeClient, err = kube.CreateClientSet()
 			assert.NoError(t, err)
-			kubeNamespace, err = k8sscaling.GetCurrentNamespace()
+			kubeNamespace, err = kube.GetCurrentNamespace()
 			assert.NoError(t, err)
 			// We create the client before, as kube itself is up, we are just waiting for the deployments
 			err = ftlexec.Command(ctx, log.Debug, filepath.Join(rootDir, "deployment"), "just", "wait-for-kube").RunBuffered(ctx)
@@ -743,7 +743,7 @@ func dumpKubePods(ctx context.Context, t *testing.T, kubeClient optional.Option[
 					}
 				}
 			}
-			istio, err := k8sscaling.CreateIstioClientSet()
+			istio, err := kube.CreateIstioClientSet()
 			if err != nil {
 				Infof("Error creating istio clientset: %v", err)
 				return

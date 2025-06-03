@@ -34,8 +34,8 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/kube"
+	"github.com/block/ftl/internal/rpc"
 )
 
 const provisionerDeploymentName = "ftl-provisioner"
@@ -60,7 +60,7 @@ type k8sScaling struct {
 	istioSecurity    optional.Option[istioclient.Clientset]
 	namespaceMapper  kube.NamespaceMapper
 	// A unique per cluster identifier for this FTL instance
-	instanceName              string
+	realm                     string
 	cronServiceAccount        string
 	adminServiceAccount       string
 	consoleServiceAccount     string
@@ -68,8 +68,8 @@ type k8sScaling struct {
 	routeTemplate             string
 }
 
-func NewK8sScaling(disableIstio bool, instanceName string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, instanceName: instanceName, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount}
+func NewK8sScaling(disableIstio bool, realm string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, realm: realm, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -201,7 +201,7 @@ func (r *k8sScaling) TerminateDeployment(ctx context.Context, deploymentKey stri
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse deployment key %s", deploymentKey)
 	}
-	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(dk.Payload.Module, dk.Payload.Realm, r.systemNamespace))
+	deploymentClient := r.client.AppsV1().Deployments(r.namespaceMapper(dk.Payload.Module, dk.Payload.Realm))
 	err = deploymentClient.Delete(delCtx, deploymentKey, v1.DeleteOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -316,8 +316,8 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 
 	userConfigMapClient := r.client.CoreV1().ConfigMaps(userNamespace)
 	userSecretClient := r.client.CoreV1().Secrets(userNamespace)
-	secretsSecretName := fmt.Sprintf("ftl-module-%s-secrets", module)
-	configsConfigMapName := fmt.Sprintf("ftl-module-%s-configs", module)
+	secretsSecretName := kube.SecretName(module)
+	configsConfigMapName := kube.ConfigMapName(module)
 
 	_, err = userSecretClient.Get(ctx, secretsSecretName, v1.GetOptions{})
 	if err != nil {
@@ -743,36 +743,8 @@ func (r *k8sScaling) findPodLogs(ctx context.Context, key string, podClient v3.P
 
 func (r *k8sScaling) ensureNamespace(ctx context.Context, realm string, sch *schema.Module) (string, error) {
 	namespace := r.namespaceMapper(sch.Name, realm)
-	ns, err := r.client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
-	if err == nil {
-		if ns.Labels != nil {
-			// We can deploy into non managed namespaces
-			// But if they are managed we check that they are managed by this instance
-			if ns.Labels["app.kubernetes.io/managed-by"] == "ftl" {
-				if part, ok := ns.Labels["app.kubernetes.io/part-of"]; ok {
-					if part != r.instanceName {
-						return "", errors.Errorf("namespace %s is managed by a different ftl instance: %s, this instance is %s", namespace, part, r.instanceName)
-					}
-				}
-			}
-		}
-		return namespace, nil
-	}
-	if !k8serrors.IsNotFound(err) {
-		return "", errors.Wrapf(err, "failed to get namespace %s", namespace)
-	}
-	ns = &kubecore.Namespace{
-		Spec: kubecore.NamespaceSpec{},
-		ObjectMeta: v1.ObjectMeta{
-			Name:   namespace,
-			Labels: map[string]string{"app.kubernetes.io/managed-by": "ftl", "app.kubernetes.io/part-of": r.instanceName, "istio-injection": "enabled"},
-		},
-	}
-	_, err = r.client.CoreV1().Namespaces().Create(ctx, ns, v1.CreateOptions{})
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to create namespace %s", namespace)
-	}
-	return namespace, nil
+	err := kube.EnsureNamespace(ctx, r.client, namespace, r.realm)
+	return namespace, errors.Wrap(err, "failed to create namespace")
 }
 
 func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod) (string, error) {
@@ -799,30 +771,8 @@ func readPodLogs(ctx context.Context, client v3.PodInterface, pod *kubecore.Pod)
 	return logs, nil
 }
 
-func extractTag(image string) (string, error) {
-	idx := strings.LastIndex(image, ":")
-	if idx == -1 {
-		return "", errors.Errorf("no tag found in image %s", image)
-	}
-	ret := image[idx+1:]
-	at := strings.LastIndex(ret, "@")
-	if at != -1 {
-		ret = image[:at]
-	}
-	return ret, nil
-}
-
-func extractBase(image string) (string, error) {
-	idx := strings.LastIndex(image, ":")
-	if idx == -1 {
-		return "", errors.Errorf("no tag found in image %s", image)
-	}
-	return image[:idx], nil
-}
-
 func (r *k8sScaling) GetEndpointForDeployment(deployment key.Deployment) url.URL {
-
 	return url.URL{Scheme: "http",
-		Host: fmt.Sprintf("%s.%s:8892", deployment.String(), r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm))}
+		Host: fmt.Sprintf("%s.%s:8892", deployment.Payload.Module, r.namespaceMapper(deployment.Payload.Module, deployment.Payload.Realm))}
 
 }
