@@ -129,12 +129,14 @@ func TestDiskProvider(t *testing.T) {
 	t.Run("test providers", func(t *testing.T) {
 		ctx := log.ContextWithLogger(t.Context(), log.Configure(os.Stderr, log.Config{Level: log.Info}))
 
-		secretsProvider := NewDiskSecretsProvider(secretsDir)
-		secretsMap := secretsProvider(ctx)
+		secretsProvider := NewDiskProvider(secretsDir)
+		secretsMap, err := secretsProvider(ctx)
+		assert.NoError(t, err)
 		assert.Equal(t, "secret-value", string(secretsMap["test-secret"]))
 
-		configProvider := NewDiskConfigProvider(configsDir)
-		configsMap := configProvider(ctx)
+		configProvider := NewDiskProvider(configsDir)
+		configsMap, err := configProvider(ctx)
+		assert.NoError(t, err)
 		assert.Equal(t, "config-value", string(configsMap["test-config"]))
 	})
 }

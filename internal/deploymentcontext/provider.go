@@ -22,24 +22,22 @@ import (
 )
 
 func NewAdminSecretsProvider(key key.Deployment, adminClient adminpbconnect.AdminServiceClient) SecretsProvider {
-	return func(ctx context.Context) map[string][]byte {
+	return func(ctx context.Context) (map[string][]byte, error) {
 		secretsResp, err := adminClient.MapSecretsForModule(ctx, &connect.Request[adminpb.MapSecretsForModuleRequest]{Msg: &adminpb.MapSecretsForModuleRequest{Module: key.Payload.Module}})
 		if err != nil {
-			log.FromContext(ctx).Errorf(err, "could not get secrets")
-			return map[string][]byte{}
+			return map[string][]byte{}, errors.Wrapf(err, "could not get secrets")
 		}
-		return secretsResp.Msg.Values
+		return secretsResp.Msg.Values, nil
 
 	}
 }
 func NewAdminConfigProvider(key key.Deployment, adminClient adminpbconnect.AdminServiceClient) ConfigProvider {
-	return func(ctx context.Context) map[string][]byte {
+	return func(ctx context.Context) (map[string][]byte, error) {
 		configResp, err := adminClient.MapConfigsForModule(ctx, &connect.Request[adminpb.MapConfigsForModuleRequest]{Msg: &adminpb.MapConfigsForModuleRequest{Module: key.Payload.Module}})
 		if err != nil {
-			log.FromContext(ctx).Errorf(err, "could not get config")
-			return map[string][]byte{}
+			return map[string][]byte{}, errors.Wrapf(err, "could not get config")
 		}
-		return configResp.Msg.Values
+		return configResp.Msg.Values, nil
 	}
 }
 
@@ -110,14 +108,38 @@ func NewProvider(key key.Deployment, routeProvider RouteProvider, moduleSchema *
 		callableModuleNames := maps.Keys(callableModules)
 		callableModuleNames = slices.Sort(callableModuleNames)
 		logger.Debugf("Modules %s can call %v", module, callableModuleNames)
+		configs := map[string][]byte{}
+		secrets := map[string][]byte{}
 		go func() {
 			defer routeProvider.Unsubscribe(updates)
 
 			for {
 				h := sha.New()
 
-				configs := configProvider(ctx)
-				secrets := secretsProvider(ctx)
+				newConfigs, err := configProvider(ctx)
+				if err != nil {
+					switch {
+					case errors.Is(err, context.Canceled):
+						return
+					default:
+						logger.Errorf(err, "could not get config")
+					}
+				} else {
+					// We keep existing configs if the new ones are not available.
+					configs = newConfigs
+				}
+				newSecrets, err := secretsProvider(ctx)
+				if err != nil {
+					switch {
+					case errors.Is(err, context.Canceled):
+						return
+					default:
+						logger.Errorf(err, "could not get secrets")
+					}
+				} else {
+					// We keep existing secrets if the new ones are not available.
+					secrets = newSecrets
+				}
 
 				routeTable := map[string]string{}
 				for _, module := range callableModuleNames {

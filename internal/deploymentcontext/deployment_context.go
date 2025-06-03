@@ -27,8 +27,8 @@ import (
 
 type DeploymentContextProvider func(ctx context.Context) <-chan DeploymentContext
 
-type SecretsProvider func(ctx context.Context) map[string][]byte
-type ConfigProvider func(ctx context.Context) map[string][]byte
+type SecretsProvider func(ctx context.Context) (map[string][]byte, error)
+type ConfigProvider func(ctx context.Context) (map[string][]byte, error)
 
 type RouteProvider interface {
 	Subscribe() chan string

@@ -70,8 +70,8 @@ and route to user code.
 		kctx.Fatalf("Failed to find module %s in schema, found %s", cli.RunnerConfig.Deployment.Payload.Module, found)
 	}
 
-	secProvider := deploymentcontext.NewDiskSecretsProvider(cli.SecretsPath)
-	configProvider := deploymentcontext.NewDiskConfigProvider(cli.ConfigsPath)
+	secProvider := deploymentcontext.NewDiskProvider(cli.SecretsPath)
+	configProvider := deploymentcontext.NewDiskProvider(cli.ConfigsPath)
 	kctx.FatalIfErrorf(err, "failed to load route provider")
 	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, &templateRouteTable{template: cli.RouteTemplate, realm: cli.RunnerConfig.Deployment.Payload.Realm}, module, secProvider, configProvider)
 	deploymentProvider := func() (string, error) {

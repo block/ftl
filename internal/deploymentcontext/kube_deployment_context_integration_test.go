@@ -50,14 +50,14 @@ func TestKubeDeploymentContext(t *testing.T) {
 			secretsCmName := "ftl-module-echo-secrets"
 			secretsCm, err := client.CoreV1().Secrets("demo").Get(ctx, secretsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get Secrets %s", secretsCmName)
-			secretsCm.Data["echo.apiKey"] = []byte("prod-api-key-123")
+			secretsCm.Data["apiKey"] = []byte("\"prod-api-key-123\"")
 			_, err = client.CoreV1().Secrets("demo").Update(ctx, secretsCm, v1.UpdateOptions{})
 			assert.NoError(t, err, "Failed to update Secrets %s", secretsCmName)
 
 			configsCmName := "ftl-module-echo-configs"
 			configsCm, err := client.CoreV1().ConfigMaps("demo").Get(ctx, configsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get ConfigMap %s", configsCmName)
-			configsCm.Data["echo.greeting"] = "Hola"
+			configsCm.Data["greeting"] = "\"Hola\""
 			_, err = client.CoreV1().ConfigMaps("demo").Update(ctx, configsCm, v1.UpdateOptions{})
 			assert.NoError(t, err, "Failed to update ConfigMap %s", configsCmName)
 
