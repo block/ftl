@@ -23,7 +23,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
-	"github.com/block/ftl/common/log"
+	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
@@ -59,6 +59,19 @@ const (
 	SUCCESSORFAILURE
 )
 
+func expectBuildSuccess(t *testing.T) func(res *languagepb.BuildResponse) {
+	return func(res *languagepb.BuildResponse) {
+		_, ok := res.Event.(*languagepb.BuildResponse_BuildSuccess)
+		assert.True(t, ok, "Expecting build success event")
+	}
+}
+func expectBuildFailure(t *testing.T) func(res *languagepb.BuildResponse) {
+	return func(res *languagepb.BuildResponse) {
+		_, ok := res.Event.(*languagepb.BuildResponse_BuildFailure)
+		assert.True(t, ok, "Expecting build success event")
+	}
+}
+
 func TestBuilds(t *testing.T) {
 	sch := generateInitialSchema(t)
 	bctx := &testContext{}
@@ -73,23 +86,16 @@ func TestBuilds(t *testing.T) {
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build once
-		bctx.build(false, []string{}, sc),
+		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		bctx.waitForBuildToEnd(SUCCESS, "build-once", false, nil),
 
-		// Sending build context updates should fail if the plugin has no way to send back a build result
-		in.Fail(
-			bctx.sendUpdatedBuildContext("no-build-stream", []string{}, sch),
-			"expected error when sending build context update without a build stream",
-		),
-
 		// Build and enable rebuilding automatically
-		bctx.build(true, []string{}, sch, "build-and-watch"),
+		bctx.build(true, []string{}, sch, expectBuildSuccess(t)),
 		bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
 
 		// Update verb name and expect auto rebuild started and ended
 		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
-		in.IfLanguages(bctx.waitForAutoRebuildToStart("build-and-watch"), "go"),
-		bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", true, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
+		bctx.build(false, []string{}, sch, func(event *langpb.BuildResponse) {
 			successEvent, ok := event.Event.(*langpb.BuildResponse_BuildSuccess)
 			assert.True(t, ok)
 			_, found := slices.Find(successEvent.BuildSuccess.Module.Decls, func(decl *schemapb.Decl) bool {
@@ -105,16 +111,7 @@ func TestBuilds(t *testing.T) {
 		// Trigger an auto rebuild, but when we are told of the build being started, send a build context update
 		// to force a new build
 		bctx.modifyVerbName(MODULE_NAME, "aaabbbccc", "aaaabbbbcccc"),
-		in.IfLanguages(bctx.waitForAutoRebuildToStart("build-and-watch"), "go"),
-		bctx.sendUpdatedBuildContext("explicit-build", []string{}, sch),
-		bctx.waitForBuildToEnd(SUCCESSORFAILURE, "build-and-watch", true, nil),
-		bctx.waitForBuildToEnd(SUCCESS, "explicit-build", false, nil),
-
-		// Trigger 2 explicit builds, make sure we get a response for both of them (first one can fail)
-		bctx.sendUpdatedBuildContext("double-build-1", []string{}, sch),
-		bctx.sendUpdatedBuildContext("double-build-2", []string{}, sch),
-		bctx.waitForBuildToEnd(SUCCESSORFAILURE, "double-build-1", false, nil),
-		bctx.waitForBuildToEnd(SUCCESS, "double-build-2", false, nil),
+		bctx.build(true, []string{}, sch, expectBuildSuccess(t)),
 
 		bctx.killPlugin(),
 	)
@@ -136,12 +133,12 @@ func TestDependenciesUpdate(t *testing.T) {
 		bctx.syncStubReferences("builtin", "dependable"),
 
 		// Build
-		bctx.build(false, []string{}, sch, "initial-ctx"),
+		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		bctx.waitForBuildToEnd(SUCCESS, "initial-ctx", false, nil),
 
 		// Add dependency, build, and expect a failure due to invalidated dependencies
 		bctx.addDependency(MODULE_NAME, "dependable"),
-		bctx.build(false, []string{}, sch, "detect-dep"),
+		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		bctx.waitForBuildToEnd(FAILURE, "detect-dep", false, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
 			failureEvent, ok := event.Event.(*langpb.BuildResponse_BuildFailure)
 			assert.True(t, ok)
@@ -149,7 +146,7 @@ func TestDependenciesUpdate(t *testing.T) {
 		}),
 
 		// Build with new dependency
-		bctx.build(false, []string{"dependable"}, sch, "dep-added"),
+		bctx.build(false, []string{"dependable"}, sch, expectBuildSuccess(t)),
 		bctx.waitForBuildToEnd(SUCCESS, "dep-added", false, nil),
 
 		bctx.killPlugin(),
@@ -174,15 +171,13 @@ func TestBuildLock(t *testing.T) {
 
 		// Build and enable rebuilding automatically
 		bctx.checkBuildLockLifecycle(
-			bctx.build(true, []string{}, sch, "build-and-watch"),
-			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
+			bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		),
 
 		// Update verb name and expect auto rebuild started and ended
 		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
 		bctx.checkBuildLockLifecycle(
-			bctx.waitForAutoRebuildToStart("build-and-watch"),
-			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", true, nil),
+			bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		),
 	)
 }
@@ -205,8 +200,7 @@ func TestBuildsWhenAlreadyLocked(t *testing.T) {
 
 		// Build and enable rebuilding automatically
 		bctx.checkBuildLockLifecycle(
-			bctx.build(true, []string{}, sch, "build-and-watch"),
-			bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
+			bctx.build(true, []string{}, sch, expectBuildSuccess(t)),
 		),
 
 		// Confirm that build lock changes do not trigger a rebuild triggered by file changes
@@ -215,8 +209,7 @@ func TestBuildsWhenAlreadyLocked(t *testing.T) {
 
 		// Confirm that builds fail or stall when a lock file is already present
 		bctx.checkLockedBehavior(
-			bctx.sendUpdatedBuildContext("updated-ctx", []string{}, sch),
-			bctx.waitForBuildToEnd(FAILURE, "updated-ctx", false, nil),
+			bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		),
 	)
 }

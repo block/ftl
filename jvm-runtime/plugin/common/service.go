@@ -32,7 +32,6 @@ import (
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/builderrors"
-	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/plugin"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
@@ -201,14 +200,14 @@ func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig
 	go func() {
 		// Wait for the plugin to start.
 		s.hotReloadEndpoint = fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-		client := s.connectReloadClient(ctx, s.hotReloadEndpoint, output)
-		if err != nil || client == nil {
+		s.hotReloadClient = rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, s.hotReloadEndpoint, log.Debug)
+		err := s.connectReloadClient(ctx, s.hotReloadClient)
+		if err != nil {
 			errorChan <- errors.WithStack(err)
 			return
 		}
 		logger.Debugf("Dev mode process started")
-		s.hotReloadClient = client
-		res, err := client.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
+		res, err := s.hotReloadClient.Watch(ctx, connect.NewRequest(&hotreloadpb.WatchRequest{}))
 		if err != nil {
 			errorChan <- errors.Wrap(err, "could not get initial hot reload state")
 			return
@@ -262,31 +261,6 @@ func (s *Service) reloadDevMode(ctx context.Context, buildCtx buildContext, sche
 	}
 	handleReloadResponse(result)
 	return s.handleState(ctx, result.Msg.State, buildCtx)
-}
-
-func (s *Service) doReload(ctx context.Context, client hotreloadpbconnect.HotReloadServiceClient, request *hotreloadpb.ReloadRequest, reloadEvents chan *buildResult, buildContextUpdated bool, newKey key.Deployment) error {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Sending hot reload request")
-	result, err := client.Reload(ctx, connect.NewRequest(request))
-
-	if err != nil {
-		logger.Debugf("Reload failed, attempting to reconnect")
-		// If the connection has failed we try again
-		err = s.connectReloadClient(ctx, client)
-
-		if err != nil {
-			logger.Debugf("Reconnect failed, unable to connect to client")
-			return err
-		}
-		result, err = client.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{}))
-	}
-	if err != nil {
-		logger.Debugf("Unable to invoke reload on the JVM") //TODO: restart
-		return errors.Wrap(err, "unable to invoke hot reload")
-	}
-	handleReloadResponse(result)
-	reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed, bctx: s.buildContext.Load(), buildContextUpdated: buildContextUpdated}
-	return nil
 }
 
 func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse]) {
