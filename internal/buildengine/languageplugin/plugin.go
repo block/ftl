@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -111,12 +112,11 @@ func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, er
 }
 
 func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlugin {
-	val := atomic.NewInt32(0)
 	plugin := &LanguagePlugin{
 		client:       client,
 		updates:      pubsub.New[PluginEvent](),
 		bctx:         atomic.New[*buildInfo](nil),
-		buildRunning: &val,
+		buildRunning: &sync.Mutex{},
 	}
 	go plugin.watchForCmdError(ctx)
 
@@ -130,7 +130,7 @@ type LanguagePlugin struct {
 	updates      *pubsub.Topic[PluginEvent]
 	watch        *pubsub.Topic[watch.WatchEvent]
 	bctx         *atomic.Value[*buildInfo]
-	buildRunning *atomic.Int32
+	buildRunning *sync.Mutex
 }
 
 // Kill stops the plugin and cleans up any resources.
@@ -219,10 +219,8 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // In dev mode, plugin is responsible for automatically rebuilding as relevant files within the module change,
 // and publishing these automatic builds updates to Updates().
 func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
-	if !p.buildRunning.CompareAndSwap(0, 1) {
-		return BuildResult{}, errors.Errorf("build already running")
-	}
-	defer p.buildRunning.Store(0)
+	p.buildRunning.Lock()
+	defer p.buildRunning.Unlock()
 	startTime := time.Now()
 	p.bctx.Store(&buildInfo{projectConfig: projectConfig, stubsRoot: stubsRoot, bctx: bctx})
 
