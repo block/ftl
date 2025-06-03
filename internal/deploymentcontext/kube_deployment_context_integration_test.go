@@ -24,18 +24,18 @@ func TestKubeDeploymentContext(t *testing.T) {
 			s := &corev1.Secret{}
 			s.Name = secretsCmName
 			s.Data = map[string][]byte{
-				"echo.apiKey": []byte("test-api-key-123"),
+				"apiKey": []byte("\"test-api-key-123\""),
 			}
-			_, err := client.CoreV1().Secrets("echo-ftl").Create(ctx, s, v1.CreateOptions{})
+			_, err := client.CoreV1().Secrets("demo").Create(ctx, s, v1.CreateOptions{})
 			assert.NoError(t, err, "Failed to create secret %s", secretsCmName)
 
 			configsCmName := "ftl-module-echo-configs"
 			cfg := &corev1.ConfigMap{}
 			cfg.Name = configsCmName
 			cfg.Data = map[string]string{
-				"echo.greeting": "Bonjour",
+				"greeting": "\"Bonjour\"",
 			}
-			_, err = client.CoreV1().ConfigMaps("echo-ftl").Create(ctx, cfg, v1.CreateOptions{})
+			_, err = client.CoreV1().ConfigMaps("demo").Create(ctx, cfg, v1.CreateOptions{})
 			assert.NoError(t, err, "Failed to create ConfigMap %s", configsCmName)
 		}),
 		in.CopyModule("echo"),
@@ -48,17 +48,17 @@ func TestKubeDeploymentContext(t *testing.T) {
 
 			// Update secrets and configs.
 			secretsCmName := "ftl-module-echo-secrets"
-			secretsCm, err := client.CoreV1().Secrets("echo-ftl").Get(ctx, secretsCmName, v1.GetOptions{})
+			secretsCm, err := client.CoreV1().Secrets("demo").Get(ctx, secretsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get Secrets %s", secretsCmName)
 			secretsCm.Data["echo.apiKey"] = []byte("prod-api-key-123")
-			_, err = client.CoreV1().Secrets("echo-ftl").Update(ctx, secretsCm, v1.UpdateOptions{})
+			_, err = client.CoreV1().Secrets("demo").Update(ctx, secretsCm, v1.UpdateOptions{})
 			assert.NoError(t, err, "Failed to update Secrets %s", secretsCmName)
 
 			configsCmName := "ftl-module-echo-configs"
-			configsCm, err := client.CoreV1().ConfigMaps("echo-ftl").Get(ctx, configsCmName, v1.GetOptions{})
+			configsCm, err := client.CoreV1().ConfigMaps("demo").Get(ctx, configsCmName, v1.GetOptions{})
 			assert.NoError(t, err, "Failed to get ConfigMap %s", configsCmName)
 			configsCm.Data["echo.greeting"] = "Hola"
-			_, err = client.CoreV1().ConfigMaps("echo-ftl").Update(ctx, configsCm, v1.UpdateOptions{})
+			_, err = client.CoreV1().ConfigMaps("demo").Update(ctx, configsCm, v1.UpdateOptions{})
 			assert.NoError(t, err, "Failed to update ConfigMap %s", configsCmName)
 
 		}),
