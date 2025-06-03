@@ -4,15 +4,16 @@ globs: **/*.go
 alwaysApply: false
 ---
 
-- Always handle errors.
-- For error handling:
-  - Use `errors.Wrap(err, "message")` for basic error wrapping
-  - Use `errors.Wrapf(err, "message with %s", formatString)` for wrapping with formatting
-  - Use `errors.Errorf("message with %v", value)` for creating new errors
-  - Never use `fmt.Errorf`
+These rules for writing Go code (*.go):
+
+- Always handle errors using `github.com/alecthomas/errors`.
+- Never use `fmt.Errorf()` or stdlib `errors.New()`
+- Use `errors.Errorf("%w: message", err)` for basic error wrapping
+- Use `errors.Errorf("%w: message with %s", err, formatString)` for wrapping with formatting
+- Use `errors.Errorf("message with %v", value)` for creating new errors
 - Never use pointers to represent optional values, always use `github.com/alecthomas/types/optional.Option[T]`
-- For tests, always use github.com/alecthomas/assert for assertions.
-- When using assert.Equal, the parameters are `assert.Equal(t, <expected>, <actual>)` in that order.
+- For tests, always use `github.com/alecthomas/assert/v2` for assertions.
+- When using `assert.Equal`, the parameters are `assert.Equal(t, <expected>, <actual>)` in that order.
 - Always update or create tests for new changes to Go code.
 - After making changes to Go files, always run tests.
 - Never use `os.Getenv()` outside of `main()`
