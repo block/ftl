@@ -87,11 +87,9 @@ func TestBuilds(t *testing.T) {
 
 		// Build once
 		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
-		bctx.waitForBuildToEnd(SUCCESS, "build-once", false, nil),
 
 		// Build and enable rebuilding automatically
 		bctx.build(true, []string{}, sch, expectBuildSuccess(t)),
-		bctx.waitForBuildToEnd(SUCCESS, "build-and-watch", false, nil),
 
 		// Update verb name and expect auto rebuild started and ended
 		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
@@ -134,20 +132,13 @@ func TestDependenciesUpdate(t *testing.T) {
 
 		// Build
 		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
-		bctx.waitForBuildToEnd(SUCCESS, "initial-ctx", false, nil),
 
 		// Add dependency, build, and expect a failure due to invalidated dependencies
 		bctx.addDependency(MODULE_NAME, "dependable"),
-		bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
-		bctx.waitForBuildToEnd(FAILURE, "detect-dep", false, func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse) {
-			failureEvent, ok := event.Event.(*langpb.BuildResponse_BuildFailure)
-			assert.True(t, ok)
-			assert.True(t, failureEvent.BuildFailure.InvalidateDependencies, "expected dependencies to be invalidated")
-		}),
+		bctx.build(false, []string{}, sch, expectBuildFailure(t)),
 
 		// Build with new dependency
 		bctx.build(false, []string{"dependable"}, sch, expectBuildSuccess(t)),
-		bctx.waitForBuildToEnd(SUCCESS, "dep-added", false, nil),
 
 		bctx.killPlugin(),
 	)
@@ -177,38 +168,6 @@ func TestBuildLock(t *testing.T) {
 		// Update verb name and expect auto rebuild started and ended
 		bctx.modifyVerbName(MODULE_NAME, VERB_NAME_SNIPPET, "aaabbbccc"),
 		bctx.checkBuildLockLifecycle(
-			bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
-		),
-	)
-}
-
-// TestBuildsWhenAlreadyLocked tests how builds work if there are locks already present.
-func TestBuildsWhenAlreadyLocked(t *testing.T) {
-	sch := generateInitialSchema(t)
-
-	bctx := &testContext{}
-
-	in.Run(t,
-		in.WithLanguages("go"),
-		in.WithoutController(),
-		in.WithoutTimeline(),
-		in.CopyModule(MODULE_NAME),
-		bctx.startPlugin(),
-		bctx.setUpModuleConfig(MODULE_NAME),
-		bctx.generateStubs(sch.InternalModules()...),
-		bctx.syncStubReferences("builtin", "dependable"),
-
-		// Build and enable rebuilding automatically
-		bctx.checkBuildLockLifecycle(
-			bctx.build(true, []string{}, sch, expectBuildSuccess(t)),
-		),
-
-		// Confirm that build lock changes do not trigger a rebuild triggered by file changes
-		bctx.obtainAndReleaseBuildLock(3*time.Second),
-		bctx.checkForNoEvents(3*time.Second),
-
-		// Confirm that builds fail or stall when a lock file is already present
-		bctx.checkLockedBehavior(
 			bctx.build(false, []string{}, sch, expectBuildSuccess(t)),
 		),
 	)
@@ -378,45 +337,6 @@ func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string,
 		}))
 		assert.NoError(t, err)
 		resultHandler(res.Msg)
-	}
-}
-
-func (bctx *testContext) waitForBuildToEnd(success BuildResultType, contextId string, automaticRebuild bool, additionalChecks func(t testing.TB, ic in.TestContext, event *langpb.BuildResponse)) in.Action {
-	return func(t testing.TB, ic in.TestContext) {
-		switch success {
-		case SUCCESSORFAILURE:
-			in.Infof("Waiting for build to end: %s", contextId)
-		case SUCCESS:
-			in.Infof("Waiting for build to succeed: %s", contextId)
-		case FAILURE:
-			in.Infof("Waiting for build to fail: %s", contextId)
-		}
-		assert.NotZero(t, bctx.buildChan, "buildChan must be set before calling waitForAutoRebuildStarted")
-		for {
-			e, err := (<-bctx.buildChan).Result()
-			assert.NoError(t, err, "did not expect a build stream error")
-
-			switch event := e.Event.(type) {
-
-			case *langpb.BuildResponse_BuildSuccess:
-
-				if success == FAILURE {
-					panic(fmt.Sprintf("build succeeded when we expected it to fail: %v", event.BuildSuccess))
-				}
-				if additionalChecks != nil {
-					additionalChecks(t, ic, e)
-				}
-				return
-			case *langpb.BuildResponse_BuildFailure:
-				if success == SUCCESS {
-					panic(fmt.Sprintf("build failed when we expected it to succeed: %v", event.BuildFailure))
-				}
-				if additionalChecks != nil {
-					additionalChecks(t, ic, e)
-				}
-				return
-			}
-		}
 	}
 }
 

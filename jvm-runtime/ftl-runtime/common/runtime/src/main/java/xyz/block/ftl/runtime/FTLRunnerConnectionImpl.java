@@ -478,7 +478,7 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
         @Override
         public void onNext(GetDeploymentContextResponse moduleContextResponse) {
             synchronized (this) {
-                log.debugf("Received module context for %s: %s, waiters: %s", deploymentName, moduleContextResponse.getModule(),
+                log.infof("Received module context for %s: %s, waiters: %s", deploymentName, moduleContextResponse.getModule(),
                         waiters);
                 currentError = null;
                 FTLRunnerConnectionImpl.this.moduleContextResponse = moduleContextResponse;
@@ -509,9 +509,11 @@ class FTLRunnerConnectionImpl implements FTLRunnerConnection {
                     waiters = false;
                 }
             }
-            deploymentService.getDeploymentContext(
-                    GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
-                    moduleObserver);
+            if (!channel.isShutdown()) {
+                deploymentService.getDeploymentContext(
+                        GetDeploymentContextRequest.newBuilder().setDeployment(deploymentName).build(),
+                        moduleObserver);
+            }
         }
     }
 
