@@ -886,8 +886,12 @@ public class ModuleBuilder {
             if (!Modifier.isStatic(field.flags())) {
                 Field.Builder builder = Field.newBuilder().setName(field.name())
                         .setType(buildType(field.type(), visibility, field));
-                if (field.hasAnnotation(JsonAlias.class)) {
-                    var aliases = field.annotation(JsonAlias.class);
+                MethodInfo getter = clazz.method(accessorName(field));
+                var aliases = field.annotation(JsonAlias.class);
+                if (aliases == null && getter != null) {
+                    aliases = getter.annotation(JsonAlias.class);
+                }
+                if (aliases != null) {
                     if (aliases.value() != null) {
                         for (var alias : aliases.value().asStringArray()) {
                             builder.addMetadata(
@@ -897,8 +901,11 @@ public class ModuleBuilder {
                         }
                     }
                 }
-                if (field.hasAnnotation(JsonProperty.class)) {
-                    var jsonProperty = field.annotation(JsonProperty.class);
+                var jsonProperty = field.annotation(JsonProperty.class);
+                if (jsonProperty == null && getter != null) {
+                    jsonProperty = getter.annotation(JsonProperty.class);
+                }
+                if (jsonProperty != null) {
                     if (jsonProperty.value() != null && !jsonProperty.value().asString().isEmpty()) {
                         builder.setName(jsonProperty.value().asString());
                     }
@@ -907,6 +914,14 @@ public class ModuleBuilder {
             }
         }
         buildDataElement(data, clazz.superName(), visibility);
+    }
+
+    private String accessorName(FieldInfo field) {
+        if (field.type().kind() == org.jboss.jandex.Type.Kind.PRIMITIVE
+                && field.type().asPrimitiveType().primitive() == PrimitiveType.Primitive.BOOLEAN) {
+            return "is" + Character.toUpperCase(field.name().charAt(0)) + field.name().substring(1);
+        }
+        return "get" + Character.toUpperCase(field.name().charAt(0)) + field.name().substring(1);
     }
 
     public ModuleBuilder addDecls(Decl decl) {
