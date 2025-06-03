@@ -1,1 +1,4 @@
-{"echo.default":"anonymous","key":"value"}
+{
+  "echo.default": "anonymous",
+  "key": "value"
+}

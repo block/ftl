@@ -143,7 +143,7 @@ func (f *FileProvider[R]) mutate(ctx context.Context, mutate func(state map[stri
 		if err := mutate(state); err != nil {
 			return errors.Wrapf(err, "%s: could not mutate", f.Role())
 		}
-		data, err := json.Marshal(state)
+		data, err := json.MarshalIndent(state, "", "  ")
 		if err != nil {
 			return errors.Wrapf(err, "%s: could not marshal", f.Role())
 		}
