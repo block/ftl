@@ -201,7 +201,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig
 	go func() {
 		// Wait for the plugin to start.
 		s.hotReloadEndpoint = fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-		client, err := s.connectReloadClient(ctx, s.hotReloadEndpoint, output)
+		client := s.connectReloadClient(ctx, s.hotReloadEndpoint, output)
 		if err != nil || client == nil {
 			errorChan <- errors.WithStack(err)
 			return
@@ -256,12 +256,11 @@ func (s *Service) reloadDevMode(ctx context.Context, buildCtx buildContext, sche
 		}), nil
 	}
 
-	newKey := key.NewDeploymentKey(buildCtx.Config.Realm, buildCtx.Config.Module)
-	result, err := s.hotReloadClient.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{NewDeploymentKey: newKey.String(), SchemaChanged: schemaChanged}))
+	result, err := s.hotReloadClient.Reload(ctx, connect.NewRequest(&hotreloadpb.ReloadRequest{SchemaChanged: schemaChanged}))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to invoke reload")
 	}
-	handleReloadResponse(result, newKey)
+	handleReloadResponse(result)
 	return s.handleState(ctx, result.Msg.State, buildCtx)
 }
 
@@ -285,12 +284,12 @@ func (s *Service) doReload(ctx context.Context, client hotreloadpbconnect.HotRel
 		logger.Debugf("Unable to invoke reload on the JVM") //TODO: restart
 		return errors.Wrap(err, "unable to invoke hot reload")
 	}
-	handleReloadResponse(result, newKey)
+	handleReloadResponse(result)
 	reloadEvents <- &buildResult{state: result.Msg.GetState(), failed: result.Msg.Failed, bctx: s.buildContext.Load(), buildContextUpdated: buildContextUpdated}
 	return nil
 }
 
-func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], newKey key.Deployment) {
+func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse]) {
 	if result.Msg.State.Module != nil {
 		if result.Msg.State.Module.Runtime == nil {
 			result.Msg.State.Module.Runtime = &schemapb.ModuleRuntime{}
@@ -298,7 +297,6 @@ func handleReloadResponse(result *connect.Response[hotreloadpb.ReloadResponse], 
 		if result.Msg.State.Module.Runtime.Deployment == nil {
 			result.Msg.State.Module.Runtime.Deployment = &schemapb.ModuleRuntimeDeployment{}
 		}
-		result.Msg.State.Module.Runtime.Deployment.DeploymentKey = newKey.String()
 	}
 }
 
@@ -343,7 +341,7 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 	}), nil
 }
 
-func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout io.Writer) {
+func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout *errorDetector) {
 	go func() {
 		logger := log.FromContext(ctx)
 		ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
@@ -382,7 +380,7 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 			return errors.Errorf("dev mode process exited")
 		default:
 		}
-		return errors.Wrap(err, "timed out waiting for star")
+		return errors.Wrap(err, "timed out waiting for start")
 	}
 	return nil
 }
