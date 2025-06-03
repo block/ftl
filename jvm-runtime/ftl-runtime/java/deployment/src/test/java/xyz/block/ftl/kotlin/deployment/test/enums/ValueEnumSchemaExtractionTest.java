@@ -29,7 +29,19 @@ public class ValueEnumSchemaExtractionTest {
         var e = module.getDeclsList().stream().filter(Decl::hasEnum).findFirst().orElseThrow();
         Assertions.assertEquals("StringEnum", e.getEnum().getName());
         Assertions.assertEquals(2, e.getEnum().getVariantsCount());
-        Assertions.assertEquals(true, e.getEnum().getType().hasString());
+        Assertions.assertTrue(e.getEnum().getType().hasString());
+        for (var i : e.getEnum().getVariantsList()) {
+            switch (i.getName()) {
+                case "Foo":
+                    Assertions.assertEquals("foo", i.getValue().getStringValue().getValue());
+                    break;
+                case "FooBar":
+                    Assertions.assertEquals("fooBar", i.getValue().getStringValue().getValue());
+                    break;
+                default:
+                    Assertions.fail("Unexpected enum variant: " + i.getName());
+            }
+        }
     }
 
     @Verb
@@ -37,9 +49,9 @@ public class ValueEnumSchemaExtractionTest {
 
     }
 
-    public static enum StringEnum {
+    public enum StringEnum {
         FOO("foo"),
-        BAR("bar");
+        FOO_BAR("fooBar");
 
         final String value;
 
