@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.seralization.verbs;
+package xyz.block.ftl.kotlin.deployment.test.seralization;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
