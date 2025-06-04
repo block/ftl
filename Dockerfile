@@ -19,6 +19,7 @@ FROM ${RUNTIME}
 ARG EXTRA_FILES
 ARG SERVICE
 
+CMD mkdir -p /etc/ftl/secrets /etc/ftl/config
 WORKDIR /home/ubuntu/
 COPY . .
 
