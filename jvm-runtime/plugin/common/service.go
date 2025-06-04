@@ -364,11 +364,6 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 
 func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext) (*langpb.BuildResponse, error) {
 	logger := log.FromContext(ctx)
-	release, err := flock.Acquire(ctx, bctx.Config.BuildLock, BuildLockTimeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not acquire build lock")
-	}
-	defer release() //nolint:errcheck
 
 	deps, err := extractDependencies(bctx.Config.Module, bctx.Config.Dir)
 	if err != nil {
