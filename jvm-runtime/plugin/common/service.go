@@ -326,9 +326,9 @@ func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string,
 		s.devModeRunning.Store(0)
 		cancel(nil)
 	}()
-	logger.Infof("Using dev mode build command '%s'", devModeBuild)
+	logger.Debugf("Using dev mode build command '%s'", devModeBuild)
 	command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
-	if os.Getenv("MAVEN_OPTS") == "" {
+	if os.Getenv("MAVEN_OPTS") == "" { //nolint:forbidigo
 		command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
 	}
 	command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
@@ -337,11 +337,11 @@ func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string,
 	err := command.Run()
 	if err != nil {
 		stdout.FinalizeCapture(true)
-		logger.Errorf(err, "Dev mode process exited with error")
+		logger.Debugf("Dev mode process exited with error: %v", err)
 		cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev mode process exited with error"))
 		errChan <- errors.Wrap(err, "dev mode process exited with error")
 	} else {
-		logger.Infof("Dev mode process exited")
+		logger.Debugf("Dev mode process exited") //nolint:forbidigo
 		cancel(errors.Wrap(context.Canceled, "dev mode process exited"))
 		errChan <- errors.Wrap(err, "dev mode process exited")
 	}
@@ -351,7 +351,7 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 	logger := log.FromContext(ctx)
 	err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, client)
 	if err != nil {
-		logger.Infof("Dev mode process failed to start")
+		logger.Debugf("Dev mode process failed to start")
 		select {
 		case <-ctx.Done():
 			return errors.Errorf("dev mode process exited")
