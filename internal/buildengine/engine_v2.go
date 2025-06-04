@@ -149,6 +149,8 @@ func NewV2(
 		option(e)
 	}
 
+	updateTerminalWithEngineEventsV2(ctx, e.stateChanges)
+
 	// Ensure schema sync at startup if we have an admin client
 	if e.adminClient != nil {
 		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
@@ -158,11 +160,6 @@ func NewV2(
 			e.os = info.Msg.Os
 			e.arch = info.Msg.Arch
 		}
-		logger.Infof("Waiting for initial schema sync")
-		if !e.schemaSource.WaitForInitialSync(ctx) {
-			return nil, errors.Errorf("timed out waiting for initial schema sync from server")
-		}
-		logger.Infof("Initial schema sync complete")
 	}
 
 	// Discover modules
@@ -277,19 +274,6 @@ func (e *EngineV2) processChanges(ctx context.Context) {
 				switch stateChange.Event.Event.(type) {
 				case *buildenginepb.EngineEvent_ModuleBuildWaiting:
 					logger.Infof("Build waiting...")
-					proto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
-					if err != nil {
-						logger.Errorf(err, "failed to marshal module config")
-						return err
-					}
-					e.updateModuleState(ctx, stateChange.Module, &buildenginepb.EngineEvent{
-						Timestamp: timestamppb.Now(),
-						Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
-							ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
-								Config: proto,
-							},
-						},
-					})
 				case *buildenginepb.EngineEvent_ModuleBuildStarted:
 					logger.Infof("Building...")
 
