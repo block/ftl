@@ -40,6 +40,9 @@ type ProvisionedResource struct {
 
 	// DeploymentSpecific is true if the resource is specific to a deployment, and cannot be re-used by a subsequent deployment of the same module
 	DeploymentSpecific bool
+
+	// State is the current provisioned state of the element
+	State Runtime
 }
 
 func (r *ProvisionedResource) IsEqual(other *ProvisionedResource) bool {

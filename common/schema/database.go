@@ -57,6 +57,7 @@ func (d *Database) GetProvisioned() ResourceSet {
 	result := []*ProvisionedResource{{
 		Kind:   kind,
 		Config: &Database{Type: d.Type},
+		State:  d.Runtime,
 	}}
 
 	migration, ok := slices.FindVariant[*MetadataSQLMigration](d.Metadata)
