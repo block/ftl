@@ -7,24 +7,32 @@ import (
 	"slices"
 
 	errors "github.com/alecthomas/errors"
+	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 )
 
-func NewConfigurationRegistry(adminClient adminpbconnect.AdminServiceClient) *Registry[Configuration] {
+// NewConfigurationRegistry creates a new configuration registry.
+//
+// If adminClient is provided, a remote provider will be registered
+func NewConfigurationRegistry(adminClient Option[adminpbconnect.AdminServiceClient]) *Registry[Configuration] {
 	registry := NewRegistry[Configuration]()
 	registry.Register(NewFileProviderFactory[Configuration]())
 	registry.Register(NewMemoryProviderFactory[Configuration]())
-	registry.Register(NewRemoteProviderFactory[Configuration](adminClient))
+	if adminClient, ok := adminClient.Get(); ok {
+		registry.Register(NewRemoteProviderFactory[Configuration](adminClient))
+	}
 	return registry
 }
 
-func NewSecretsRegistry(adminClient adminpbconnect.AdminServiceClient) *Registry[Secrets] {
+func NewSecretsRegistry(adminClient Option[adminpbconnect.AdminServiceClient]) *Registry[Secrets] {
 	registry := NewRegistry[Secrets]()
 	registry.Register(NewFileProviderFactory[Secrets]())
 	registry.Register(NewMemoryProviderFactory[Secrets]())
 	registry.Register(NewOnePasswordProviderFactory())
-	registry.Register(NewRemoteProviderFactory[Secrets](adminClient))
+	if adminClient, ok := adminClient.Get(); ok {
+		registry.Register(NewRemoteProviderFactory[Secrets](adminClient))
+	}
 	return registry
 }
 

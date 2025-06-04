@@ -14,6 +14,7 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	queryconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1/querypbconnect"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/backend/runner/query"
@@ -153,7 +154,7 @@ func WithProjectFile(path string) Option {
 				return errors.Wrap(err, "project")
 			}
 
-			cr := config.NewConfigurationRegistry(nil)
+			cr := config.NewConfigurationRegistry(optional.None[adminpbconnect.AdminServiceClient]())
 			cm, err := cr.Get(ctx, projectConfig.Root(), projectConfig.ConfigProvider)
 			if err != nil {
 				return errors.Wrap(err, "could not set up configs")
@@ -170,7 +171,7 @@ func WithProjectFile(path string) Option {
 				}
 			}
 
-			sr := config.NewSecretsRegistry(nil)
+			sr := config.NewSecretsRegistry(optional.None[adminpbconnect.AdminServiceClient]())
 			sm, err := sr.Get(ctx, projectConfig.Root(), projectConfig.SecretsProvider)
 			if err != nil {
 				return errors.Wrap(err, "could not set up secrets")

@@ -15,7 +15,7 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	kongtoml "github.com/alecthomas/kong-toml"
-	"github.com/alecthomas/types/optional"
+	. "github.com/alecthomas/types/optional"
 	kongcompletion "github.com/jotaen/kong-completion"
 
 	"github.com/block/ftl"
@@ -131,7 +131,7 @@ func New(ctx context.Context) (*App, error) {
 
 	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stdout, cli.LogConfig))
 	// TODO: don't do this
-	projectConfig, _ := projectconfig.Load(ctx, optional.None[string]()) //nolint:errcheck
+	projectConfig, _ := projectconfig.Load(ctx, None[string]()) //nolint:errcheck
 	err = languageplugin.PrepareNewCmd(pluginCtx, projectConfig, app, os.Args[1:])
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -160,10 +160,10 @@ func (a *App) Run(ctx context.Context, args []string) error {
 
 	if !cli.Plain {
 		sm := terminal.NewStatusManager(ctx)
-		a.csm.statusManager = optional.Some(sm)
+		a.csm.statusManager = Some(sm)
 		ctx = sm.IntoContext(ctx)
 	}
-	err = rpc.InitialiseClients(cli.Authenticators, cli.Insecure, optional.Zero(cli.ClientCert))
+	err = rpc.InitialiseClients(cli.Authenticators, cli.Insecure, Zero(cli.ClientCert))
 	if err != nil {
 		cancel(err)
 		return errors.Wrap(err, "failed to initialise RPC clients")
@@ -249,7 +249,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 	var bindContext KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
 		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
-			config, err := projectconfig.Load(ctx, optional.Zero(cli.ConfigFlag))
+			config, err := projectconfig.Load(ctx, Zero(cli.ConfigFlag))
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return config, errors.WithStack(err)
 			}
@@ -286,10 +286,14 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		verbServiceClient := rpc.Dial(ftlv1connect.NewVerbServiceClient, cli.AdminEndpoint.String(), log.Error)
 		kctx.BindTo(verbServiceClient, (*ftlv1connect.VerbServiceClient)(nil))
 
-		err = kctx.BindToProvider(config.NewConfigurationRegistry)
+		err = kctx.BindToProvider(func(adminClient adminpbconnect.AdminServiceClient) (*config.Registry[config.Configuration], error) {
+			return config.NewConfigurationRegistry(Some(adminClient)), nil
+		})
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(config.NewSecretsRegistry)
+		err = kctx.BindToProvider(func(adminClient adminpbconnect.AdminServiceClient) (*config.Registry[config.Secrets], error) {
+			return config.NewSecretsRegistry(Some(adminClient)), nil
+		})
 		kctx.FatalIfErrorf(err)
 
 		err = kctx.BindToProvider(func(ctx context.Context, config projectconfig.Config, registry *config.Registry[config.Configuration]) (config.Provider[config.Configuration], error) {
@@ -320,7 +324,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 }
 
 type currentStatusManager struct {
-	statusManager optional.Option[terminal.StatusManager]
+	statusManager Option[terminal.StatusManager]
 }
 
 func provideAdminClient(
