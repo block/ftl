@@ -2,7 +2,6 @@ package schemaeventsource
 
 import (
 	"context"
-	"github.com/block/ftl/internal/channels"
 	"slices"
 	"sync"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
+	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/rpc"
 )
 
