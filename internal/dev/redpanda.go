@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/internal/container"

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 )

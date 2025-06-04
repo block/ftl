@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/tuple"
 	sets "github.com/deckarep/golang-set/v2"

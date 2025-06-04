@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine/languageplugin"

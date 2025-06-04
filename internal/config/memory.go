@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	. "github.com/alecthomas/types/optional"
 	"github.com/puzpuzpuz/xsync/v3"
 )

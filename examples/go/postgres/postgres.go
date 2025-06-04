@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type InsertRequest struct {

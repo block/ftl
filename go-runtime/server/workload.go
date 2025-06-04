@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/go-runtime/ftl"

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // Key is a unique identifier for a lease.

@@ -11,7 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/alecthomas/concurrency"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/provisioner"
 	"github.com/block/ftl/common/reflection"

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/titanous/json5"
 	"golang.org/x/sync/errgroup"

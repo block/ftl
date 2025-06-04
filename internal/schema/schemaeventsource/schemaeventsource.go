@@ -8,7 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/atomic"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/jpillora/backoff"
 	"golang.org/x/exp/maps"

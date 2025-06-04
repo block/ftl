@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl"
 	"github.com/block/ftl/internal/config"

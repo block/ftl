@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/encoding"

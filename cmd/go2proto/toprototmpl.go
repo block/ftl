@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/strcase"
 )

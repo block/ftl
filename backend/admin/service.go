@@ -13,7 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/IBM/sarama"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"

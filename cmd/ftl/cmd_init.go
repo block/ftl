@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 
 	"github.com/block/ftl"

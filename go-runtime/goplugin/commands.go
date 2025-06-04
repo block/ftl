@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 	"golang.org/x/mod/modfile"

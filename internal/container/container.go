@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/once"
 	"github.com/alecthomas/types/optional"
 	"github.com/docker/docker/api/types"

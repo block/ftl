@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 const (

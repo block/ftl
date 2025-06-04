@@ -4,7 +4,7 @@ import (
 	"context"
 	goslices "slices"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/exp/maps"
 

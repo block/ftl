@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"golang.org/x/tools/go/packages"
 

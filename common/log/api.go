@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type Sink interface {

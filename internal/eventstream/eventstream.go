@@ -5,7 +5,7 @@ import (
 	"iter"
 	"sync"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 
 	"github.com/block/ftl/common/log"

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/types/optional"
 

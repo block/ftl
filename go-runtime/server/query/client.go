@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/tuple"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"

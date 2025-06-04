@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/lni/dragonboat/v4"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"

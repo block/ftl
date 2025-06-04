@@ -1,7 +1,7 @@
 package observability
 
 import (
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 var (

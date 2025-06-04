@@ -1,6 +1,6 @@
 package concurrency
 
-import errors "github.com/alecthomas/errors"
+import "github.com/alecthomas/errors"
 
 type ResourceGroup[T any] struct {
 	funcs []func() (T, error)

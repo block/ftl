@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/alecthomas/atomic"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/common/key"

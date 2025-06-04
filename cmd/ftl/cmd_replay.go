@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	timelinev1 "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"

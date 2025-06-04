@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type Components struct {

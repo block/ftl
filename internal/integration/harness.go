@@ -19,7 +19,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 	"github.com/otiai10/copy"

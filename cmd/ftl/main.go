@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	_ "github.com/block/ftl/internal/prodinit" // Set GOMAXPROCS to match Linux container CPU quota.
 )

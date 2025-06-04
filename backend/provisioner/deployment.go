@@ -3,7 +3,7 @@ package provisioner
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"
 	"github.com/block/ftl/common/key"

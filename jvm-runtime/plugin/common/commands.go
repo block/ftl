@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 	"google.golang.org/protobuf/types/known/structpb"
 

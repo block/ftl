@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // SHA256 is a type-safe wrapper around a SHA256 hash.

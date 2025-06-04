@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/channels"
 	sm "github.com/block/ftl/internal/statemachine"

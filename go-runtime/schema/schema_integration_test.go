@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/participle/v2/lexer"
 
 	"github.com/block/ftl/common/builderrors"

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/block/scaffolder"
 	"github.com/block/scaffolder/extensions/javascript"
 	"github.com/radovskyb/watcher"

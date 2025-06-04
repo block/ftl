@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/puzpuzpuz/xsync/v3"
 	_ "github.com/tliron/commonlog/simple"
 	"github.com/tliron/glsp"

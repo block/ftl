@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"

@@ -3,7 +3,7 @@ package key
 import (
 	"strconv"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type Runner = KeyType[RunnerPayload, *RunnerPayload]

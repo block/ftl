@@ -12,7 +12,7 @@ import (
 	xslices "slices"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"

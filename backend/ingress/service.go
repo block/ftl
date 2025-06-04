@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 

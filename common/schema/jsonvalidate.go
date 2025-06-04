@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	sets "github.com/deckarep/golang-set/v2"
 )
 

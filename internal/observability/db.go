@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/XSAM/otelsql"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 

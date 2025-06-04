@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mattn/go-isatty"
 	"golang.org/x/term"

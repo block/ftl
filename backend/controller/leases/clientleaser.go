@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	leasepb "github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/lease/v1/leasepbconnect"

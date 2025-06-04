@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/block/scaffolder"
 	"golang.org/x/exp/maps"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 //go:embed resources/sqlc-gen-ftl.wasm

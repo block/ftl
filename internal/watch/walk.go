@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/bmatcuk/doublestar/v4"
 
 	"github.com/block/ftl/internal"

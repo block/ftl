@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 
 	"github.com/block/ftl/common/sha256"

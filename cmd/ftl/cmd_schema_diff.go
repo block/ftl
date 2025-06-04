@@ -10,7 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/chroma/v2/quick"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
