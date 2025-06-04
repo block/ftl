@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.enums;
+package xyz.block.ftl.javalang.deployment.test.enums;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -17,7 +17,7 @@ import io.restassured.http.ContentType;
 import xyz.block.ftl.Enum;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.VariantName;
-import xyz.block.ftl.kotlin.deployment.test.SchemaUtil;
+import xyz.block.ftl.javalang.deployment.test.SchemaUtil;
 import xyz.block.ftl.schema.v1.Decl;
 
 @Path("/")

@@ -881,6 +881,19 @@ public class ModuleBuilder {
         if (clazz == null) {
             return;
         }
+
+        // Kotlin puts Jackson annotation on the constructor parameters, which is very annoying
+        Map<String, AnnotationTarget> ctorAnnotations = new HashMap<>();
+        for (var i : clazz.methods()) {
+            if (i.name().equals("<init>")) {
+                for (var param : i.parameters()) {
+                    if (param.name() != null && !param.name().isEmpty() && !ctorAnnotations.containsKey(param.name())) {
+                        ctorAnnotations.put(param.name(), param);
+                    }
+                }
+            }
+        }
+
         // TODO: handle getters and setters properly, also Jackson annotations etc
         for (var field : clazz.fieldsInDeclarationOrder()) {
             if (!Modifier.isStatic(field.flags())) {
@@ -890,6 +903,12 @@ public class ModuleBuilder {
                 var aliases = field.annotation(JsonAlias.class);
                 if (aliases == null && getter != null) {
                     aliases = getter.annotation(JsonAlias.class);
+                }
+                if (aliases == null) {
+                    AnnotationTarget at = ctorAnnotations.get(field.name());
+                    if (at != null) {
+                        aliases = at.annotation(JsonAlias.class);
+                    }
                 }
                 if (aliases != null) {
                     if (aliases.value() != null) {
@@ -904,6 +923,12 @@ public class ModuleBuilder {
                 var jsonProperty = field.annotation(JsonProperty.class);
                 if (jsonProperty == null && getter != null) {
                     jsonProperty = getter.annotation(JsonProperty.class);
+                }
+                if (jsonProperty == null) {
+                    AnnotationTarget at = ctorAnnotations.get(field.name());
+                    if (at != null) {
+                        jsonProperty = at.annotation(JsonProperty.class);
+                    }
                 }
                 if (jsonProperty != null) {
                     if (jsonProperty.value() != null && !jsonProperty.value().asString().isEmpty()) {

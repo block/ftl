@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.enums;
+package xyz.block.ftl.javalang.deployment.test.enums;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.test.QuarkusUnitTest;
 import xyz.block.ftl.Data;
-import xyz.block.ftl.kotlin.deployment.test.SchemaUtil;
+import xyz.block.ftl.javalang.deployment.test.SchemaUtil;
 import xyz.block.ftl.schema.v1.Visibility;
 
 @Path("/")

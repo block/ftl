@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test;
+package xyz.block.ftl.javalang.deployment.test;
 
 import java.net.URI;
 
