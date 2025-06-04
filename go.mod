@@ -8,6 +8,7 @@ require (
 	connectrpc.com/otelconnect v0.7.2
 	github.com/BurntSushi/toml v1.5.0
 	github.com/IBM/sarama v1.45.1
+	github.com/PaesslerAG/gval v1.0.0
 	github.com/XSAM/otelsql v0.38.0
 	github.com/alecthomas/assert/v2 v2.11.0
 	github.com/alecthomas/atomic v0.1.0-alpha2
@@ -98,7 +99,6 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/VictoriaMetrics/metrics v1.18.1 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect

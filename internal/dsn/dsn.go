@@ -10,13 +10,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PaesslerAG/gval"
+	"github.com/PaesslerAG/jsonpath"
 	errors "github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
-	"github.com/PaesslerAG/gval"
-	"github.com/PaesslerAG/jsonpath"
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
