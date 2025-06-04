@@ -8,10 +8,6 @@ metadata:
 spec:
   replicas: {{ .Values.admin.replicas }}
   revisionHistoryLimit: {{ .Values.admin.revisionHistoryLimit }}
-  {{- if .Values.admin.persistence.enabled }}
-  strategy:
-    type: Recreate
-  {{- end }}
   selector:
     matchLabels:
       {{- include "ftl-admin.selectorLabels" . | nindent 6 }}
@@ -96,15 +92,4 @@ spec:
           {{- include "ftl.resources" .Values.admin | nindent 10 }}
           {{- include "ftl.healthProbes" .Values.admin | nindent 10 }}
           {{- include "ftl.securityContext" .Values.timeline | nindent 10 }}
-          {{- if .Values.admin.persistence.enabled }}
-          volumeMounts:
-            - name: data
-              mountPath: /data
-          {{- end }}
       {{- include "ftl.commonPodConfig" .Values.admin | nindent 6 }}
-      {{- if .Values.admin.persistence.enabled }}
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "ftl.fullname" . }}-admin
-      {{- end }}
