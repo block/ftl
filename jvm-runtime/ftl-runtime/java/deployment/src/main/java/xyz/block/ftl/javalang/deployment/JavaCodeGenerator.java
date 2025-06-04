@@ -135,7 +135,8 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
             var format = ennum.getType().hasString() ? "$S" : "$L";
             for (var i : ennum.getVariantsList()) {
                 Object value = toJavaValue(i.getValue());
-                dataBuilder.addEnumConstant(camelToUpperSnake(i.getName()), TypeSpec.anonymousClassBuilder(format, value).build());
+                dataBuilder.addEnumConstant(camelToUpperSnake(i.getName()),
+                        TypeSpec.anonymousClassBuilder(format, value).build());
             }
             JavaFile javaFile = JavaFile.builder(packageName, dataBuilder.build()).build();
             javaFile.writeTo(outputDir.writeJava(javaFile.toJavaFileObject().getName()));
