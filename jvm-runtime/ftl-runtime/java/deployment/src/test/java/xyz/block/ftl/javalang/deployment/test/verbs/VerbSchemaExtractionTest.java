@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.verbs;
+package xyz.block.ftl.javalang.deployment.test.verbs;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.test.QuarkusUnitTest;
 import xyz.block.ftl.Verb;
-import xyz.block.ftl.kotlin.deployment.test.SchemaUtil;
+import xyz.block.ftl.javalang.deployment.test.SchemaUtil;
 import xyz.block.ftl.schema.v1.Decl;
 
 public class VerbSchemaExtractionTest {

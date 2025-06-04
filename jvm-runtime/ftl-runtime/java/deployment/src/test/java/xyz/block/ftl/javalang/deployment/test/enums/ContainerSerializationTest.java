@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.enums;
+package xyz.block.ftl.javalang.deployment.test.enums;
 
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import io.quarkus.test.QuarkusUnitTest;
 import xyz.block.ftl.SourceVerb;
 import xyz.block.ftl.Verb;
 import xyz.block.ftl.VerbClient;
-import xyz.block.ftl.kotlin.deployment.test.SchemaUtil;
+import xyz.block.ftl.javalang.deployment.test.SchemaUtil;
 
 public class ContainerSerializationTest {
 

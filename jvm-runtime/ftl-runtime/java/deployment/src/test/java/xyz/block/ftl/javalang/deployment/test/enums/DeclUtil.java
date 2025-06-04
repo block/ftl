@@ -1,4 +1,4 @@
-package xyz.block.ftl.kotlin.deployment.test.enums;
+package xyz.block.ftl.javalang.deployment.test.enums;
 
 import xyz.block.ftl.schema.v1.Decl;
 
