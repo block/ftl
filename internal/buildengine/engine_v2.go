@@ -5,17 +5,25 @@ import (
 	"runtime"
 	"time"
 
+	"connectrpc.com/connect"
 	"golang.org/x/exp/maps"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
+	"github.com/alecthomas/types/result"
+	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
+	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
+	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/dev"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/realm"
+	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
@@ -57,20 +65,23 @@ type moduleMetaV2 struct {
 	configDefaults   moduleconfig.CustomDefaults
 	state            *buildenginepb.EngineEvent
 	deployAfterBuild bool
+	pendingDeploy    *pendingModule
 }
 
 type EngineV2 struct {
-	projectConfig projectconfig.Config
-	parallelism   int
-	moduleDirs    []string
-	moduleMetas   *xsync.MapOf[string, *moduleMetaV2]
-	builtModules  *xsync.MapOf[string, *schema.Module]
-	stateChanges  *pubsub.Topic[StateChange]
-	buildEnv      []string
-	os            string
-	arch          string
-	devMode       bool
-
+	adminClient    AdminClient
+	projectConfig  projectconfig.Config
+	parallelism    int
+	moduleDirs     []string
+	moduleMetas    *xsync.MapOf[string, *moduleMetaV2]
+	builtModules   *xsync.MapOf[string, *schema.Module]
+	stateChanges   *pubsub.Topic[StateChange]
+	buildEnv       []string
+	os             string
+	arch           string
+	devMode        bool
+	externalRealms []*schema.Realm
+	schemaSource   *schemaeventsource.EventSource
 	// TODO: Can we remove this?
 	devModeEndpointUpdates chan dev.LocalEndpoint
 }
@@ -89,6 +100,14 @@ func ParallelismV2(n int) EngineV2Option {
 	}
 }
 
+// WithDevMode sets the engine to dev mode.
+func WithDevModeV2(updates chan dev.LocalEndpoint) EngineV2Option {
+	return func(o *EngineV2) {
+		o.devModeEndpointUpdates = updates
+		o.devMode = true
+	}
+}
+
 // StateChange represents a state change event for a specific module.
 type StateChange struct {
 	Module string
@@ -102,25 +121,48 @@ type StateChange struct {
 // - Creating the module instance
 func NewV2(
 	ctx context.Context,
-	_ interface{}, // schemaSource placeholder
+	adminClient AdminClient,
+	schemaSource *schemaeventsource.EventSource,
 	projectConfig projectconfig.Config,
 	moduleDirs []string,
 	_ bool, // logChanges placeholder
 	options ...EngineV2Option,
+
 ) (*EngineV2, error) {
 	logger := log.FromContext(ctx).Scope("engine")
 	ctx = log.ContextWithLogger(ctx, logger)
 
 	e := &EngineV2{
-		projectConfig: projectConfig,
-		parallelism:   runtime.NumCPU(),
-		moduleDirs:    moduleDirs,
-		moduleMetas:   xsync.NewMapOf[string, *moduleMetaV2](),
-		builtModules:  xsync.NewMapOf[string, *schema.Module](),
-		stateChanges:  pubsub.New[StateChange](),
+		adminClient:    adminClient,
+		projectConfig:  projectConfig,
+		parallelism:    runtime.NumCPU(),
+		moduleDirs:     moduleDirs,
+		moduleMetas:    xsync.NewMapOf[string, *moduleMetaV2](),
+		builtModules:   xsync.NewMapOf[string, *schema.Module](),
+		stateChanges:   pubsub.New[StateChange](),
+		externalRealms: []*schema.Realm{},
+		schemaSource:   schemaSource,
+		arch:           runtime.GOARCH, // Default to the local env, we attempt to read these from the cluster later
+		os:             runtime.GOOS,
 	}
 	for _, option := range options {
 		option(e)
+	}
+
+	// Ensure schema sync at startup if we have an admin client
+	if e.adminClient != nil {
+		info, err := adminClient.ClusterInfo(ctx, connect.NewRequest(&adminpb.ClusterInfoRequest{}))
+		if err != nil {
+			log.FromContext(ctx).Debugf("failed to get cluster info: %s", err)
+		} else {
+			e.os = info.Msg.Os
+			e.arch = info.Msg.Arch
+		}
+		logger.Infof("Waiting for initial schema sync")
+		if !e.schemaSource.WaitForInitialSync(ctx) {
+			return nil, errors.Errorf("timed out waiting for initial schema sync from server")
+		}
+		logger.Infof("Initial schema sync complete")
 	}
 
 	// Discover modules
@@ -136,8 +178,12 @@ func NewV2(
 
 	logger.Infof("Initializing modules")
 
+	jvm := false
 	wg := &errgroup.Group{}
 	for _, config := range configs {
+		if config.Language == "java" || config.Language == "kotlin" {
+			jvm = true
+		}
 		wg.Go(func() error {
 			return e.initModuleMeta(ctx, config)
 		})
@@ -145,6 +191,43 @@ func NewV2(
 
 	if err := wg.Wait(); err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	if jvm {
+		// Huge hack that is just for development
+		// In release builds this is a noop
+		// This makes sure the JVM jars are up to date when running from source
+		buildRequiredJARS(ctx)
+	}
+
+	// Initialize builtModules with builtins
+	builtModules := map[string]*schema.Module{
+		"builtin": schema.Builtins(),
+	}
+
+	// Create metasMap from moduleMetas
+	metasMap := map[string]moduleMeta{}
+	e.moduleMetas.Range(func(name string, meta *moduleMetaV2) bool {
+		metasMap[name] = moduleMeta{
+			module: meta.module,
+			plugin: meta.plugin,
+		}
+		return true
+	})
+
+	// Generate stubs for builtins after all modules are initialized
+	logger.Infof("Generating stubs for builtins module")
+	err = GenerateStubs(ctx, e.projectConfig.Root(), maps.Values(builtModules), metasMap)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	for name, cfg := range projectConfig.ExternalRealms {
+		realm, err := realm.GetExternalRealm(ctx, e.projectConfig.ExternalRealmPath(), name, cfg)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read external realm %s", name)
+		}
+		e.externalRealms = append(e.externalRealms, realm)
 	}
 
 	go e.processChanges(ctx)
@@ -194,9 +277,17 @@ func (e *EngineV2) processChanges(ctx context.Context) {
 				switch stateChange.Event.Event.(type) {
 				case *buildenginepb.EngineEvent_ModuleBuildWaiting:
 					logger.Infof("Build waiting...")
+					proto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+					if err != nil {
+						logger.Errorf(err, "failed to marshal module config")
+						return err
+					}
 					e.updateModuleState(ctx, stateChange.Module, &buildenginepb.EngineEvent{
+						Timestamp: timestamppb.Now(),
 						Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
-							ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{},
+							ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
+								Config: proto,
+							},
 						},
 					})
 				case *buildenginepb.EngineEvent_ModuleBuildStarted:
@@ -204,21 +295,25 @@ func (e *EngineV2) processChanges(ctx context.Context) {
 
 					err := e.buildModule(ctx, meta)
 					if err != nil {
-						return err
+						return e.handleModuleError(ctx, stateChange, err)
 					}
 				case *buildenginepb.EngineEvent_ModuleBuildFailed:
 					logger.Infof("Build failed")
 				case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 					logger.Infof("Build success")
+
 					dependentModules := e.getDependentModuleNames(stateChange.Module)
 					for _, dependentModule := range dependentModules {
-						e.tryStartBuild(ctx, dependentModule)
+						e.startBuild(ctx, dependentModule)
 					}
 
 					if meta.deployAfterBuild {
 						e.updateModuleState(ctx, stateChange.Module, &buildenginepb.EngineEvent{
+							Timestamp: timestamppb.Now(),
 							Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
-								ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{},
+								ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
+									Module: meta.module.Config.Module,
+								},
 							},
 						})
 					}
@@ -227,12 +322,10 @@ func (e *EngineV2) processChanges(ctx context.Context) {
 					logger.Infof("Deploy waiting...")
 				case *buildenginepb.EngineEvent_ModuleDeployStarted:
 					logger.Infof("Deploying...")
-					time.Sleep(1 * time.Second)
-					e.updateModuleState(ctx, stateChange.Module, &buildenginepb.EngineEvent{
-						Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
-							ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{},
-						},
-					})
+					err := e.deployModule(ctx, meta)
+					if err != nil {
+						return e.handleModuleError(ctx, stateChange, err)
+					}
 				case *buildenginepb.EngineEvent_ModuleDeployFailed:
 					logger.Infof("Deploy failed")
 				case *buildenginepb.EngineEvent_ModuleDeploySuccess:
@@ -250,17 +343,31 @@ func (e *EngineV2) buildModule(ctx context.Context, meta *moduleMetaV2) error {
 	logger := log.FromContext(ctx)
 	logger.Infof("Building module %s", meta.module.Config.Module)
 
+	// Ensure all dependencies are built and their stubs are generated
+	dependencies := meta.module.Dependencies(AlwaysIncludeBuiltin)
+	for _, dep := range dependencies {
+		if dep == "builtin" {
+			continue
+		}
+		depMeta, ok := e.moduleMetas.Load(dep)
+		if !ok {
+			return errors.Errorf("dependency %s not found", dep)
+		}
+		if !isBuildComplete(depMeta.state) {
+			logger.Debugf("Dependency %s not built", dep)
+			return nil
+		}
+	}
+
 	builtModules := make([]*schema.Module, 0)
 	e.builtModules.Range(func(key string, module *schema.Module) bool {
 		builtModules = append(builtModules, module)
 		return true
 	})
 
-	logger.Infof("Built modules: %v", builtModules)
-
 	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: builtModules}}} //nolint:exptostd
 
-	moduleSchema, _, _, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
+	moduleSchema, tmpDeployDir, deployPaths, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
 		Dependencies: meta.module.Dependencies(Raw),
@@ -274,14 +381,87 @@ func (e *EngineV2) buildModule(ctx context.Context, meta *moduleMetaV2) error {
 	}
 	logger.Infof("Built module %s", meta.module.Config.Module)
 
+	// Generate stubs for the successfully built module
+	metasMap := map[string]moduleMeta{}
+	e.moduleMetas.Range(func(name string, meta *moduleMetaV2) bool {
+		metasMap[name] = moduleMeta{
+			module: meta.module,
+			plugin: meta.plugin,
+		}
+		return true
+	})
+	err = GenerateStubs(ctx, e.projectConfig.Root(), []*schema.Module{moduleSchema}, metasMap)
+	if err != nil {
+		logger.Errorf(err, "Failed to generate stubs for module %s", meta.module.Config.Module)
+		return err
+	}
+
+	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+	if err != nil {
+		logger.Errorf(err, "Failed to marshal module config")
+		return err
+	}
+
+	pendingDeploy := newPendingModule(meta.module, tmpDeployDir, deployPaths, moduleSchema)
+	meta.pendingDeploy = pendingDeploy
+	e.moduleMetas.Store(meta.module.Config.Module, meta)
 	e.builtModules.Store(meta.module.Config.Module, moduleSchema)
-	e.updateModuleState(ctx, meta.module.Config.Module, &buildenginepb.EngineEvent{
+
+	return e.updateModuleState(ctx, meta.module.Config.Module, &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
 		Event: &buildenginepb.EngineEvent_ModuleBuildSuccess{
-			ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{},
+			ModuleBuildSuccess: &buildenginepb.ModuleBuildSuccess{
+				Config: configProto,
+			},
 		},
 	})
+}
 
-	return nil
+func (e *EngineV2) deployModule(ctx context.Context, meta *moduleMetaV2) error {
+	logger := log.FromContext(ctx)
+	logger.Infof("Deploying module %s", meta.module.Config.Module)
+
+	sch, ok := e.builtModules.Load(meta.module.Config.Module)
+	if !ok {
+		return errors.Errorf("module %s not found", meta.module.Config.Module)
+	}
+
+	if sch.Runtime == nil {
+		sch.Runtime = &schema.ModuleRuntime{
+			Base: schema.ModuleRuntimeBase{
+				CreateTime: time.Now(),
+			},
+		}
+	}
+	sch.Runtime.Base.Language = meta.module.Config.Language
+
+	// Upload artifacts first
+	if err := uploadArtefacts(ctx, meta.pendingDeploy, e.adminClient); err != nil {
+		return errors.WithStack(err)
+	}
+
+	sch.Metadata = meta.pendingDeploy.schema.Metadata
+	e.builtModules.Store(meta.module.Config.Module, sch)
+
+	// Deploy the module
+	keyChan := make(chan result.Result[key.Changeset], 1)
+	if err := deploy(ctx, e.projectConfig.Name, []*schema.Module{sch}, e.adminClient, keyChan, e.externalRealms); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Handle deployment completion
+	if key, ok := (<-keyChan).Get(); ok {
+		logger.Debugf("Created changeset %s for module %s", key, meta.module.Config.Module)
+	}
+
+	return e.updateModuleState(ctx, meta.module.Config.Module, &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
+		Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
+			ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
+				Module: meta.module.Config.Module,
+			},
+		},
+	})
 }
 
 // updateModuleState updates the state of a module and publishes the change.
@@ -301,8 +481,57 @@ func (e *EngineV2) updateModuleState(ctx context.Context, module string, event *
 	return nil
 }
 
-// Main entry for testing
-func (e *EngineV2) BuildV2(ctx context.Context, deployAfterBuild bool) error {
+func (e *EngineV2) handleModuleError(ctx context.Context, stateChange StateChange, err error) error {
+	logger := log.FromContext(ctx).Scope(stateChange.Module)
+	logger.Errorf(err, "Error in state %T", stateChange.Event.Event)
+	var event *buildenginepb.EngineEvent
+
+	// You may need to get the config proto for the module
+	meta, ok := e.moduleMetas.Load(stateChange.Module)
+	var configProto *langpb.ModuleConfig
+	if ok {
+		configProto, err = langpb.ModuleConfigToProto(meta.module.Config.Abs())
+		if err != nil {
+			logger.Errorf(err, "Failed to marshal module config")
+			return err
+		}
+	}
+
+	switch stateChange.Event.Event.(type) {
+	case *buildenginepb.EngineEvent_ModuleBuildStarted:
+		event = &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleBuildFailed{
+				ModuleBuildFailed: &buildenginepb.ModuleBuildFailed{
+					Config:        configProto,
+					IsAutoRebuild: false,
+					Errors: &langpb.ErrorList{
+						Errors: errorToLangError(err),
+					},
+				},
+			},
+		}
+	case *buildenginepb.EngineEvent_ModuleDeployStarted:
+		event = &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
+			Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
+				ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
+					Module: meta.module.Config.Module,
+					Errors: &langpb.ErrorList{
+						Errors: errorToLangError(err),
+					},
+				},
+			},
+		}
+	default:
+		return err
+	}
+
+	return e.updateModuleState(ctx, stateChange.Module, event)
+}
+
+// BuildV2 builds all modules and optionally deploys them.
+func (e *EngineV2) BuildV2(ctx context.Context, deployAfterBuild bool, waitForDeployOnline bool) error {
 	logger := log.FromContext(ctx).Scope("engine")
 	logger.Infof("Building modules")
 
@@ -322,7 +551,7 @@ func (e *EngineV2) BuildV2(ctx context.Context, deployAfterBuild bool) error {
 		totalModules++
 		meta.deployAfterBuild = deployAfterBuild
 		e.moduleMetas.Store(key, meta)
-		e.tryStartBuild(ctx, key)
+		e.startBuild(ctx, key)
 		return true
 	})
 
@@ -376,7 +605,7 @@ func (e *EngineV2) BuildV2(ctx context.Context, deployAfterBuild bool) error {
 	}
 }
 
-func (e *EngineV2) tryStartBuild(ctx context.Context, module string) error {
+func (e *EngineV2) startBuild(ctx context.Context, module string) error {
 	logger := log.FromContext(ctx).Scope("engine")
 
 	meta, ok := e.moduleMetas.Load(module)
@@ -395,10 +624,18 @@ func (e *EngineV2) tryStartBuild(ctx context.Context, module string) error {
 			return nil
 		}
 		if !isBuildComplete(meta.state) {
-			logger.Warnf("Dependency %s not built for %s", dependency, module)
+			logger.Debugf("Dependency %s not built for %s", dependency, module)
+			configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+			if err != nil {
+				logger.Errorf(err, "Failed to marshal module config")
+				return err
+			}
 			e.updateModuleState(ctx, module, &buildenginepb.EngineEvent{
+				Timestamp: timestamppb.Now(),
 				Event: &buildenginepb.EngineEvent_ModuleBuildWaiting{
-					ModuleBuildWaiting: &buildenginepb.ModuleBuildWaiting{},
+					ModuleBuildWaiting: &buildenginepb.ModuleBuildWaiting{
+						Config: configProto,
+					},
 				},
 			})
 			return nil
@@ -407,9 +644,17 @@ func (e *EngineV2) tryStartBuild(ctx context.Context, module string) error {
 
 	logger.Infof("Starting build for %s", module)
 
+	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+	if err != nil {
+		logger.Errorf(err, "Failed to marshal module config")
+		return err
+	}
 	e.updateModuleState(ctx, module, &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
 		Event: &buildenginepb.EngineEvent_ModuleBuildStarted{
-			ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{},
+			ModuleBuildStarted: &buildenginepb.ModuleBuildStarted{
+				Config: configProto,
+			},
 		},
 	})
 
@@ -435,6 +680,7 @@ func (e *EngineV2) initModuleMeta(ctx context.Context, config moduleconfig.Unval
 		plugin:         plugin,
 		configDefaults: customDefaults,
 		state: &buildenginepb.EngineEvent{
+			Timestamp: timestamppb.Now(),
 			Event: &buildenginepb.EngineEvent_ModuleAdded{
 				ModuleAdded: &buildenginepb.ModuleAdded{
 					Module: config.Module,
@@ -454,7 +700,7 @@ func (e *EngineV2) initModuleMeta(ctx context.Context, config moduleconfig.Unval
 	e.moduleMetas.Store(config.Module, &meta)
 	e.stateChanges.Publish(StateChange{
 		Module: config.Module,
-		Event:  &buildenginepb.EngineEvent{Event: &buildenginepb.EngineEvent_ModuleAdded{ModuleAdded: &buildenginepb.ModuleAdded{Module: config.Module}}},
+		Event:  meta.state,
 	})
 
 	return nil

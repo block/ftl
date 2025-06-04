@@ -18,6 +18,7 @@ type buildCmd struct {
 
 func (b *buildCmd) Run(
 	ctx context.Context,
+	adminClient buildengine.AdminClient,
 	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
@@ -33,6 +34,7 @@ func (b *buildCmd) Run(
 	defer cancel(errors.Wrap(context.Canceled, "build stopped"))
 	engine, err := buildengine.NewV2(
 		ctx,
+		adminClient,
 		schemaSource,
 		projConfig,
 		b.Dirs,
@@ -44,7 +46,7 @@ func (b *buildCmd) Run(
 		return errors.WithStack(err)
 	}
 
-	if err := engine.BuildV2(ctx, true); err != nil {
+	if err := engine.BuildV2(ctx, false, false); err != nil {
 		return errors.Wrap(err, "build failed")
 	}
 	return nil

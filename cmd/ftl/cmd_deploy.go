@@ -8,7 +8,6 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -28,8 +27,6 @@ func (d *deployCmd) Run(
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 ) error {
-	logger := log.FromContext(ctx)
-
 	if !schemaSource.WaitForInitialSync(ctx) {
 		return errors.Errorf("timed out waiting for schema sync from server")
 	}
@@ -43,23 +40,18 @@ func (d *deployCmd) Run(
 		ctx, cancel = context.WithCancelCause(ctx)
 		defer cancel(errors.Wrap(context.Canceled, "stopping deploy"))
 	}
-	engine, err := buildengine.New(
+	engine, err := buildengine.NewV2(
 		ctx, adminClient, schemaSource, projConfig, d.Build.Dirs, true,
-		buildengine.BuildEnv(d.Build.BuildEnv),
-		buildengine.Parallelism(d.Build.Parallelism),
+		buildengine.BuildEnvV2(d.Build.BuildEnv),
+		buildengine.ParallelismV2(d.Build.Parallelism),
 	)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if len(engine.Modules()) == 0 {
-		logger.Warnf("No modules were found to deploy")
-		return nil
-	}
-	err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait, true)
+	err = engine.BuildV2(ctx, true, !d.NoWait)
 	if err != nil {
 		return errors.Wrap(err, "failed to deploy")
 	}
-	logger.Infof("Deployed modules %v", engine.Modules()) //nolint
 	terminal.FromContext(ctx).Close()
 	return nil
 }
