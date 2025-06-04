@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/errors"
+	"github.com/jpillora/backoff"
 	"golang.org/x/sys/unix"
 
 	"github.com/block/ftl/common/log"
@@ -25,6 +26,7 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	retry := backoff.Backoff{Max: time.Second * 1, Jitter: true}
 	end := time.Now().Add(timeout)
 	for {
 		release, err := acquire(absPath)
@@ -45,7 +47,7 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 		select {
 		case <-ctx.Done():
 			return nil, errors.WithStack(ctx.Err())
-		case <-time.After(time.Second):
+		case <-time.After(retry.Duration()):
 		}
 	}
 }
