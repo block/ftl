@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"runtime"
-	"runtime/debug"
 	"sort"
 	"strings"
 	"time"
@@ -632,7 +631,6 @@ func (e *Engine) handleModuleRemoval(ctx context.Context, config moduleconfig.Un
 }
 
 func (e *Engine) triggerBuildAndDeploy(ctx context.Context, moduleName string) {
-	debug.PrintStack()
 	logger := log.FromContext(ctx)
 	logger.Debugf("calling build and deploy %q", moduleName)
 	if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, moduleName); err != nil {
