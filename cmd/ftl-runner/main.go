@@ -72,8 +72,7 @@ and route to user code.
 
 	secProvider := deploymentcontext.NewDiskProvider(cli.SecretsPath)
 	configProvider := deploymentcontext.NewDiskProvider(cli.ConfigsPath)
-	kctx.FatalIfErrorf(err, "failed to load route provider")
-	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, &templateRouteTable{template: cli.RouteTemplate, realm: cli.RunnerConfig.Deployment.Payload.Realm}, module, secProvider, configProvider)
+	dp := deploymentcontext.NewProvider(cli.RunnerConfig.Deployment, deploymentcontext.NewTemplateRouter(cli.RouteTemplate, cli.RunnerConfig.Deployment.Payload.Realm), module, secProvider, configProvider)
 	deploymentProvider := func() (string, error) {
 
 		return cli.DeploymentDir, nil
@@ -97,34 +96,4 @@ func schemaFromDisk(path string) (*schema.Schema, error) {
 		return nil, errors.Wrap(err, "failed to parse schema")
 	}
 	return sch, nil
-}
-
-var _ deploymentcontext.RouteProvider = (*templateRouteTable)(nil)
-
-type templateRouteTable struct {
-	template string
-	realm    string
-}
-
-// Route implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Route(module string) string {
-	return os.Expand(t.template, func(s string) string {
-		switch s {
-		case "module":
-			return module
-		case "realm":
-			return t.realm
-		}
-		return ""
-	})
-}
-
-// Subscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Subscribe() chan string {
-	return make(chan string)
-}
-
-// Unsubscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Unsubscribe(c chan string) {
-	close(c)
 }
