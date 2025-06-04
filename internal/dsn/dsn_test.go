@@ -13,12 +13,14 @@ func TestParseRegionFromEndpoint(t *testing.T) {
 }
 
 func TestParseDSNFromYAML(t *testing.T) {
-	dsn, err := parseDSNFromYAML(`
-database: "ftl"
-username: "ftl"
-password: "ftl"
-host: "foo.us-west-2.rds.amazonaws.com"`,
-		`mysql://${username}:${password}@tcp(${host}:3306)/${database}`)
+	dsn, err := parseDSNFromYAML(t.Context(), `
+ftl-test-mysql-001:
+    writer:
+        database: "ftl"
+        username: "ftl"
+        password: "ftl"
+        host: "foo.us-west-2.rds.amazonaws.com"`,
+		`mysql://${$["ftl-test-mysql-001"].writer.username}:${$["ftl-test-mysql-001"].writer.password}@tcp(${$["ftl-test-mysql-001"].writer.host}:3306)/${$["ftl-test-mysql-001"].writer.database}`)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "mysql://ftl:ftl@tcp(foo.us-west-2.rds.amazonaws.com:3306)/ftl", dsn)

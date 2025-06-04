@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
+	"github.com/PaesslerAG/gval"
+	"github.com/PaesslerAG/jsonpath"
 	mysqlauthproxy "github.com/block/ftl-mysql-auth-proxy"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
@@ -101,30 +103,58 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
 	case *schema.YAMLFileCredentialsConnector:
 		logger.Debugf("Resolving Postgres DSN YAMLFileCredentialsConnector %s", c.Path)
-		return resolveYAMLFileCredentials(c)
+		return resolveYAMLFileCredentials(ctx, c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
 	}
 }
 
-func resolveYAMLFileCredentials(connector *schema.YAMLFileCredentialsConnector) (string, error) {
+func resolveYAMLFileCredentials(ctx context.Context, connector *schema.YAMLFileCredentialsConnector) (string, error) {
 	bytes, err := os.ReadFile(connector.Path)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read DB Credentials file")
 	}
 
-	return parseDSNFromYAML(string(bytes), connector.DSNTemplate)
+	return parseDSNFromYAML(ctx, string(bytes), connector.DSNTemplate)
 }
 
-func parseDSNFromYAML(yml string, tmplStr string) (string, error) {
-	cfg := map[string]any{}
-	err := yaml.Unmarshal([]byte(yml), &cfg)
+func convertKeysToStrings(m map[any]any) map[string]any {
+	converted := make(map[string]any, len(m))
+	for k, v := range m {
+		ks, ok := k.(string)
+		if ok {
+			converted[ks] = v
+			if m, ok := v.(map[any]any); ok {
+				converted[ks] = convertKeysToStrings(m)
+			}
+		}
+	}
+	return converted
+}
+
+func parseDSNFromYAML(ctx context.Context, yml string, tmplStr string) (string, error) {
+	raw := map[any]any{}
+	err := yaml.Unmarshal([]byte(yml), &raw)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal YAML")
 	}
+	cfg := convertKeysToStrings(raw)
+
+	var errResult error
 	return os.Expand(tmplStr, func(key string) string {
-		return fmt.Sprintf("%s", cfg[key])
-	}), nil
+		builder := gval.Full(jsonpath.Language())
+		path, err := builder.NewEvaluable(key)
+		if err != nil {
+			errResult = err
+			return ""
+		}
+		r, err := path(ctx, cfg)
+		if err != nil {
+			errResult = err
+			return ""
+		}
+		return fmt.Sprintf("%s", r)
+	}), errResult
 }
 
 func parseRegionFromEndpoint(endpoint string) (string, error) {
@@ -208,7 +238,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 
 		return mcfg, nil
 	case *schema.YAMLFileCredentialsConnector:
-		dsn, err := resolveYAMLFileCredentials(c)
+		dsn, err := resolveYAMLFileCredentials(ctx, c)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to resolve YAML file credentials")
 		}

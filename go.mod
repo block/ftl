@@ -98,6 +98,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/PaesslerAG/gval v1.0.0 // indirect
 	github.com/VictoriaMetrics/metrics v1.18.1 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect
@@ -216,6 +217,7 @@ require (
 )
 
 require (
+	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/akamensky/base58 v0.0.0-20210829145138-ce8bf8802e8f
 	github.com/alecthomas/repr v0.4.0
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.5.11
