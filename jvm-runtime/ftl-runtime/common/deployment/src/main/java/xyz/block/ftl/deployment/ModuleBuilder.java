@@ -1377,6 +1377,10 @@ public class ModuleBuilder {
     }
 
     private static String upperSnakeToLowerCamel(String snakeStr) {
+        if (!snakeStr.contains("_") && !snakeStr.toUpperCase().equals(snakeStr)) {
+            // Not a snake case string, and not all uppercase, so just return it as is
+            return snakeStr.substring(0, 1).toUpperCase() + snakeStr.substring(1);
+        }
         String[] components = snakeStr.toLowerCase().split("_");
         StringBuilder camelCase = new StringBuilder();
         for (var i : components) {
