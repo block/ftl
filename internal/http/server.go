@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/log"
 )

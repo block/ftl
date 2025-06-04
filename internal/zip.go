@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // UnzipDir unzips a ZIP archive into the specified directory.

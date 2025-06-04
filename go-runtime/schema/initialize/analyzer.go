@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl-golang-tools/go/analysis"
 	"github.com/block/ftl-golang-tools/go/packages"

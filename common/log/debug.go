@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl-golang-tools/go/ssa/interp/testdata/src/sync"

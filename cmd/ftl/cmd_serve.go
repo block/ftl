@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/jpillora/backoff"
 	"golang.org/x/sync/errgroup"

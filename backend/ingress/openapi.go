@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/go-openapi/spec"
 
 	"github.com/block/ftl/common/schema"

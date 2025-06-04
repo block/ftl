@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/common/schema"

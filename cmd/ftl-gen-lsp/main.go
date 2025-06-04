@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/tliron/kutil/terminal"
 )

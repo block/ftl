@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/alecthomas/atomic"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type BindAllocator struct {

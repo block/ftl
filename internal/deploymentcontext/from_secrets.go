@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/encoding"
 )

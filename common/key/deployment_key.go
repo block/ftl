@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type Deployment = KeyType[DeploymentPayload, *DeploymentPayload]

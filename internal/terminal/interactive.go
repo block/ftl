@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/chzyer/readline"
 	kongcompletion "github.com/jotaen/kong-completion"

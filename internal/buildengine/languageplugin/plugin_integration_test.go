@@ -16,7 +16,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/must"
 	"github.com/alecthomas/types/result"
 	"github.com/bmatcuk/doublestar/v4"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	kubecore "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

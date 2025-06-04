@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	expmaps "golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"

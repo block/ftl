@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/schema"
 )

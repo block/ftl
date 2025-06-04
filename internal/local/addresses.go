@@ -3,7 +3,7 @@ package local
 import (
 	"net"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // FreeTCPAddresses returns a list of local tcp addresses that are free to listen to at the time of the call.

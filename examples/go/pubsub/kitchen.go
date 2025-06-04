@@ -3,7 +3,7 @@ package pubsub
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors" // Import the FTL SDK.
+	"github.com/alecthomas/errors" // Import the FTL SDK.
 
 	"github.com/block/ftl/go-runtime/ftl"
 )

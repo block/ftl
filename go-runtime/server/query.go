@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/tuple"
 
 	"github.com/block/ftl/common/reflection"

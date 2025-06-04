@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 
 	provisioner "github.com/block/ftl/backend/protos/xyz/block/ftl/provisioner/v1"

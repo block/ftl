@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/slices"

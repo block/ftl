@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/log"
 )

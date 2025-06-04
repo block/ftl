@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 )

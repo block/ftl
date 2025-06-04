@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	_ "github.com/jackc/pgx/v5/stdlib"
 

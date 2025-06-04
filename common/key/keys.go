@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/multiformats/go-base36"
 )
 

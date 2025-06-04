@@ -5,7 +5,7 @@ import (
 	"syscall"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	langconnect "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1/languagepbconnect"

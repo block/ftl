@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/internal/deploymentcontext"

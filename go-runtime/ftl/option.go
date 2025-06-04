@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // Stdlib interfaces types implement.

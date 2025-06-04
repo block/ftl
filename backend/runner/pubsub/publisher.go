@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/runner/pubsub/observability"

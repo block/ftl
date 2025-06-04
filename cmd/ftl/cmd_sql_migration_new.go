@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/amacneil/dbmate/v2/pkg/dbutil"
 
 	"github.com/block/ftl/common/log"

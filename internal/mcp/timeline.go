@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"

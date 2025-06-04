@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	_ "github.com/jackc/pgx/v5/stdlib"
 

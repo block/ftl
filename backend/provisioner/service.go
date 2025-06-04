@@ -11,7 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/BurntSushi/toml"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"

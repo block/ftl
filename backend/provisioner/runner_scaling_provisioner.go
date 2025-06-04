@@ -3,7 +3,7 @@ package provisioner
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/block/ftl/backend/provisioner/scaling"

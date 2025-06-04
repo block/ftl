@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/atomic"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"

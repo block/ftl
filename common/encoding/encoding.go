@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/common/strcase"

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
 

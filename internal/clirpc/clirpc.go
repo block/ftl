@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 func Invoke(ctx context.Context, handler http.Handler, path, command string, req io.Reader, resp io.Writer) error {

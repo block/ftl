@@ -3,7 +3,7 @@ package schema
 import (
 	"slices"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // Visit all nodes in the schema.

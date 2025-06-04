@@ -13,7 +13,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	raftpb "github.com/block/ftl/backend/protos/xyz/block/ftl/raft/v1"

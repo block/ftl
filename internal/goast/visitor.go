@@ -5,7 +5,7 @@ import (
 	"fmt"
 	goast "go/ast"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type VisitorFunc func(stack []goast.Node, next func() error) error

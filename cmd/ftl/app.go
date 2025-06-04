@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	kongtoml "github.com/alecthomas/kong-toml"
 	. "github.com/alecthomas/types/optional"

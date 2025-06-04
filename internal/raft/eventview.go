@@ -6,7 +6,7 @@ import (
 	"io"
 	"iter"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/internal/eventstream"
 	sm "github.com/block/ftl/internal/statemachine"

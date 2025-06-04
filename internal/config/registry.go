@@ -6,7 +6,7 @@ import (
 	"maps"
 	"slices"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	. "github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"

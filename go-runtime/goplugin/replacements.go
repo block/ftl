@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/mod/modfile"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/sys/unix"
 
 	"github.com/block/ftl/common/log"

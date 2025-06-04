@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/XSAM/otelsql"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	_ "github.com/go-sql-driver/mysql"
 

@@ -3,7 +3,7 @@ package raft
 import (
 	"io"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/lni/dragonboat/v4/statemachine"
 
 	sm "github.com/block/ftl/internal/statemachine"

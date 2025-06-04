@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/exp/maps"
 )
 

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"google.golang.org/protobuf/proto"
 
 	cronpb "github.com/block/ftl/backend/protos/xyz/block/ftl/cron/v1"

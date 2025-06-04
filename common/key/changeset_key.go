@@ -5,7 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type Changeset = KeyType[ChangesetPayload, *ChangesetPayload]

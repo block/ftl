@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 func TestResourceGroup(t *testing.T) {

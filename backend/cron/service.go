@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl/backend/cron/observability"

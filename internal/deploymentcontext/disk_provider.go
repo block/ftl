@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 func NewDiskProvider(path string) func(ctx context.Context) (map[string][]byte, error) {

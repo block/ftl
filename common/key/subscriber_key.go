@@ -1,7 +1,7 @@
 package key
 
 import (
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 type SubscriberKey = KeyType[SubscriberPayload, *SubscriberPayload]

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/lni/dragonboat/v4"
 	"github.com/lni/dragonboat/v4/client"

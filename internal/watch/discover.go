@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/moduleconfig"

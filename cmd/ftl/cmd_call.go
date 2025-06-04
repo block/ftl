@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"connectrpc.com/connect"
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/jpillora/backoff"
 	"github.com/titanous/json5"
 

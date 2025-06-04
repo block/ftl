@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 
 	sm "github.com/block/ftl/internal/statemachine"
 )

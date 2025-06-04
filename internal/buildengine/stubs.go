@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"golang.org/x/sync/errgroup"
 

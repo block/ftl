@@ -4,7 +4,7 @@ import (
 	"context"
 	"syscall"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"

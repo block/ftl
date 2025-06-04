@@ -5,7 +5,7 @@ import (
 	"iter"
 	"sort"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 func Map[T, U any](slice []T, fn func(T) U) []U {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/either"
 
 	"github.com/block/ftl/common/schema"

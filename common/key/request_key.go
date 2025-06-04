@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	errors "github.com/alecthomas/errors"
+	"github.com/alecthomas/errors"
 )
 
 // A Request represents an inbound request into the cluster.
