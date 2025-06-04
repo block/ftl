@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"golang.org/x/exp/maps"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/pubsub"
 	"github.com/alecthomas/types/result"
+	"github.com/puzpuzpuz/xsync/v3"
+	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
 	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
 	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
@@ -25,8 +27,6 @@ import (
 	"github.com/block/ftl/internal/realm"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/watch"
-	"github.com/puzpuzpuz/xsync/v3"
-	"golang.org/x/sync/errgroup"
 )
 
 // isBuildComplete returns true if the module is considered complete based on the deployAfterBuild flag
