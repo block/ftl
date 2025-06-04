@@ -143,7 +143,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             var format = data.getType().hasString() ? "%S" : "%L";
             for (var i : data.getVariantsList()) {
                 Object value = toKotlinValue(i.getValue());
-                dataBuilder.addEnumConstant(i.getName(), TypeSpec.anonymousClassBuilder()
+                dataBuilder.addEnumConstant(camelToUpperSnake(i.getName()), TypeSpec.anonymousClassBuilder()
                         .addSuperclassConstructorParameter(format, value).build());
             }
             FileSpec kotlinFile = FileSpec.builder(packageName, thisType)

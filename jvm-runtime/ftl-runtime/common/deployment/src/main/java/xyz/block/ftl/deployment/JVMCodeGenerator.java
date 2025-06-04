@@ -309,4 +309,18 @@ public abstract class JVMCodeGenerator implements CodeGenProvider {
         return Character.toUpperCase(in.charAt(0)) + in.substring(1);
     }
 
+    protected static String camelToUpperSnake(String input) {
+        StringBuilder snake = new StringBuilder();
+        for (char c : input.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                if (snake.length() > 0) {
+                    snake.append('_');
+                }
+                snake.append(c);
+            } else {
+                snake.append(Character.toUpperCase(c));
+            }
+        }
+        return snake.toString();
+    }
 }
