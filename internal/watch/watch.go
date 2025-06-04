@@ -287,6 +287,9 @@ func (t *modifyFilesTransaction) ModifiedFiles(paths ...string) error {
 	if !t.isActive {
 		return errors.Errorf("can not modify file because transaction is not active: %v", paths)
 	}
+	if len(paths) == 0 {
+		return nil
+	}
 
 	t.watcher.mutex.Lock()
 	defer t.watcher.mutex.Unlock()
