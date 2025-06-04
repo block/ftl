@@ -173,6 +173,10 @@ func (v *Verb) GetMetadataCronJob() optional.Option[*MetadataCronJob] {
 
 func (v *Verb) GetProvisioned() ResourceSet {
 	var result ResourceSet
+	rt := v.Runtime
+	if rt == nil {
+		rt = &VerbRuntime{}
+	}
 	for sub := range slices.FilterVariants[*MetadataSubscriber](v.Metadata) {
 		result = append(result, &ProvisionedResource{
 			Kind: ResourceTypeSubscription,
@@ -181,6 +185,7 @@ func (v *Verb) GetProvisioned() ResourceSet {
 				FromOffset: sub.FromOffset,
 				DeadLetter: sub.DeadLetter,
 			},
+			State: rt.SubscriptionConnector,
 		})
 	}
 	for sub := range slices.FilterVariants[*MetadataFixture](v.Metadata) {
@@ -198,6 +203,7 @@ func (v *Verb) GetProvisioned() ResourceSet {
 				Kind:               ResourceTypeEgress,
 				Config:             target,
 				DeploymentSpecific: true,
+				State:              rt.EgressRuntime,
 			})
 		}
 	}

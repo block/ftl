@@ -54,7 +54,7 @@ func (t *Topic) String() string {
 }
 func (t *Topic) GetProvisioned() ResourceSet {
 	return ResourceSet{
-		{Kind: ResourceTypeTopic, Config: &Topic{Name: t.Name}},
+		{Kind: ResourceTypeTopic, Config: &Topic{Name: t.Name}, State: t.Runtime},
 	}
 }
 

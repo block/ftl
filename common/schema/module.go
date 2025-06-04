@@ -73,11 +73,13 @@ func (m *Module) GetProvisioned() ResourceSet {
 			Kind:               ResourceTypeRunner,
 			Config:             struct{}{},
 			DeploymentSpecific: true,
+			State:              m.Runtime.GetRunner(),
 		},
 		{
 			Kind:               ResourceTypeImage,
 			Config:             struct{}{},
 			DeploymentSpecific: true,
+			State:              m.GetRuntime().GetImage(),
 		},
 	}
 }
