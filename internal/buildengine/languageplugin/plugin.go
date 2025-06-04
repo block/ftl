@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/alecthomas/atomic"
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
@@ -71,7 +70,6 @@ func New(ctx context.Context, dir, language, name string) (p *LanguagePlugin, er
 func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlugin {
 	plugin := &LanguagePlugin{
 		client:       client,
-		bctx:         atomic.New[*buildInfo](nil),
 		buildRunning: &sync.Mutex{},
 	}
 	go plugin.watchForCmdError(ctx)
@@ -82,7 +80,6 @@ func newPluginForTesting(ctx context.Context, client pluginClient) *LanguagePlug
 type LanguagePlugin struct {
 	client pluginClient
 
-	bctx         *atomic.Value[*buildInfo]
 	buildRunning *sync.Mutex
 }
 
@@ -169,7 +166,6 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 	p.buildRunning.Lock()
 	defer p.buildRunning.Unlock()
 	startTime := time.Now()
-	p.bctx.Store(&buildInfo{projectConfig: projectConfig, stubsRoot: stubsRoot, bctx: bctx})
 
 	configProto, err := langpb.ModuleConfigToProto(bctx.Config.Abs())
 	if err != nil {
@@ -192,61 +188,10 @@ func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.
 	}))
 
 	if err != nil {
-		return BuildResult{}, errors.Wrap(err, "failed to invoke build command")
+		return BuildResult{}, errors.WithStack(err)
 	}
-	// if rebuildAutomatically && p.watch == nil {
-	// 	watchPatterns := bctx.Config.Watch
-	// 	watchPatterns = append(watchPatterns, "ftl.toml", "**/*.sql")
-	// 	watcher := watch.NewWatcher(optional.None[string](), watchPatterns...)
-	// 	updates, err := watcher.Watch(ctx, time.Second, []string{bctx.Config.Dir})
-	// 	if err != nil {
-	// 		log.FromContext(ctx).Errorf(err, "Failed to watch module directory")
-	// 		return buildResultFromProto(result.Msg, startTime)
-	// 	}
-	// 	p.watch = updates
-	// 	go p.runWatch(ctx, watcher)
-	// }
-
 	return buildResultFromProto(result.Msg, startTime)
-
 }
-
-// func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
-// 	logger := log.FromContext(ctx)
-// 	defer func() {
-// 		p.watch = nil
-// 	}()
-// 	updates := make(chan watch.WatchEvent)
-// 	p.watch.Subscribe(updates)
-// 	for i := range channels.IterContext(ctx, updates) {
-// 		if _, ok := i.(watch.WatchEventModuleChanged); ok {
-// 			info := p.bctx.Load()
-// 			tx := watcher.GetTransaction(info.bctx.Config.Dir)
-// 			err := tx.Begin()
-// 			if err != nil {
-// 				logger.Errorf(err, "Failed to start watch transaction")
-// 			}
-// 			p.updates.Publish(AutoRebuildStartedEvent{Module: info.bctx.Config.Module})
-// 			br, err := p.Build(ctx, info.projectConfig, info.stubsRoot, info.bctx, true)
-// 			if err != nil {
-// 				p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
-// 			} else {
-// 				err = tx.ModifiedFiles(br.modifiedFiles...)
-// 				if err != nil {
-// 					if !br.redeployNotRequired {
-// 						p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Err[BuildResult](err)})
-// 					}
-// 				} else {
-// 					p.updates.Publish(AutoRebuildEndedEvent{Module: info.bctx.Config.Module, Result: result.Ok[BuildResult](br)})
-// 				}
-// 			}
-// 			err = tx.End()
-// 			if err != nil {
-// 				logger.Errorf(err, "Failed to end watch transaction")
-// 			}
-// 		}
-// 	}
-// }
 
 func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (buildResult BuildResult, err error) {
 	switch et := result.Event.(type) {
