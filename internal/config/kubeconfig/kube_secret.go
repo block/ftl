@@ -53,15 +53,20 @@ func (k *KubeSecretProvider) Key() config.ProviderKey {
 
 // List implements Provider.
 func (k *KubeSecretProvider) List(ctx context.Context, withValues bool, forModule optional.Option[string]) ([]config.Value, error) {
-	// Not implementd yet
-	secrets, err := k.client.CoreV1().Secrets("").List(ctx, v1.ListOptions{LabelSelector: kube.RealmLabel + "=" + k.realm})
+	ns := ""
+	mod := ""
+	ok := false
+	if mod, ok = forModule.Get(); ok {
+		ns = k.mapper(mod, k.realm)
+	}
+	secrets, err := k.client.CoreV1().Secrets(ns).List(ctx, v1.ListOptions{LabelSelector: kube.RealmLabel + "=" + k.realm})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get Secrets")
 	}
 	ret := []config.Value{}
 	for _, secret := range secrets.Items {
 		module := secret.Labels[kube.ModuleLabel]
-		if module == "" {
+		if module == "" || (mod != "" && mod != module) {
 			continue
 		}
 		for k, v := range secret.Data {
