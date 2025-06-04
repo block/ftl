@@ -6,12 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/alecthomas/errors"
 	. "github.com/alecthomas/types/optional"
-
-	"github.com/block/ftl/internal/flock"
 )
 
 const FileProviderKind ProviderKind = "file"
@@ -117,11 +114,6 @@ func (f *FileProvider[R]) fullPath() string {
 }
 
 func (f *FileProvider[R]) synchronised(ctx context.Context, sync func(state map[string]json.RawMessage) error) error {
-	release, err := flock.Acquire(ctx, f.fullPath()+".lock", time.Second*5)
-	if err != nil {
-		return errors.Wrapf(err, "%s: failed to lock %s", f.Role(), f.fullPath())
-	}
-	defer release() //nolint
 	data, err := os.ReadFile(f.fullPath())
 	if os.IsNotExist(err) {
 		data = []byte("{}")
