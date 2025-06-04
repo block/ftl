@@ -100,6 +100,7 @@ func ResolvePostgresDSN(ctx context.Context, connector schema.DatabaseConnector)
 		}
 		return fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s", host, port, c.Database, c.Username, authenticationToken), nil
 	case *schema.YAMLFileCredentialsConnector:
+		logger.Debugf("Resolving Postgres DSN YAMLFileCredentialsConnector %s", c.Path)
 		return resolveYAMLFileCredentials(c)
 	default:
 		return "", errors.Errorf("unexpected database connector type: %T", connector)
