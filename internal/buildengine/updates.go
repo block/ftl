@@ -53,6 +53,7 @@ func (e *Engine) startUpdatesService(ctx context.Context) rpc.Service {
 
 	// Start goroutine to collect events
 	go func() {
+		defer svc.engine.engineUpdates.Unsubscribe(events)
 		for event := range channels.IterContext(ctx, events) {
 			// Add timestamp to event if not present
 			if event.Timestamp == nil {

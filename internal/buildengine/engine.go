@@ -443,6 +443,7 @@ func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration
 		return errors.Wrap(err, "failed to start watcher")
 	}
 	topic.Subscribe(watchEvents)
+	defer topic.Unsubscribe(watchEvents)
 
 	// Build and deploy all modules first.
 	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
@@ -1374,6 +1375,7 @@ func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.Unvalida
 	// pass on plugin events to the main event channel
 	// make sure we do not pass on nil (chan closure) events
 	go func() {
+		defer plugin.Updates().Unsubscribe(events)
 		for {
 			select {
 			case event := <-events:

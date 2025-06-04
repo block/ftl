@@ -269,6 +269,7 @@ func (p *LanguagePlugin) runWatch(ctx context.Context, watcher *watch.Watcher) {
 	}()
 	updates := make(chan watch.WatchEvent)
 	p.watch.Subscribe(updates)
+	defer p.watch.Unsubscribe(updates)
 	for i := range channels.IterContext(ctx, updates) {
 		if _, ok := i.(watch.WatchEventModuleChanged); ok {
 			info := p.bctx.Load()
