@@ -15,6 +15,7 @@ import javax.lang.model.element.Modifier;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ArrayTypeName;
@@ -41,9 +42,12 @@ import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
 import xyz.block.ftl.deployment.PackageOutput;
 import xyz.block.ftl.deployment.VerbType;
+import xyz.block.ftl.schema.v1.AliasKind;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.Metadata;
+import xyz.block.ftl.schema.v1.MetadataAlias;
 import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Topic;
@@ -247,6 +251,15 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                 allConstructor.addParameter(dataType, fieldName);
                 allConstructor.addCode("this.$L = $L;\n", fieldName, fieldName);
             });
+            List<AnnotationSpec> annotations = new ArrayList<>();
+            var aliases = i.getMetadataList().stream().filter(Metadata::hasAlias)
+                    .map(Metadata::getAlias).filter(m -> m.getKind() == AliasKind.ALIAS_KIND_JSON).map(MetadataAlias::getAlias)
+                    .filter(s -> !s.equals(fieldName))
+                    .collect(Collectors.toList());
+            if (!aliases.isEmpty()) {
+                annotations.add(
+                        AnnotationSpec.builder(JsonAlias.class).addMember("value", "{$L}", String.join(",", aliases)).build());
+            }
             String methodName = Character.toUpperCase(name.charAt(0)) + name.substring(1);
             dataBuilder.addMethod(MethodSpec.methodBuilder("set" + methodName)
                     .addModifiers(Modifier.PUBLIC)
@@ -260,12 +273,14 @@ public class JavaCodeGenerator extends JVMCodeGenerator {
                         .addModifiers(Modifier.PUBLIC)
                         .returns(dataType)
                         .addCode("return $L;", fieldName)
+                        .addAnnotations(annotations)
                         .build());
             } else {
                 dataBuilder.addMethod(MethodSpec.methodBuilder("get" + methodName)
                         .addModifiers(Modifier.PUBLIC)
                         .returns(dataType)
                         .addCode("return $L;", fieldName)
+                        .addAnnotations(annotations)
                         .build());
             }
         }

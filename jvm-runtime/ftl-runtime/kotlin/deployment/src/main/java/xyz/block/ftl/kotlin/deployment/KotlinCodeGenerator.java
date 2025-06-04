@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.squareup.kotlinpoet.AnnotationSpec;
 import com.squareup.kotlinpoet.ClassName;
@@ -43,9 +44,12 @@ import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
 import xyz.block.ftl.deployment.PackageOutput;
 import xyz.block.ftl.deployment.VerbType;
+import xyz.block.ftl.schema.v1.AliasKind;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
+import xyz.block.ftl.schema.v1.Metadata;
+import xyz.block.ftl.schema.v1.MetadataAlias;
 import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Topic;
@@ -259,8 +263,19 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
             if (dataType.isNullable()) {
                 ctorBuilder.defaultValue("null");
             }
+            List<AnnotationSpec> annotations = new ArrayList<>();
+            var aliases = i.getMetadataList().stream().filter(Metadata::hasAlias)
+                    .map(Metadata::getAlias).filter(m -> m.getKind() == AliasKind.ALIAS_KIND_JSON).map(MetadataAlias::getAlias)
+                    .filter(s -> !s.equals(fieldName))
+                    .map(s -> "\"" + s + "\"")
+                    .collect(Collectors.toList());
+            if (!aliases.isEmpty()) {
+                annotations.add(
+                        AnnotationSpec.builder(JsonAlias.class).addMember("value=[" + String.join(",", aliases) + "]").build());
+            }
             constructorBuilder.addParameter(ctorBuilder.build());
             dataBuilder.addProperty(PropertySpec.builder(fieldName, dataType, KModifier.PUBLIC)
+                    .addAnnotations(annotations)
                     .initializer(fieldName).build());
         }
         dataBuilder.primaryConstructor(constructorBuilder.build());
