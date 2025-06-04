@@ -53,15 +53,20 @@ func (k *KubeConfigMapProvider) Key() config.ProviderKey {
 
 // List implements Provider.
 func (k *KubeConfigMapProvider) List(ctx context.Context, withValues bool, forModule optional.Option[string]) ([]config.Value, error) {
-	// Not implementd yet
-	maps, err := k.client.CoreV1().ConfigMaps("").List(ctx, v1.ListOptions{LabelSelector: kube.RealmLabel + "=" + k.realm})
+	ns := ""
+	mod := ""
+	ok := false
+	if mod, ok = forModule.Get(); ok {
+		ns = k.mapper(mod, k.realm)
+	}
+	maps, err := k.client.CoreV1().ConfigMaps(ns).List(ctx, v1.ListOptions{LabelSelector: kube.RealmLabel + "=" + k.realm})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ConfigMaps")
 	}
 	ret := []config.Value{}
 	for _, cm := range maps.Items {
 		module := cm.Labels[kube.ModuleLabel]
-		if module == "" {
+		if module == "" || (mod != "" && mod != module) {
 			continue
 		}
 		for k, v := range cm.Data {
