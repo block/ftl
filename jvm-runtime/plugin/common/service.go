@@ -103,7 +103,6 @@ func (s *Service) GenerateStubs(ctx context.Context, req *connect.Request[langpb
 }
 
 func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[langpb.SyncStubReferencesRequest]) (*connect.Response[langpb.SyncStubReferencesResponse], error) {
-
 	if req.Msg.Schema == nil {
 		return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
 	}
@@ -119,24 +118,23 @@ func (s *Service) SyncStubReferences(ctx context.Context, req *connect.Request[l
 	return connect.NewResponse(&langpb.SyncStubReferencesResponse{}), nil
 }
 
-// Build the module and stream back build events.
-//
-// A BuildSuccess or BuildFailure event must be streamed back with the request's context id to indicate the
-// end of the build.
-//
-// The request can include the option to "rebuild_automatically". In this case the plugin should watch for
-// file changes and automatically rebuild as needed as long as this build request is alive. Each automactic
-// rebuild must include the latest build context id provided by the request or subsequent BuildContextUpdated
-// calls.
 func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRequest]) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
 	_ = os.Setenv("QUARKUS_ANALYTICS_DISABLED", "true") //nolint:errcheck
 	logger = logger.Module(req.Msg.BuildContext.ModuleConfig.Name)
 	ctx = log.ContextWithLogger(ctx, logger)
+
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not acquire build lock")
+	}
+	defer release() //nolint:errcheck
+
 	changed, err := s.writeGenericSchemaFiles(ctx, buildCtx.Schema, buildCtx.Config, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to write generic schema files")
@@ -165,11 +163,7 @@ func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig
 	events := make(chan buildContextUpdatedEvent, 32)
 	s.updatesTopic.Subscribe(events)
 	defer s.updatesTopic.Unsubscribe(events)
-	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not acquire build lock")
-	}
-	defer release() //nolint:errcheck
+
 	address, err := plugin.AllocatePort()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not allocate port")
@@ -192,16 +186,20 @@ func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig
 	if os.Getenv("FTL_SUSPEND") == "true" {
 		devModeBuild += " -Dsuspend "
 	}
-	s.launchQuarkusProcessAsync(ctx, devModeBuild, projectConfig, buildCtx, output)
 
-	responses := make(chan *connect.Response[langpb.BuildResponse], 2)
-	errorChan := make(chan error, 1)
+	responses := make(chan *connect.Response[langpb.BuildResponse], 1)
+	errorChan := make(chan error, 2) // can be plublished to from 2 goroutines
 
+	go s.launchQuarkusProcess(ctx, devModeBuild, projectConfig, buildCtx, output, errorChan)
+
+	s.hotReloadEndpoint = fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
+	s.hotReloadClient = rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, s.hotReloadEndpoint, log.Debug)
+
+	connectCtx, cancel := context.WithCancelCause(ctx)
+	defer cancel(errors.New("no longer waiting for quarkus dev mode process to start"))
 	go func() {
 		// Wait for the plugin to start.
-		s.hotReloadEndpoint = fmt.Sprintf("http://localhost:%d", hotReloadPort.Port)
-		s.hotReloadClient = rpc.Dial(hotreloadpbconnect.NewHotReloadServiceClient, s.hotReloadEndpoint, log.Debug)
-		err := s.connectReloadClient(ctx, s.hotReloadClient)
+		err := s.connectReloadClient(connectCtx, s.hotReloadClient)
 		if err != nil {
 			errorChan <- errors.WithStack(err)
 			return
@@ -233,7 +231,12 @@ func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig
 				Errors: ers,
 			}}}), nil
 	case err := <-errorChan:
-		return nil, err
+		ers := langpb.ErrorsToProto(output.FinalizeCapture(true))
+		ers.Errors = append(ers.Errors, &langpb.Error{Msg: err.Error(), Level: langpb.Error_ERROR_LEVEL_ERROR, Type: langpb.Error_ERROR_TYPE_COMPILER})
+		return connect.NewResponse(&langpb.BuildResponse{Event: &langpb.BuildResponse_BuildFailure{
+			BuildFailure: &langpb.BuildFailure{
+				Errors: ers,
+			}}}), nil
 	case resp := <-responses:
 		return resp, nil
 	}
@@ -315,40 +318,40 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 	}), nil
 }
 
-func (s *Service) launchQuarkusProcessAsync(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout *errorDetector) {
-	go func() {
-		logger := log.FromContext(ctx)
-		ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
-		s.devModeRunning.Store(1)
-		defer func() {
-			s.devModeRunning.Store(0)
-			cancel(nil)
-		}()
-		logger.Infof("Using dev mode build command '%s'", devModeBuild)
-		command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
-		if os.Getenv("MAVEN_OPTS") == "" {
-			command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
-		}
-		command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
-		command.Stdout = stdout
-		command.Stderr = os.Stderr
-		err := command.Run()
-		if err != nil {
-			stdout.FinalizeCapture(true)
-			logger.Errorf(err, "Dev mode process exited with error")
-			cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev mode process exited with error"))
-		} else {
-			logger.Infof("Dev mode process exited")
-			cancel(errors.Wrap(context.Canceled, "dev mode process exited"))
-		}
+func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout *errorDetector, errChan chan error) {
+	logger := log.FromContext(ctx)
+	ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
+	s.devModeRunning.Store(1)
+	defer func() {
+		s.devModeRunning.Store(0)
+		cancel(nil)
 	}()
+	logger.Debugf("Using dev mode build command '%s'", devModeBuild)
+	command := exec.Command(ctx, log.Debug, buildCtx.Config.Dir, "bash", "-c", devModeBuild)
+	if os.Getenv("MAVEN_OPTS") == "" { //nolint:forbidigo
+		command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
+	}
+	command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
+	command.Stdout = stdout
+	command.Stderr = os.Stderr
+	err := command.Run()
+	if err != nil {
+		stdout.FinalizeCapture(true)
+		logger.Debugf("Dev mode process exited with error: %v", err)
+		cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev mode process exited with error"))
+		errChan <- errors.Wrap(err, "dev mode process exited with error")
+	} else {
+		logger.Debugf("Dev mode process exited") //nolint:forbidigo
+		cancel(errors.Wrap(context.Canceled, "dev mode process exited"))
+		errChan <- errors.Wrap(err, "dev mode process exited")
+	}
 }
 
 func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbconnect.HotReloadServiceClient) error {
 	logger := log.FromContext(ctx)
 	err := rpc.Wait(ctx, backoff.Backoff{Min: time.Millisecond * 10, Max: time.Millisecond * 50}, time.Minute*100, client)
 	if err != nil {
-		logger.Infof("Dev mode process failed to start")
+		logger.Debugf("Dev mode process failed to start")
 		select {
 		case <-ctx.Done():
 			return errors.Errorf("dev mode process exited")
@@ -361,11 +364,6 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 
 func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext) (*langpb.BuildResponse, error) {
 	logger := log.FromContext(ctx)
-	release, err := flock.Acquire(ctx, bctx.Config.BuildLock, BuildLockTimeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not acquire build lock")
-	}
-	defer release() //nolint:errcheck
 
 	deps, err := extractDependencies(bctx.Config.Module, bctx.Config.Dir)
 	if err != nil {
@@ -523,7 +521,7 @@ func (s *Service) GetDependencies(ctx context.Context, req *connect.Request[lang
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return connect.NewResponse[langpb.GetDependenciesResponse](&langpb.GetDependenciesResponse{Modules: modules}), nil
+	return connect.NewResponse(&langpb.GetDependenciesResponse{Modules: modules}), nil
 }
 
 func extractDependencies(moduleName string, dir string) ([]string, error) {
