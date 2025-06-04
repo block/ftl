@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl"
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/profiles"
@@ -25,7 +26,7 @@ func TestProfile(t *testing.T) {
 		FTLMinVersion: ftl.Version,
 		ModuleRoots:   []string{"."},
 	}
-	sr := config.NewRegistry[config.Secrets]()
+	sr := config.NewSecretsRegistry(optional.None[adminpbconnect.AdminServiceClient]())
 	sr.Register(config.NewMemoryProviderFactory[config.Secrets]())
 	sr.Register(config.NewFileProviderFactory[config.Secrets]())
 	cr := config.NewRegistry[config.Configuration]()
