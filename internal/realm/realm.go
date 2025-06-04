@@ -12,11 +12,11 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/git"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 // LatestExternalRealm returns the latest external realm that the config refers to, with the commit SHA.
-func LatestExternalRealm(ctx context.Context, cfg projectconfig.ExternalRealmConfig) (realm *schema.Realm, commitSHA string, err error) {
+func LatestExternalRealm(ctx context.Context, cfg profiles.ExternalRealmConfig) (realm *schema.Realm, commitSHA string, err error) {
 	tmpdir, err := os.MkdirTemp("", "ftl-realm")
 	if err != nil {
 		return nil, "", errors.Wrap(err, "failed to create temp directory")
@@ -51,7 +51,7 @@ func LatestExternalRealm(ctx context.Context, cfg projectconfig.ExternalRealmCon
 
 // GetExternalRealm returns the external realm that the config refers to, with the commit SHA.
 // It will cache the realm in the given directory if it does not yet exist.
-func GetExternalRealm(ctx context.Context, cacheDir, name string, cfg projectconfig.ExternalRealmConfig) (*schema.Realm, error) {
+func GetExternalRealm(ctx context.Context, cacheDir, name string, cfg profiles.ExternalRealmConfig) (*schema.Realm, error) {
 	logger := log.FromContext(ctx)
 
 	if err := os.MkdirAll(cacheDir, 0700); err != nil {
@@ -84,7 +84,7 @@ func GetExternalRealm(ctx context.Context, cacheDir, name string, cfg projectcon
 	return errors.WithStack2(parseExternal(content))
 }
 
-func fetchExternalSchemaFile(ctx context.Context, cfg projectconfig.ExternalRealmConfig) (content []byte, err error) {
+func fetchExternalSchemaFile(ctx context.Context, cfg profiles.ExternalRealmConfig) (content []byte, err error) {
 	tmpdir, err := os.MkdirTemp("", "ftl-external-realm")
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create temp directory")

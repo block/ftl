@@ -20,7 +20,6 @@ import (
 	"github.com/block/ftl/go-runtime/compile"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -157,7 +156,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(errors.Wrap(context.Canceled, "build stream ended"))
 
-	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+	projectConfig := req.Msg.ProjectConfig
 
 	buildCtx, err := buildContextFromProto(req.Msg.BuildContext)
 	if err != nil {
@@ -175,7 +174,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext,
+func buildAndSend(ctx context.Context, projectConfig *langpb.ProjectConfig, stubsRoot string, buildCtx buildContext,
 	ongoingState *compile.OngoingState, devMode bool) (*connect.Response[langpb.BuildResponse], error) {
 	captureTx := &captureTransaction{}
 	buildEvent, err := build(ctx, projectConfig, stubsRoot, buildCtx, ongoingState, devMode, captureTx)
@@ -189,7 +188,7 @@ func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, stubs
 	return connect.NewResponse(buildEvent), nil
 }
 
-func build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, buildCtx buildContext, ongoingState *compile.OngoingState, devMode bool, captureTx *captureTransaction) (*langpb.BuildResponse, error) {
+func build(ctx context.Context, projectConfig *langpb.ProjectConfig, stubsRoot string, buildCtx buildContext, ongoingState *compile.OngoingState, devMode bool, captureTx *captureTransaction) (*langpb.BuildResponse, error) {
 	release, err := flock.Acquire(ctx, buildCtx.Config.BuildLock, BuildLockTimeout)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire build lock")

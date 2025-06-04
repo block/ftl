@@ -35,9 +35,11 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/exec"
 	ftlexec "github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/kube"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -137,7 +139,7 @@ func WithTestDataDir(dir string) Option {
 // "integration/testdata/go/database/ftl-project.toml").
 func WithFTLConfig(path string) Option {
 	return func(o *options) {
-		o.ftlConfigPath = path
+		panic("DEPRECATED")
 	}
 }
 
@@ -185,10 +187,17 @@ func WithDevMode() Option {
 	}
 }
 
+// WithProfile starts the server using the specified profile.
+func WithProfile(profile string) Option {
+	return func(o *options) {
+		o.profile = profile
+	}
+}
+
 type options struct {
 	languages         []string
 	testDataDir       string
-	ftlConfigPath     string
+	profile           string
 	startController   bool
 	devMode           bool
 	startTimeline     bool
@@ -486,33 +495,25 @@ func attemptToResetPubSub(admin sarama.ClusterAdmin) error {
 func initWorkDir(t testing.TB, cwd string, opts options) string {
 	tmpDir := t.TempDir()
 
-	if opts.ftlConfigPath != "" {
-		// TODO: We shouldn't be copying the shared config from the "go" testdata...
-		opts.ftlConfigPath = filepath.Join(cwd, "testdata", "go", opts.ftlConfigPath)
-		projectPath := filepath.Join(tmpDir, "ftl-project.toml")
-
-		// Copy the specified FTL config to the temporary directory.
-		err := copy.Copy(opts.ftlConfigPath, projectPath)
-		if err == nil {
-			t.Setenv("FTL_CONFIG", projectPath)
-			err = copy.Copy(filepath.Join(filepath.Dir(opts.ftlConfigPath), ".ftl"), filepath.Join(filepath.Dir(projectPath), ".ftl")) //nolint
-			if err != nil {
-				t.Logf("Failed to copy .ftl: %s", err)
-			}
-		} else {
-			// Use a path into the testdata directory instead of one relative to
-			// tmpDir. Otherwise we have a chicken and egg situation where the config
-			// can't be loaded until the module is copied over, and the config itself
-			// is used by FTL during startup.
-			// Some tests still rely on this behavior, so we can't remove it entirely.
-			t.Logf("Failed to copy %s to %s: %s", opts.ftlConfigPath, projectPath, err)
-			t.Setenv("FTL_CONFIG", opts.ftlConfigPath)
-		}
-
+	// If there's an .ftl-project in the testdata root, copy it...
+	ftlProjectPath := filepath.Join(cwd, "testdata", ".ftl-project")
+	if _, err := os.Stat(ftlProjectPath); err == nil {
+		err = copy.Copy(ftlProjectPath, filepath.Join(tmpDir, ".ftl-project"))
+		assert.NoError(t, err, "failed to copy testdata project")
 	} else {
-		err := os.WriteFile(filepath.Join(tmpDir, "ftl-project.toml"), []byte(`name = "ftl"`), 0644)
+		// ...otherwise init a new project.
+		_, err := profiles.Init(
+			tmpDir,
+			profiles.ProjectConfig{
+				Realm:          "test",
+				ModuleRoots:    []string{"."},
+				DefaultProfile: "local",
+			},
+			config.NewSecretsRegistry(optional.None[adminpbconnect.AdminServiceClient]()),
+			config.NewConfigurationRegistry(optional.None[adminpbconnect.AdminServiceClient]()))
 		assert.NoError(t, err)
 	}
+	t.Setenv("FTL_CONFIG", tmpDir)
 	return tmpDir
 }
 

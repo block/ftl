@@ -20,7 +20,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -218,7 +218,7 @@ func (p *LanguagePlugin) SyncStubReferences(ctx context.Context, config moduleco
 // Build builds the module with the latest config and schema.
 // In dev mode, plugin is responsible for automatically rebuilding as relevant files within the module change,
 // and publishing these automatic builds updates to Updates().
-func (p *LanguagePlugin) Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
+func (p *LanguagePlugin) Build(ctx context.Context, projectConfig profiles.ProjectConfig, stubsRoot string, bctx BuildContext, rebuildAutomatically bool) (BuildResult, error) {
 	p.buildRunning.Lock()
 	defer p.buildRunning.Unlock()
 	startTime := time.Now()
@@ -363,7 +363,7 @@ func contextID(config moduleconfig.ModuleConfig, counter int) string {
 }
 
 type buildInfo struct {
-	projectConfig projectconfig.Config
+	projectConfig profiles.ProjectConfig
 	stubsRoot     string
 	bctx          BuildContext
 }

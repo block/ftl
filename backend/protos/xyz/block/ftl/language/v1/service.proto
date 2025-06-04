@@ -40,11 +40,11 @@ message ModuleConfig {
   string realm = 12;
 }
 
-// ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
+// ProjectConfig contains a subset of the configuration for a project.
 message ProjectConfig {
-  string dir = 1;
-  string name = 2;
-  bool no_git = 3;
+  string root = 1;
+  string realm = 2;
+  bool git = 3;
   bool hermit = 4;
 }
 

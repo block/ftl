@@ -1,3 +1,0 @@
-name = "testdata"
-secrets-provider = "file:.ftl/configs-secrets.json"
-config-provider = "file:.ftl/configs-configuration.json"

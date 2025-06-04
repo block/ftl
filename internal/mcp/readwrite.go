@@ -22,7 +22,7 @@ import (
 	sl "github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 type readResult struct {
@@ -84,7 +84,7 @@ type writeResult struct {
 	NewVerificationToken string       `json:"newVerificationToken"`
 }
 
-func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func WriteTool(ctx context.Context, projectConfig profiles.ProjectConfig, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool(
 			"Write",
@@ -207,7 +207,7 @@ func WriteTool(ctx context.Context, projectConfig projectconfig.Config, buildEng
 		}
 }
 
-func loadConfigIfPossible(ctx context.Context, projectConfig projectconfig.Config, moduleDir string) optional.Option[moduleconfig.AbsModuleConfig] {
+func loadConfigIfPossible(ctx context.Context, projectConfig profiles.ProjectConfig, moduleDir string) optional.Option[moduleconfig.AbsModuleConfig] {
 	c, err := moduleconfig.LoadConfig(moduleDir)
 	if err != nil {
 		return optional.None[moduleconfig.AbsModuleConfig]()

@@ -1,8 +1,0 @@
-name = "ftl"
-secrets-provider = "file:.ftl/secrets.json"
-config-provider = "file:.ftl/configuration.json"
-module-dirs = ["examples/go"]
-disable-vscode-integration = true
-
-[commands]
-  startup = ["echo 'FTL startup command ⚡️'"]

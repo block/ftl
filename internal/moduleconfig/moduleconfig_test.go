@@ -5,7 +5,8 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alecthomas/types/optional"
-	"github.com/block/ftl/internal/projectconfig"
+
+	"github.com/block/ftl/internal/profiles"
 )
 
 func TestDefaulting(t *testing.T) {
@@ -135,7 +136,7 @@ func TestDefaulting(t *testing.T) {
 		t.Run(tt.config.Module, func(t *testing.T) {
 			t.Parallel()
 
-			config, err := tt.config.FillDefaultsAndValidate(tt.defaults, projectconfig.Config{Name: "test"})
+			config, err := tt.config.FillDefaultsAndValidate(tt.defaults, profiles.ProjectConfig{Realm: "test"})
 			if tt.error != "" {
 				assert.EqualError(t, err, tt.error)
 				return

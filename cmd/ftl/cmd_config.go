@@ -17,8 +17,6 @@ import (
 )
 
 type configCmd struct {
-	Migrate configMigrateCmd `cmd:"" help:"Migrate inline config from an ftl-project.toml file to JSON config stored in .ftl"`
-
 	List   configListCmd   `cmd:"" help:"List configuration."`
 	Get    configGetCmd    `cmd:"" help:"Get a configuration value."`
 	Set    configSetCmd    `cmd:"" help:"Set a configuration value."`

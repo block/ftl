@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 func TestMCPServerCreation(t *testing.T) {
@@ -18,7 +18,7 @@ func TestMCPServerCreation(t *testing.T) {
 	csm := &currentStatusManager{}
 	k := createKongApplication(&cli, csm)
 	assert.NotPanics(t, func() {
-		_ = newMCPServer(ctx, k, projectconfig.Config{}, nil, nil, nil, func(ctx context.Context, kctx *kong.Context) context.Context {
+		_ = newMCPServer(ctx, k, profiles.ProjectConfig{}, nil, nil, nil, func(ctx context.Context, kctx *kong.Context) context.Context {
 			return ctx
 		})
 	})

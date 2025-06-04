@@ -10,7 +10,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -19,12 +19,12 @@ type updateCmd struct {
 	Deployment string `arg:"" help:"Deployment to update." predictor:"deployments"`
 }
 
-func (u *updateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, source *schemaeventsource.EventSource, projConfig projectconfig.Config) error {
+func (u *updateCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, source *schemaeventsource.EventSource, projConfig profiles.ProjectConfig) error {
 	dep, err := key.ParseDeploymentKey(u.Deployment)
 	if err != nil {
 		// Assume a module name
 		source.WaitForInitialSync(ctx)
-		mod, ok := source.CanonicalView().Module(projConfig.Name, u.Deployment).Get()
+		mod, ok := source.CanonicalView().Module(projConfig.Realm, u.Deployment).Get()
 		if !ok {
 			return errors.Errorf("deployment %s not found", u.Deployment)
 		}

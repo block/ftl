@@ -32,7 +32,7 @@ import (
 	"github.com/block/ftl/internal/dev"
 	imaps "github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/realm"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -94,7 +94,7 @@ type Engine struct {
 	deployCoordinator *DeployCoordinator
 	moduleMetas       *xsync.MapOf[string, moduleMeta]
 	externalRealms    *xsync.MapOf[string, *schema.Realm]
-	projectConfig     projectconfig.Config
+	projectConfig     profiles.ProjectConfig
 	moduleDirs        []string
 	watcher           *watch.Watcher // only watches for module toml changes
 	targetSchema      atomic.Value[*schema.Schema]
@@ -172,7 +172,7 @@ func New(
 	ctx context.Context,
 	adminClient AdminClient,
 	schemaSource *schemaeventsource.EventSource,
-	projectConfig projectconfig.Config,
+	projectConfig profiles.ProjectConfig,
 	moduleDirs []string,
 	logChanges bool,
 	options ...Option,
@@ -394,7 +394,7 @@ func (e *Engine) BuildWithCallback(ctx context.Context, callback func(ctx contex
 	close(schemas)
 
 	realm := &schema.Realm{
-		Name: e.projectConfig.Name,
+		Name: e.projectConfig.Realm,
 	}
 	for moduleSch := range schemas {
 		realm.Modules = append(realm.Modules, moduleSch)

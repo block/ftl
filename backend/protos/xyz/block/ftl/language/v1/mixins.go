@@ -11,7 +11,7 @@ import (
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 // ErrorsFromProto converts a protobuf ErrorList to a []builderrors.Error.
@@ -188,21 +188,12 @@ func ModuleConfigFromProto(proto *ModuleConfig) moduleconfig.AbsModuleConfig {
 	return config
 }
 
-func ProjectConfigToProto(projConfig projectconfig.Config) *ProjectConfig {
+func ProjectConfigToProto(projConfig profiles.ProjectConfig) *ProjectConfig {
 	return &ProjectConfig{
-		Dir:    projConfig.Path,
-		Name:   projConfig.Name,
-		NoGit:  projConfig.NoGit,
+		Root:   projConfig.Root(),
+		Realm:  projConfig.Realm,
+		Git:    projConfig.Git,
 		Hermit: projConfig.Hermit,
-	}
-}
-
-func ProjectConfigFromProto(proto *ProjectConfig) projectconfig.Config {
-	return projectconfig.Config{
-		Path:   proto.Dir,
-		Name:   proto.Name,
-		NoGit:  proto.NoGit,
-		Hermit: proto.Hermit,
 	}
 }
 

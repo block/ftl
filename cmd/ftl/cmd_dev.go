@@ -18,7 +18,7 @@ import (
 	"github.com/block/ftl/internal/buildengine"
 	configuration "github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/dev"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
@@ -37,7 +37,7 @@ func (d *devCmd) Run(
 	ctx context.Context,
 	cm configuration.Provider[configuration.Configuration],
 	sm configuration.Provider[configuration.Secrets],
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 	bindContext KongContextBinder,
 	csm *currentStatusManager,
 	cli *SharedCLI,
@@ -78,7 +78,7 @@ func (d *devCmd) Run(
 
 	source := schemaeventsource.New(ctx, "dev", adminClient)
 	terminal.LaunchEmbeddedConsole(ctx, createKongApplication(&DevModeCLI{}, csm), source, func(ctx context.Context, k *kong.Kong, args []string, additionalExit func(int)) error {
-		return errors.WithStack(runInnerCmd(ctx, k, projConfig, bindContext, args, additionalExit))
+		return errors.WithStack(runInnerCmd(ctx, k, bindContext, args, additionalExit))
 	})
 	var deployClient buildengine.AdminClient = adminClient
 

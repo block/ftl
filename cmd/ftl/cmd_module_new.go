@@ -18,7 +18,7 @@ import (
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 type moduleNewCmd struct {
@@ -30,7 +30,7 @@ type moduleNewCmd struct {
 	Force       bool     `help:"Force creation of module without checking allowed directories." short:"f"`
 }
 
-func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config projectconfig.Config) error {
+func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config profiles.ProjectConfig) error {
 	logger := log.FromContext(ctx)
 
 	dir := i.moduleDir(config)
@@ -59,7 +59,7 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 	logger.Debugf("Creating FTL %s module %q in %s", i.Language, name, path)
 
 	moduleConfig := moduleconfig.ModuleConfig{
-		Realm:    config.Name,
+		Realm:    config.Realm,
 		Module:   name,
 		Language: i.Language,
 		Dir:      path,
@@ -93,7 +93,7 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 	}
 
 	_, ok := internal.GitRoot(dir).Get()
-	if !config.NoGit && ok {
+	if config.Git && ok {
 		logger.Debugf("Adding files to git")
 		if err := maybeGitAdd(ctx, dir, filepath.Join(i.Name, "*")); err != nil {
 			return errors.WithStack(err)
@@ -105,11 +105,11 @@ func (i moduleNewCmd) Run(ctx context.Context, ktctx *kong.Context, config proje
 }
 
 // Use the first module directory in the project config if available, otherwise use the current directory
-func (i moduleNewCmd) moduleDir(config projectconfig.Config) string {
+func (i moduleNewCmd) moduleDir(config profiles.ProjectConfig) string {
 	dir := i.Dir
 	if dir == "" {
-		if len(config.ModuleDirs) > 0 {
-			dir = config.ModuleDirs[0]
+		if len(config.ModuleRoots) > 0 {
+			dir = config.ModuleRoots[0]
 		} else {
 			dir = "."
 		}

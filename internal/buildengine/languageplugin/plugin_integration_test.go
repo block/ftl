@@ -3,7 +3,6 @@
 package languageplugin
 
 import (
-	"fmt"
 	"io/fs"
 	"net"
 	"net/url"
@@ -30,7 +29,7 @@ import (
 	"github.com/block/ftl/internal/flock"
 	in "github.com/block/ftl/internal/integration"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -246,7 +245,7 @@ func (bctx *testContext) setUpModuleConfig(moduleName string) in.Action {
 		unvalidatedConfig, err := moduleconfig.LoadConfig(path)
 		assert.NoError(t, err)
 
-		bctx.config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults, projectconfig.Config{Name: "test"})
+		bctx.config, err = unvalidatedConfig.FillDefaultsAndValidate(defaults, profiles.ProjectConfig{Realm: "test"})
 		assert.NoError(t, err)
 	}
 }
@@ -324,8 +323,8 @@ func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string,
 		schemaProto := sch.ToProto()
 		res, err := bctx.client.build(ic.Context, connect.NewRequest(&langpb.BuildRequest{
 			ProjectConfig: &langpb.ProjectConfig{
-				Dir:  ic.WorkingDir(),
-				Name: "test",
+				Root:  ic.WorkingDir(),
+				Realm: "test",
 			},
 			StubsRoot: filepath.Join(ic.WorkingDir(), ".ftl", bctx.config.Language, "modules"),
 			BuildContext: &langpb.BuildContext{
@@ -337,29 +336,6 @@ func (bctx *testContext) build(rebuildAutomatically bool, dependencies []string,
 		}))
 		assert.NoError(t, err)
 		resultHandler(res.Msg)
-	}
-}
-
-func (bctx *testContext) checkForNoEvents(duration time.Duration) in.Action {
-	return func(t testing.TB, ic in.TestContext) {
-		in.Infof("Checking for no events for %v", duration)
-		for {
-			select {
-			case result := <-bctx.buildChan:
-				e, err := result.Result()
-				assert.NoError(t, err, "did not expect a build stream error")
-				switch event := e.Event.(type) {
-				case *langpb.BuildResponse_BuildSuccess:
-					panic(fmt.Sprintf("build success event when expecting no events: %v", event))
-				case *langpb.BuildResponse_BuildFailure:
-					panic(fmt.Sprintf("build failure event when expecting no events: %v", event))
-				}
-			case <-time.After(duration):
-				return
-			case <-ic.Context.Done():
-				return
-			}
-		}
 	}
 }
 

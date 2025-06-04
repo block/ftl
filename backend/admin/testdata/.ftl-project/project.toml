@@ -1,0 +1,7 @@
+realm = "test"
+module-roots = ["."]
+git = true
+default-profile = "local"
+ide-integration = true
+vscode-integration = true
+intellij-integration = true
