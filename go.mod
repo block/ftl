@@ -8,6 +8,7 @@ require (
 	connectrpc.com/otelconnect v0.7.2
 	github.com/BurntSushi/toml v1.5.0
 	github.com/IBM/sarama v1.45.1
+	github.com/PaesslerAG/gval v1.0.0
 	github.com/XSAM/otelsql v0.38.0
 	github.com/alecthomas/assert/v2 v2.11.0
 	github.com/alecthomas/atomic v0.1.0-alpha2
@@ -216,6 +217,7 @@ require (
 )
 
 require (
+	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/akamensky/base58 v0.0.0-20210829145138-ce8bf8802e8f
 	github.com/alecthomas/repr v0.4.0
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.5.11
