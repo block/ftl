@@ -2350,6 +2350,12 @@ export class Metadata extends Message<Metadata> {
     case: "git";
   } | {
     /**
+     * @generated from field: xyz.block.ftl.schema.v1.MetadataImage image = 23;
+     */
+    value: MetadataImage;
+    case: "image";
+  } | {
+    /**
      * @generated from field: xyz.block.ftl.schema.v1.MetadataIngress ingress = 2;
      */
     value: MetadataIngress;
@@ -2435,6 +2441,7 @@ export class Metadata extends Message<Metadata> {
     { no: 20, name: "fixture", kind: "message", T: MetadataFixture, oneof: "value" },
     { no: 18, name: "generated", kind: "message", T: MetadataGenerated, oneof: "value" },
     { no: 19, name: "git", kind: "message", T: MetadataGit, oneof: "value" },
+    { no: 23, name: "image", kind: "message", T: MetadataImage, oneof: "value" },
     { no: 2, name: "ingress", kind: "message", T: MetadataIngress, oneof: "value" },
     { no: 15, name: "partitions", kind: "message", T: MetadataPartitions, oneof: "value" },
     { no: 12, name: "publisher", kind: "message", T: MetadataPublisher, oneof: "value" },
@@ -2973,6 +2980,55 @@ export class MetadataGit extends Message<MetadataGit> {
 
   static equals(a: MetadataGit | PlainMessage<MetadataGit> | undefined, b: MetadataGit | PlainMessage<MetadataGit> | undefined): boolean {
     return proto3.util.equals(MetadataGit, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.schema.v1.MetadataImage
+ */
+export class MetadataImage extends Message<MetadataImage> {
+  /**
+   * @generated from field: optional xyz.block.ftl.schema.v1.Position pos = 1;
+   */
+  pos?: Position;
+
+  /**
+   * @generated from field: string image = 2;
+   */
+  image = "";
+
+  /**
+   * @generated from field: string digest = 3;
+   */
+  digest = "";
+
+  constructor(data?: PartialMessage<MetadataImage>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.schema.v1.MetadataImage";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "pos", kind: "message", T: Position, opt: true },
+    { no: 2, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "digest", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetadataImage {
+    return new MetadataImage().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetadataImage {
+    return new MetadataImage().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetadataImage {
+    return new MetadataImage().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetadataImage | PlainMessage<MetadataImage> | undefined, b: MetadataImage | PlainMessage<MetadataImage> | undefined): boolean {
+    return proto3.util.equals(MetadataImage, a, b);
   }
 }
 

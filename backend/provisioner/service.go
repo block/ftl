@@ -198,7 +198,7 @@ func Start(
 	return nil
 }
 
-func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (*ProvisionerRegistry, error) {
+func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.File, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService) (*ProvisionerRegistry, error) {
 	config := provisionerPluginConfig{}
 	bytes, err := io.ReadAll(bufio.NewReader(file))
 	if err != nil {
@@ -208,7 +208,7 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 		return nil, errors.Wrap(err, "error parsing plugin configuration")
 	}
 
-	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient, imageService)
+	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient, imageService, artifactService)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating provisioner registry")
 	}

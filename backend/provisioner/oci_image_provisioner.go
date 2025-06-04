@@ -17,13 +17,13 @@ import (
 	"github.com/block/ftl/internal/oci"
 )
 
-func NewOCIImageProvisioner(storage *oci.ImageService, defaultImage string) *InMemProvisioner {
+func NewOCIImageProvisioner(storage *oci.ImageService, astorage *oci.ArtefactService, defaultImage string) *InMemProvisioner {
 	return NewEmbeddedProvisioner(map[schema.ResourceType]InMemResourceProvisionerFn{
-		schema.ResourceTypeImage: provisionOCIImage(storage, defaultImage),
+		schema.ResourceTypeImage: provisionOCIImage(storage, astorage, defaultImage),
 	}, map[schema.ResourceType]InMemResourceProvisionerFn{})
 }
 
-func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemResourceProvisionerFn {
+func provisionOCIImage(storage *oci.ImageService, astorage *oci.ArtefactService, defaultImage string) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, moduleSch *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 		variants := goslices.Collect(slices.FilterVariants[*schema.MetadataArtefact](moduleSch.Metadata))
@@ -55,15 +55,15 @@ func provisionOCIImage(storage *oci.ImageService, defaultImage string) InMemReso
 			tag = git.Commit
 		}
 
-		target := string(storage.Image(deployment.Payload.Realm, deployment.Payload.Module, tag))
-		err = storage.BuildOCIImageFromRemote(ctx, image, target, tempDir, moduleSch, deployment, variants, oci.WithRemotePush())
+		target := storage.Image(deployment.Payload.Realm, deployment.Payload.Module, tag)
+		err = storage.BuildOCIImageFromRemote(ctx, astorage, image, target, tempDir, moduleSch, deployment, variants, oci.WithRemotePush())
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to build image")
 		}
 		return &schema.RuntimeElement{
 			Deployment: deployment,
 			Element: &schema.ModuleRuntimeImage{
-				Image: target,
+				Image: string(target),
 			},
 		}, nil
 	}
