@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"time"
@@ -44,6 +45,7 @@ type moduleMeta struct {
 	module         Module
 	plugin         *languageplugin.LanguagePlugin
 	configDefaults moduleconfig.CustomDefaults
+	watcher        *watch.Watcher
 }
 
 // copyMetaWithUpdatedDependencies finds the dependencies for a module and returns a
@@ -423,21 +425,25 @@ func (e *Engine) Modules() []string {
 
 // Dev builds and deploys all local modules and watches for changes, redeploying as necessary.
 func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
-	logger := log.FromContext(ctx)
-	// Build and deploy all modules first.
-	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
-		logger.Errorf(err, "Initial build and deploy failed")
-	}
-
 	return errors.WithStack(e.processEvents(ctx, period))
 }
 
 func (e *Engine) processEvents(ctx context.Context, period time.Duration) error {
 	logger := log.FromContext(ctx)
 
-	moduleCancellations := map[string]context.CancelCauseFunc{}
-
+	moduleWatchCancellations := map[string]context.CancelCauseFunc{}
 	moduleChanges := make(chan watch.WatchEvent, 128)
+	e.moduleMetas.Range(func(name string, meta moduleMeta) bool {
+		if err := e.watchModuleForChanges(ctx, meta, period, moduleChanges, moduleWatchCancellations); err != nil {
+			logger.Errorf(err, "failed to watch module %s", meta.module.Config.Module)
+		}
+		return true
+	})
+
+	// Build and deploy all modules first.
+	if err := e.BuildAndDeploy(ctx, optional.None[int32](), true, false); err != nil {
+		logger.Errorf(err, "Initial build and deploy failed")
+	}
 
 	moduleListChanges := make(chan watch.WatchEvent, 16)
 	moduleListTopic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
@@ -445,29 +451,6 @@ func (e *Engine) processEvents(ctx context.Context, period time.Duration) error 
 		return errors.Wrap(err, "failed to start watcher")
 	}
 	moduleListTopic.Subscribe(moduleListChanges)
-drainModuleListChanges:
-	for {
-		select {
-		case event := <-moduleListChanges:
-			switch event := event.(type) {
-			case watch.WatchEventModuleAdded:
-				meta, err := e.handleNewModule(ctx, event.Config)
-				if err != nil {
-					logger.Errorf(err, "could not add module %s", meta.module.Config.Module)
-					continue
-				}
-				cancel, err := e.watchModuleForChanges(ctx, meta.module.Config, moduleChanges)
-				if err != nil {
-					logger.Errorf(err, "failed to watch module %s", meta.module.Config.Module)
-					continue
-				}
-				moduleCancellations[event.Config.Module] = cancel
-
-			}
-		default:
-			break drainModuleListChanges
-		}
-	}
 
 	// Update schema and set initial module hashes
 drainSchemaUpdates:
@@ -516,18 +499,16 @@ drainSchemaUpdates:
 					logger.Errorf(err, "could not add module %s", meta.module.Config.Module)
 					continue
 				}
-				cancel, err := e.watchModuleForChanges(ctx, meta.module.Config, moduleChanges)
-				if err != nil {
+				if err := e.watchModuleForChanges(ctx, meta, period, moduleChanges, moduleWatchCancellations); err != nil {
 					logger.Errorf(err, "failed to watch module %s", meta.module.Config.Module)
 					continue
 				}
-				moduleCancellations[event.Config.Module] = cancel
 				e.triggerBuildAndDeploy(ctx, event.Config.Module)
 			case watch.WatchEventModuleRemoved:
-				if cancel, ok := moduleCancellations[event.Config.Module]; ok {
+				if cancel, ok := moduleWatchCancellations[event.Config.Module]; ok {
 					cancel(errors.Wrap(context.Canceled, "module removed"))
 				}
-				delete(moduleCancellations, event.Config.Module)
+				delete(moduleWatchCancellations, event.Config.Module)
 				e.handleModuleRemoval(ctx, event.Config)
 			case watch.WatchEventModuleChanged:
 				// Changes within a module are not handled here
@@ -539,7 +520,7 @@ drainSchemaUpdates:
 				// Module detectiomn is not handle here
 			case watch.WatchEventModuleChanged:
 				// Changes within a module are not handled here
-				logger.Debugf("Module %q changed: %s", event.Config.Module, event.String())
+				logger.Infof("Module %q changed: %s", event.Config.Module, event.String())
 				e.triggerBuildAndDeploy(ctx, event.Config.Module)
 			}
 		case event := <-e.deployCoordinator.SchemaUpdates:
@@ -608,16 +589,22 @@ func (e *Engine) handleNewModule(ctx context.Context, config moduleconfig.Unvali
 	return meta, nil
 }
 
-func (e *Engine) watchModuleForChanges(ctx context.Context, c moduleconfig.ModuleConfig, subscriber chan watch.WatchEvent) (context.CancelCauseFunc, error) {
-	config := c.Abs()
-	watcher := watch.NewWatcher(optional.None[string](), config.Watch...)
+func (e *Engine) watchModuleForChanges(ctx context.Context, meta moduleMeta, period time.Duration, subscriber chan watch.WatchEvent, moduleCancellations map[string]context.CancelCauseFunc) error {
+	name := meta.module.Config.Module
+	if existing, ok := moduleCancellations[name]; ok {
+		existing(errors.New("replacing existing watcher for module"))
+		delete(moduleCancellations, name)
+	}
+	config := meta.module.Config.Abs()
 	ctx, cancel := context.WithCancelCause(ctx)
-	updates, err := watcher.Watch(ctx, time.Second, []string{config.Dir})
+	updates, err := meta.watcher.Watch(ctx, period, []string{config.Dir})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to watch module directory %s", config.Dir)
+		cancel(context.Canceled)
+		return errors.Wrapf(err, "failed to watch module directory %s", config.Dir)
 	}
 	updates.Subscribe(subscriber)
-	return cancel, nil
+	moduleCancellations[name] = cancel
+	return nil
 }
 
 func (e *Engine) handleModuleRemoval(ctx context.Context, config moduleconfig.UnvalidatedModuleConfig) {
@@ -645,6 +632,7 @@ func (e *Engine) handleModuleRemoval(ctx context.Context, config moduleconfig.Un
 }
 
 func (e *Engine) triggerBuildAndDeploy(ctx context.Context, moduleName string) {
+	debug.PrintStack()
 	logger := log.FromContext(ctx)
 	logger.Debugf("calling build and deploy %q", moduleName)
 	if err := e.BuildAndDeploy(ctx, optional.None[int32](), false, false, moduleName); err != nil {
@@ -1208,7 +1196,8 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 
 	sch := &schema.Schema{Realms: []*schema.Realm{{Modules: maps.Values(builtModules)}}} //nolint:exptostd
 
-	configProto, err := langpb.ModuleConfigToProto(meta.module.Config.Abs())
+	config := meta.module.Config.Abs()
+	configProto, err := langpb.ModuleConfigToProto(config)
 	if err != nil {
 		return nil, "", nil, errors.Wrap(err, "failed to marshal module config")
 	}
@@ -1216,7 +1205,11 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		meta.module = meta.module.CopyWithSQLErrors(nil)
 		e.moduleMetas.Store(moduleName, meta)
 	}
-	moduleSchema, tmpDeployDir, deployPaths, err := build(ctx, e.projectConfig, meta.module, meta.plugin, languageplugin.BuildContext{
+	transaction := meta.watcher.GetTransaction(config.Dir)
+	if err := transaction.Begin(); err != nil {
+		return nil, "", nil, errors.Wrapf(err, "failed to begin file transaction for %s", config.Dir)
+	}
+	moduleSchema, tmpDeployDir, deployPaths, err := build(ctx, e.projectConfig, meta.module, meta.plugin, transaction, languageplugin.BuildContext{
 		Config:       meta.module.Config,
 		Schema:       sch,
 		Dependencies: meta.module.Dependencies(Raw),
@@ -1224,6 +1217,9 @@ func (e *Engine) build(ctx context.Context, moduleName string, builtModules map[
 		Os:           e.os,
 		Arch:         e.arch,
 	}, e.devMode, e.devModeEndpointUpdates)
+	if err := transaction.End(); err != nil {
+		return nil, "", nil, errors.Wrapf(err, "failed to end file transaction for %s", config.Dir)
+	}
 
 	if err != nil {
 		if errors.Is(err, errSQLError) {
@@ -1340,9 +1336,15 @@ func (e *Engine) newModuleMeta(ctx context.Context, config moduleconfig.Unvalida
 	if err != nil {
 		return moduleMeta{}, errors.Wrapf(err, "could not apply defaults for %s", config.Module)
 	}
+
+	patterns := validConfig.Watch
+	patterns = append(patterns, "ftl.toml", "**/*.sql")
+	watcher := watch.NewWatcher(optional.None[string](), patterns...)
+
 	return moduleMeta{
 		module:         newModule(validConfig),
 		plugin:         plugin,
 		configDefaults: customDefaults,
+		watcher:        watcher,
 	}, nil
 }

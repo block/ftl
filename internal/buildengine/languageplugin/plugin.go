@@ -38,7 +38,7 @@ type BuildResult struct {
 	// File that the runner can use to pass info into the hot reload endpoint
 	HotReloadEndpoint optional.Option[string]
 	HotReloadVersion  optional.Option[int64]
-	modifiedFiles     []string
+	ModifiedFiles     []string
 
 	DebugPort           int
 	redeployNotRequired bool
@@ -221,7 +221,7 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 			HotReloadEndpoint:   optional.Ptr(buildSuccess.DevHotReloadEndpoint),
 			HotReloadVersion:    optional.Ptr(buildSuccess.DevHotReloadVersion),
 			DebugPort:           port,
-			modifiedFiles:       buildSuccess.ModifiedFiles,
+			ModifiedFiles:       buildSuccess.ModifiedFiles,
 			redeployNotRequired: buildSuccess.RedeployNotRequired,
 		}, nil
 	case *langpb.BuildResponse_BuildFailure:
@@ -244,7 +244,7 @@ func buildResultFromProto(result *langpb.BuildResponse, startTime time.Time) (bu
 			StartTime:              startTime,
 			Errors:                 errs,
 			InvalidateDependencies: buildFailure.InvalidateDependencies,
-			modifiedFiles:          buildFailure.ModifiedFiles,
+			ModifiedFiles:          buildFailure.ModifiedFiles,
 		}, nil
 	default:
 		panic(fmt.Sprintf("unexpected result type %T", result))

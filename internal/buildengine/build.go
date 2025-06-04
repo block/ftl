@@ -21,6 +21,7 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/sql"
+	"github.com/block/ftl/internal/watch"
 )
 
 const (
@@ -35,7 +36,7 @@ var errSQLError = errors.New("failed to add queries to schema")
 // Plugins must use a lock file to ensure that only one build is running at a time.
 //
 // Returns invalidateDependenciesError if the build failed due to a change in dependencies.
-func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, fileTransaction watch.ModifyFilesTransaction, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
@@ -43,8 +44,9 @@ func build(ctx context.Context, projectConfig projectconfig.Config, m Module, pl
 	if err != nil {
 		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
 	}
+
 	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
-	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints, optional.Some(bctx.Schema))
+	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, fileTransaction, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints, optional.Some(bctx.Schema))
 	if err != nil {
 		return nil, "", nil, errors.WithStack(err)
 	}
@@ -52,13 +54,20 @@ func build(ctx context.Context, projectConfig projectconfig.Config, m Module, pl
 }
 
 // handleBuildResult processes the result of a build
-func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint, schemaOpt optional.Option[*schema.Schema]) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, fileTransaction watch.ModifyFilesTransaction, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint, schemaOpt optional.Option[*schema.Schema]) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx)
 	config := m.Config.Abs()
 
 	result, err := eitherResult.Result()
 	if err != nil {
 		return nil, "", nil, errors.Wrap(err, "failed to build module")
+	}
+
+	if len(result.ModifiedFiles) > 0 {
+		logger.Infof("Modified files: %v", result.ModifiedFiles)
+	}
+	if err := fileTransaction.ModifiedFiles(result.ModifiedFiles...); err != nil {
+		return nil, "", nil, errors.Wrap(err, "failed to apply modified files")
 	}
 
 	if result.InvalidateDependencies {
