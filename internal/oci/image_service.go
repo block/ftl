@@ -249,6 +249,7 @@ func (s *ImageService) BuildOCIImage(
 	}
 	cfg.Config.Env = append(cfg.Config.Env, "FTL_SCHEMA_LOCATION=/deployments/ftl-full-schema.pb")
 	cfg.Config.Env = append(cfg.Config.Env, fmt.Sprintf("FTL_DEPLOYMENT=%s", deployment.String()))
+	cfg.Config.Env = append(cfg.Config.Env, "LOG_LEVEL=DEBUG")
 	newImg, err = mutate.Config(newImg, cfg.Config)
 	if err != nil {
 		return errors.Errorf("setting environment var: %w", err)

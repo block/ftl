@@ -598,6 +598,9 @@ func (s *Service) startMySQLProxy(ctx context.Context, module *schema.Module, la
 		errorC := make(chan error)
 		databaseRuntime := decl.Runtime
 		proxy := mysql.NewProxy("localhost", 0, func(ctx context.Context) (*mysql.Config, error) {
+			if databaseRuntime == nil || databaseRuntime.Connections == nil || databaseRuntime.Connections.Write == nil {
+				return nil, errors.Errorf("database %s has not been provisioned", db)
+			}
 			cfg, err := dsn.ResolveMySQLConfig(ctx, databaseRuntime.Connections.Write)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to resolve MySQL DSN")
