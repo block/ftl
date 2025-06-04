@@ -68,14 +68,17 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 	return result
 }
 
+type pluginProcesses map[string]Plugin
+
 func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "error validating provisioner config")
 	}
+	processes := pluginProcesses{}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService, processes)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -85,7 +88,15 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	return result, nil
 }
 
-func provisionerIDToProvisioner(ctx context.Context, id string, workingDir string, scaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (Plugin, error) {
+func provisionerIDToProvisioner(
+	ctx context.Context,
+	id string,
+	workingDir string,
+	scaling scaling.RunnerScaling,
+	adminClient adminpbconnect.AdminServiceClient,
+	imageService *oci.ImageService,
+	processes pluginProcesses,
+) (Plugin, error) {
 	switch id {
 	case "kubernetes":
 		// TODO: move this into a plugin
@@ -98,6 +109,9 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 	case "oci-image":
 		return NewOCIImageProvisioner(imageService, "ftl0/ftl-runner"), nil
 	default:
+		if _, ok := processes[id]; ok {
+			return processes[id], nil
+		}
 		plugin, _, err := plugin.Spawn(
 			ctx,
 			log.FromContext(ctx).GetLevel(),
@@ -111,8 +125,8 @@ func provisionerIDToProvisioner(ctx context.Context, id string, workingDir strin
 		if err != nil {
 			return nil, errors.Wrap(err, "error spawning plugin")
 		}
-
-		return NewPluginClient(plugin.Client), nil
+		processes[id] = NewPluginClient(plugin.Client)
+		return processes[id], nil
 	}
 }
 
