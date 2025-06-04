@@ -115,7 +115,12 @@ func resolveYAMLFileCredentials(ctx context.Context, connector *schema.YAMLFileC
 		return "", errors.Wrap(err, "failed to read DB Credentials file")
 	}
 
-	return parseDSNFromYAML(ctx, string(bytes), connector.DSNTemplate)
+	dsn, err := parseDSNFromYAML(ctx, string(bytes), connector.DSNTemplate)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse DSN from YAML")
+	}
+
+	return dsn, nil
 }
 
 func convertKeysToStrings(m map[any]any) map[string]any {
@@ -162,6 +167,9 @@ func parseRegionFromEndpoint(endpoint string) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "failed to split host and port")
 	}
+	if !strings.HasSuffix(host, ".rds.amazonaws.com") {
+		return "", errors.Errorf("endpoint %s is not an RDS endpoint", endpoint)
+	}
 	host = strings.TrimSuffix(host, ".rds.amazonaws.com")
 	parts := strings.Split(host, ".")
 	return parts[len(parts)-1], nil
@@ -199,6 +207,11 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse DSN")
 		}
+		err = updateTLSForMySQL(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update TLS config")
+		}
+
 		return cfg, nil
 
 	case *schema.AWSIAMAuthDatabaseConnector:
@@ -218,7 +231,7 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 			return nil, errors.Wrap(err, "failed to create authentication token")
 		}
 
-		tls, err := tlsForMySQLIAMAuth(c.Endpoint, region)
+		tls, err := tlsForMySQLRDS(c.Endpoint, region)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create TLS config")
 		}
@@ -246,10 +259,34 @@ func ResolveMySQLConfig(ctx context.Context, connector schema.DatabaseConnector)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse DSN")
 		}
+		err = updateTLSForMySQL(cfg)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update TLS config")
+		}
+
 		return cfg, nil
 	default:
 		return nil, errors.Errorf("unexpected database connector type: %T", connector)
 	}
+}
+
+func updateTLSForMySQL(cfg *mysqlauthproxy.Config) error {
+	if cfg.TLS != nil {
+		return nil
+	}
+
+	region, err := parseRegionFromEndpoint(cfg.Addr)
+	if err != nil {
+		// not an aws dsn
+		return nil
+	}
+
+	tls, err := tlsForMySQLRDS(cfg.Addr, region)
+	if err != nil {
+		return err
+	}
+	cfg.TLS = tls
+	return nil
 }
 
 // ConnectorMySQLProxy creates a MySQL proxy for the given connector.
@@ -302,7 +339,7 @@ func (m *mysqlLogger) Print(v ...any) {
 //go:embed certs/rds
 var rdsCerts embed.FS
 
-func tlsForMySQLIAMAuth(endpoint, region string) (*tls.Config, error) {
+func tlsForMySQLRDS(endpoint, region string) (*tls.Config, error) {
 	// We need to use AWS CA certs for RDS MySQL connections when using IAM auth.
 	// We could also use RDS Proxy here to avoid the need for the CA certs in the future.
 	rootCertPool := x509.NewCertPool()
