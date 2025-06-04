@@ -2,6 +2,7 @@ package flock
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -42,10 +43,12 @@ func Acquire(ctx context.Context, path string, timeout time.Duration) (release f
 			pid, _ := os.ReadFile(absPath) //nolint:errcheck
 			return nil, errors.Wrapf(err, "timed out acquiring lock %s, locked by pid %s", absPath, pid)
 		}
+		jitter := rand.Int63n(100) //nolint
+		duration := time.Millisecond * time.Duration(jitter)
 		select {
 		case <-ctx.Done():
 			return nil, errors.WithStack(ctx.Err())
-		case <-time.After(time.Second):
+		case <-time.After(duration):
 		}
 	}
 }
