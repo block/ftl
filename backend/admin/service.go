@@ -88,6 +88,7 @@ func NewAdminService(
 	storage *oci.ArtefactService,
 	routes *routing.VerbCallRouter,
 	timelineClient *timelineclient.RealClient,
+	imageService *oci.ImageService,
 	waitFor []string,
 ) *Service {
 	return &Service{
@@ -99,6 +100,7 @@ func NewAdminService(
 		timelineClient: timelineClient,
 		routeTable:     routes,
 		waitFor:        waitFor,
+		imageService:   imageService,
 	}
 }
 
@@ -518,7 +520,11 @@ func (s *Service) DeployImages(ctx context.Context, c *connect.Request[adminpb.D
 	var mpbchanges []*schemapb.Module
 	realm := ""
 	for _, image := range c.Msg.Image {
-		sch, module, err := s.imageService.PullSchema(ctx, image)
+		ref, err := s.imageService.ParseName(image, c.Msg.AllowInsecure)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse image name %s", image)
+		}
+		sch, module, err := s.imageService.PullSchema(ctx, ref)
 		if err != nil {
 			return errors.Wrap(err, "failed to pull schema")
 		}

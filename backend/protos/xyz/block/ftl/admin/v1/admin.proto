@@ -162,6 +162,7 @@ message ApplyChangesetResponse {
 
 message DeployImagesRequest {
   repeated string image = 1;
+  bool allow_insecure = 2; // Allow insecure images, e.g. from localhost. This does not propagate to the underlying cluster, if the cluster does not allow insecure images this will fail.
 }
 
 message DeployImagesResponse {
