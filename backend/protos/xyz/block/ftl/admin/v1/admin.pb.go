@@ -1419,6 +1419,7 @@ func (x *ApplyChangesetResponse) GetChangeset() *v1.Changeset {
 type DeployImagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Image         []string               `protobuf:"bytes,1,rep,name=image,proto3" json:"image,omitempty"`
+	AllowInsecure bool                   `protobuf:"varint,2,opt,name=allow_insecure,json=allowInsecure,proto3" json:"allow_insecure,omitempty"` // Allow insecure images, e.g. from localhost. This does not propagate to the underlying cluster, if the cluster does not allow insecure images this will fail.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1458,6 +1459,13 @@ func (x *DeployImagesRequest) GetImage() []string {
 		return x.Image
 	}
 	return nil
+}
+
+func (x *DeployImagesRequest) GetAllowInsecure() bool {
+	if x != nil {
+		return x.AllowInsecure
+	}
+	return false
 }
 
 type DeployImagesResponse struct {
@@ -2673,9 +2681,10 @@ const file_xyz_block_ftl_admin_v1_admin_proto_rawDesc = "" +
 	"\x15ApplyChangesetRequest\x12H\n" +
 	"\rrealm_changes\x18\x01 \x03(\v2#.xyz.block.ftl.admin.v1.RealmChangeR\frealmChanges\"Z\n" +
 	"\x16ApplyChangesetResponse\x12@\n" +
-	"\tchangeset\x18\x02 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"+\n" +
+	"\tchangeset\x18\x02 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"R\n" +
 	"\x13DeployImagesRequest\x12\x14\n" +
-	"\x05image\x18\x01 \x03(\tR\x05image\"X\n" +
+	"\x05image\x18\x01 \x03(\tR\x05image\x12%\n" +
+	"\x0eallow_insecure\x18\x02 \x01(\bR\rallowInsecure\"X\n" +
 	"\x14DeployImagesResponse\x12@\n" +
 	"\tchangeset\x18\x01 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"c\n" +
 	"\x1eUpdateDeploymentRuntimeRequest\x12A\n" +

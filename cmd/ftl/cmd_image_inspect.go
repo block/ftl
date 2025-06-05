@@ -19,12 +19,17 @@ func (b *imageInspectCmd) Run(
 ) error {
 	logger := log.FromContext(ctx)
 
-	imageService, err := oci.NewImageService(ctx, &b.ImageConfig)
+	imageService, err := oci.NewImageService(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
 
-	sch, _, err := imageService.PullSchema(ctx, b.Image)
+	ref, err := imageService.ParseName(b.Image, b.ImageConfig.AllowInsecureImages)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse image name %s", b.Image)
+	}
+
+	sch, _, err := imageService.PullSchema(ctx, ref)
 	if err != nil {
 		return errors.Wrapf(err, "failed to pull image schema %s", b.Image)
 	}

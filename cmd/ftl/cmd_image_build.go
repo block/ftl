@@ -28,6 +28,7 @@ type imageBuildCmd struct {
 	Push            bool            `help:"Push the image to the registry after building." default:"false"`
 	SkipLocalDaemon bool            `help:"Skip pushing to the local docker daemon." default:"false"`
 	TarFile         string          `help:"File system path to push the image to"`
+	Deploy          bool            `help:"Deploy the images after they are built." default:"false"`
 }
 
 func (b *imageBuildCmd) Run(
@@ -64,10 +65,11 @@ func (b *imageBuildCmd) Run(
 		logger.Warnf("No modules were found to build")
 		return nil
 	}
-	imageService, err := oci.NewImageService(ctx, &b.ImageConfig)
+	imageService, err := oci.NewImageService(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
+	var images []string
 	if err := engine.BuildWithCallback(ctx, func(ctx context.Context, module buildengine.Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
 		artifacts := []*schema.MetadataArtefact{}
 
@@ -84,29 +86,36 @@ func (b *imageBuildCmd) Run(
 			executable := s.Mode().Perm()&0111 != 0
 			artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable})
 		}
-		var image string
+		var baseImage string
 		if b.RunnerImage != "" {
-			image = b.RunnerImage
+			baseImage = b.RunnerImage
 		} else {
-			image = "ftl0/ftl-runner"
+			baseImage = "ftl0/ftl-runner"
 			if moduleSch.ModRuntime().Base.Image != "" {
-				image = moduleSch.ModRuntime().Base.Image
+				baseImage = moduleSch.ModRuntime().Base.Image
 			}
-			image += ":"
+			baseImage += ":"
 			if ftl.IsRelease(ftl.Version) && ftl.Version == ftl.BaseVersion(ftl.Version) {
-				image += "v"
-				image += ftl.Version
+				baseImage += "v"
+				baseImage += ftl.Version
 			} else {
-				image += "latest"
+				baseImage += "latest"
 			}
 		}
-		tgt := imageService.Image(projConfig.Name, moduleSch.Name, b.Tag)
-		moduleSch.Metadata = append(moduleSch.Metadata, &schema.MetadataImage{Image: string(tgt)})
+		tgt, err := imageService.Image(b.ImageConfig, projConfig.Name, moduleSch.Name, b.Tag)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get image target for %s", moduleSch.Name)
+		}
+		baseRef, err := imageService.ParseName(baseImage, b.ImageConfig.AllowInsecureImages)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse base image name %s", baseImage)
+		}
+		moduleSch.Metadata = append(moduleSch.Metadata, &schema.MetadataImage{Image: tgt.String()})
 		targets := []oci.ImageTarget{}
 		if !b.SkipLocalDaemon {
 			targets = append(targets, oci.WithLocalDeamon())
 		}
-		if b.Push {
+		if b.Push || b.Deploy {
 			targets = append(targets, oci.WithRemotePush())
 		}
 		if b.TarFile != "" {
@@ -115,13 +124,17 @@ func (b *imageBuildCmd) Run(
 		// TODO: we need to properly sync the deployment with the actual deployment key
 		// this is just a hack to get the module and realm to the runner
 		deployment := key.NewDeploymentKey(projConfig.Name, moduleSch.Name)
-		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, nil, targets...)
+		err := imageService.BuildOCIImage(ctx, baseRef, tgt, tmpDeployDir, deployment, artifacts, nil, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}
+		images = append(images, tgt.String())
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "build failed")
+	}
+	if b.Deploy {
+		return errors.Wrapf(deployImages(ctx, adminClient, images, b.ImageConfig.AllowInsecureImages), "failed to deploy images %v", images)
 	}
 	return nil
 }

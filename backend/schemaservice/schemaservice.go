@@ -217,13 +217,8 @@ func (s *Service) CreateChangeset(ctx context.Context, req *connect.Request[ftlv
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid module %s", m.Name)
 		}
-		if !out.ModRuntime().ModDeployment().DeploymentKey.IsZero() {
-			// In dev mode we relax this restriction to allow for hot reload endpoints to allocate a deployment key.
-			if !s.devMode {
-				return nil, errors.Errorf("deployment key cannot be set on changeset creation, it must be allocated by the schema service")
-			}
-		} else {
-			// Allocate a deployment key for the module.
+		if out.ModRuntime().ModDeployment().DeploymentKey.IsZero() {
+			// Allocate a deployment key for the module, if it has not been baked into the image
 			out.ModRuntime().ModDeployment().DeploymentKey = key.NewDeploymentKey(internalRealm.Name, m.Name)
 		}
 		return out, nil

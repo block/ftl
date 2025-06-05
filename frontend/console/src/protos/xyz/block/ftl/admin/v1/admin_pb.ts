@@ -1244,6 +1244,13 @@ export class DeployImagesRequest extends Message<DeployImagesRequest> {
    */
   image: string[] = [];
 
+  /**
+   * Allow insecure images, e.g. from localhost. This does not propagate to the underlying cluster, if the cluster does not allow insecure images this will fail.
+   *
+   * @generated from field: bool allow_insecure = 2;
+   */
+  allowInsecure = false;
+
   constructor(data?: PartialMessage<DeployImagesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1253,6 +1260,7 @@ export class DeployImagesRequest extends Message<DeployImagesRequest> {
   static readonly typeName = "xyz.block.ftl.admin.v1.DeployImagesRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "allow_insecure", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeployImagesRequest {

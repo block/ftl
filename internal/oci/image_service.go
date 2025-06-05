@@ -36,16 +36,14 @@ type ImageConfig struct {
 }
 
 type ImageService struct {
-	config   *ImageConfig
 	puller   *googleremote.Puller
 	logger   *log.Logger
 	keyChain *keyChain
 }
 
-func NewImageService(ctx context.Context, config *ImageConfig) (*ImageService, error) {
+func NewImageService(ctx context.Context) (*ImageService, error) {
 	logger := log.FromContext(ctx)
 	o := &ImageService{
-		config: config,
 		keyChain: &keyChain{
 			resources:       map[string]*registryAuth{},
 			originalContext: ctx,
@@ -124,7 +122,7 @@ func WithDiskImage(path string) ImageTarget {
 	}
 }
 
-func (s *ImageService) Image(realm, module, tag string) Image {
+func (s *ImageService) Image(config ImageConfig, realm, module, tag string) (name.Tag, error) {
 	expFunc := func(k string) string {
 		switch k {
 		case "realm":
@@ -136,19 +134,22 @@ func (s *ImageService) Image(realm, module, tag string) Image {
 		}
 		return ""
 	}
-
-	return Image(fmt.Sprintf("%s/%s:%s",
-		s.config.Registry,
-		os.Expand(s.config.RepositoryTemplate, expFunc),
-		os.Expand(s.config.TagTemplate, expFunc),
+	ret, err := name.NewTag(fmt.Sprintf("%s/%s:%s",
+		config.Registry,
+		os.Expand(config.RepositoryTemplate, expFunc),
+		os.Expand(config.TagTemplate, expFunc),
 	))
+	if err != nil {
+		return name.Tag{}, errors.Wrapf(err, "failed to parse image name")
+	}
+	return ret, nil
 }
 
 func (s *ImageService) BuildOCIImageFromRemote(
 	ctx context.Context,
 	artefactService *ArtefactService,
-	baseImage string,
-	targetImage Image,
+	baseImage name.Reference,
+	targetImage name.Tag,
 	tempDir string,
 	module *schema.Module,
 	deployment key.Deployment,
@@ -202,8 +203,8 @@ func (s *ImageService) BuildOCIImageFromRemote(
 
 func (s *ImageService) BuildOCIImage(
 	ctx context.Context,
-	baseImage string,
-	targetImage Image,
+	baseImage name.Reference,
+	targetImage name.Tag,
 	apath string,
 	deployment key.Deployment,
 	allArtifacts []*schema.MetadataArtefact,
@@ -220,31 +221,18 @@ func (s *ImageService) BuildOCIImage(
 		}
 	}
 	if len(schemaArtifacts) > 0 {
-		err := enhanceSchemaMetadata(filepath.Join(apath, schemaArtifacts[0].Path), string(targetImage), deployment)
+		err := enhanceSchemaMetadata(filepath.Join(apath, schemaArtifacts[0].Path), targetImage.String(), deployment)
 		if err != nil {
 			return errors.Wrapf(err, "failed to enhance schema metadata with image and deployment information")
 		}
 	}
 
-	opts := []name.Option{}
-	// TODO: use http:// scheme for allow/disallow insecure
-	if s.config.AllowInsecureImages {
-		opts = append(opts, name.Insecure)
-	}
 	logger := log.FromContext(ctx)
 	logger.Infof("Building %s with %s as a base image", targetImage, baseImage) //nolint
-	ref, err := name.ParseReference(baseImage, opts...)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse image name")
-	}
-	targetRef, err := name.NewTag(string(targetImage))
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse target image")
-	}
 
-	base, err := daemon.Image(ref)
+	base, err := daemon.Image(baseImage)
 	if err != nil {
-		desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
+		desc, err := googleremote.Get(baseImage, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
 		if err != nil {
 			return errors.Errorf("getting base image metadata: %w", err)
 		}
@@ -254,7 +242,7 @@ func (s *ImageService) BuildOCIImage(
 			return errors.Errorf("loading base image: %w", err)
 		}
 	} else {
-		logger.Infof("Using image %s from local docker daemon", ref.String()) //nolint
+		logger.Infof("Using image %s from local docker daemon", baseImage.String()) //nolint
 	}
 
 	layer, err := createLayer(apath, artifacts)
@@ -297,7 +285,7 @@ func (s *ImageService) BuildOCIImage(
 	idx := mutate.AppendManifests(empty.Index, mutate.IndexAddendum{Add: newImg})
 
 	for _, i := range targets {
-		err = i(ctx, s, targetRef, idx, newImg, []v1.Layer{layer})
+		err = i(ctx, s, targetImage, idx, newImg, []v1.Layer{layer})
 		if err != nil {
 			return errors.Wrapf(err, "failed to write image")
 		}
@@ -306,21 +294,24 @@ func (s *ImageService) BuildOCIImage(
 	return nil
 }
 
-func (s *ImageService) PullSchema(ctx context.Context, image string) (*schema.Schema, string, error) {
+func (s *ImageService) ParseName(image string, allowInsecure bool) (name.Reference, error) {
 	opts := []name.Option{}
 	// TODO: use http:// scheme for allow/disallow insecure
-	if s.config.AllowInsecureImages {
+	if allowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	logger := log.FromContext(ctx)
 	ref, err := name.ParseReference(image, opts...)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to parse image name")
+		return nil, errors.Wrapf(err, "failed to parse image name")
 	}
+	return ref, nil
+}
 
-	img, err := daemon.Image(ref)
+func (s *ImageService) PullSchema(ctx context.Context, image name.Reference) (*schema.Schema, string, error) {
+	logger := log.FromContext(ctx)
+	img, err := daemon.Image(image)
 	if err != nil {
-		desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
+		desc, err := googleremote.Get(image, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
 		if err != nil {
 			return nil, "", errors.Errorf("getting base image metadata: %w", err)
 		}
@@ -330,7 +321,7 @@ func (s *ImageService) PullSchema(ctx context.Context, image string) (*schema.Sc
 			return nil, "", errors.Errorf("loading base image: %w", err)
 		}
 	} else {
-		logger.Infof("Using image %s from local docker daemon", ref.String()) //nolint
+		logger.Infof("Using image %s from local docker daemon", image.String()) //nolint
 	}
 	cfg, err := img.ConfigFile()
 	if err != nil {

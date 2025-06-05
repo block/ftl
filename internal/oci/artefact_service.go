@@ -78,10 +78,6 @@ type Registry string
 // For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests"
 type Repository string
 
-// Image is a string that represents an OCI image.
-// For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests/ftl-tests:latest"
-type Image string
-
 type ArtefactConfig struct {
 	Repository    Repository `help:"OCI container repository, in the form host[:port]/repository" env:"FTL_ARTEFACT_REPOSITORY"`
 	Username      string     `help:"OCI container repository username" env:"FTL_ARTEFACT_REPOSITORY_USERNAME"`
