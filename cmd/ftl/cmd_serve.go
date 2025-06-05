@@ -272,14 +272,14 @@ func (s *serveCommonConfig) run(
 		},
 	}
 
-	imageService, err := oci.NewImageService(ctx, artefactService, &s.ImageConfig)
+	imageService, err := oci.NewImageService(ctx, &s.ImageConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create image service")
 	}
 
 	// read provisioners from a config file if provided
 	if s.PluginConfigFile != nil {
-		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, imageService)
+		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, imageService, artefactService)
 		if err != nil {
 			return errors.Wrap(err, "failed to create provisioner registry")
 		}

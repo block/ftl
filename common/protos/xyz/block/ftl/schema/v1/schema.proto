@@ -310,6 +310,7 @@ message Metadata {
     MetadataFixture fixture = 20;
     MetadataGenerated generated = 18;
     MetadataGit git = 19;
+    MetadataImage image = 23;
     MetadataIngress ingress = 2;
     MetadataPartitions partitions = 15;
     MetadataPublisher publisher = 12;
@@ -386,6 +387,12 @@ message MetadataGit {
   string repository = 2;
   string commit = 3;
   bool dirty = 4;
+}
+
+message MetadataImage {
+  optional Position pos = 1;
+  string image = 2;
+  string digest = 3;
 }
 
 message MetadataIngress {

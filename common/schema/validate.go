@@ -271,7 +271,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 					case *MetadataCronJob, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap,
 						*MetadataEncoding, *MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact,
 						*MetadataSQLColumn, DatabaseConnector, *MetadataGenerated, *MetadataGit, *MetadataFixture,
-						*MetadataTransaction, *MetadataEgress, *MetadataPartitions:
+						*MetadataTransaction, *MetadataEgress, *MetadataPartitions, *MetadataImage:
 					}
 
 					merr = append(merr, validateVisibility(scopes, n.Visibility, RefKey{Module: module.Name, Name: n.GetName()}, n.Request, n.Response)...)
@@ -597,6 +597,8 @@ func sortMetadataType(md Metadata) {
 		return
 	case *MetadataArtefact:
 		return
+	case *MetadataImage:
+		return
 	case *MetadataSQLColumn:
 		return
 	case *MetadataSQLQuery:
@@ -663,6 +665,8 @@ func getMetadataSortingPriority(metadata Metadata) int {
 		priority = 21
 	case *MetadataEgress:
 		priority = 22
+	case *MetadataImage:
+		priority = 23
 	}
 	return priority
 }
@@ -908,7 +912,7 @@ func validateVerbMetadata(scopes Scopes, module *Module, n *Verb) (merr []error)
 			}
 		case *MetadataCalls, *MetadataConfig, *MetadataDatabases, *MetadataAlias, *MetadataTypeMap, *MetadataEncoding,
 			*MetadataSecrets, *MetadataPublisher, *MetadataSQLMigration, *MetadataArtefact, *MetadataSQLQuery, *MetadataPartitions, *MetadataGenerated,
-			*MetadataGit, *MetadataFixture, *MetadataTransaction:
+			*MetadataGit, *MetadataFixture, *MetadataTransaction, *MetadataImage:
 		}
 	}
 	return

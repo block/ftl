@@ -70,7 +70,7 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 
 type pluginProcesses map[string]Plugin
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
@@ -78,7 +78,7 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	}
 	processes := pluginProcesses{}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService, processes)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService, artifactService, processes)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -95,6 +95,7 @@ func provisionerIDToProvisioner(
 	scaling scaling.RunnerScaling,
 	adminClient adminpbconnect.AdminServiceClient,
 	imageService *oci.ImageService,
+	artifactService *oci.ArtefactService,
 	processes pluginProcesses,
 ) (Plugin, error) {
 	switch id {
@@ -107,7 +108,7 @@ func provisionerIDToProvisioner(
 	case "noop":
 		return NewPluginClient(&NoopProvisioner{}), nil
 	case "oci-image":
-		return NewOCIImageProvisioner(imageService, "ftl0/ftl-runner"), nil
+		return NewOCIImageProvisioner(imageService, artifactService, "ftl0/ftl-runner"), nil
 	default:
 		if _, ok := processes[id]; ok {
 			return processes[id], nil

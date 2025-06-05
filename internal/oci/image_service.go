@@ -1,8 +1,10 @@
 package oci
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/block/ftl/common/key"
@@ -20,6 +23,9 @@ import (
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
 )
+
+const SchemaLabel = "ftl.schema.digest"
+const SchemaLocation = "deployments/ftl-full-schema.pb"
 
 type ImageConfig struct {
 	AllowInsecureImages bool     `help:"Allows the use of insecure HTTP based registries." env:"FTL_IMAGE_REPOSITORY_ALLOW_INSECURE"`
@@ -29,14 +35,13 @@ type ImageConfig struct {
 }
 
 type ImageService struct {
-	config          *ImageConfig
-	puller          *googleremote.Puller
-	logger          *log.Logger
-	artefactService *ArtefactService
-	keyChain        *keyChain
+	config   *ImageConfig
+	puller   *googleremote.Puller
+	logger   *log.Logger
+	keyChain *keyChain
 }
 
-func NewImageService(ctx context.Context, artefactService *ArtefactService, config *ImageConfig) (*ImageService, error) {
+func NewImageService(ctx context.Context, config *ImageConfig) (*ImageService, error) {
 	logger := log.FromContext(ctx)
 	o := &ImageService{
 		config: config,
@@ -45,8 +50,6 @@ func NewImageService(ctx context.Context, artefactService *ArtefactService, conf
 			originalContext: ctx,
 		},
 		logger: logger,
-
-		artefactService: artefactService,
 	}
 
 	puller, err := googleremote.NewPuller(googleremote.WithAuthFromKeychain(o.keyChain))
@@ -104,6 +107,22 @@ func WithLocalDeamon() ImageTarget {
 	}
 }
 
+func WithDiskImage(path string) ImageTarget {
+	return func(ctx context.Context, s *ImageService, targetImage name.Tag, imageIndex v1.ImageIndex, image v1.Image, layers []v1.Layer) error {
+
+		logger := log.FromContext(ctx)
+		file, err := os.Create(path)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open file %s", path)
+		}
+		if err := tarball.Write(targetImage, image, file); err != nil {
+			return errors.Wrap(err, "writing layout")
+		}
+		logger.Infof("Wrote image %s to %s", targetImage, path) //nolint
+		return nil
+	}
+}
+
 func (s *ImageService) Image(realm, module, tag string) Image {
 	expFunc := func(k string) string {
 		switch k {
@@ -126,8 +145,9 @@ func (s *ImageService) Image(realm, module, tag string) Image {
 
 func (s *ImageService) BuildOCIImageFromRemote(
 	ctx context.Context,
+	artefactService *ArtefactService,
 	baseImage string,
-	targetImage string,
+	targetImage Image,
 	tempDir string,
 	module *schema.Module,
 	deployment key.Deployment,
@@ -139,7 +159,7 @@ func (s *ImageService) BuildOCIImageFromRemote(
 		return errors.Wrapf(err, "unable to create temp dir in %s", tempDir)
 	}
 	defer os.RemoveAll(target)
-	err = s.artefactService.DownloadArtifacts(ctx, target, artifacts)
+	err = artefactService.DownloadArtifacts(ctx, target, artifacts)
 	if err != nil {
 		return errors.Wrapf(err, "failed to download artifacts")
 	}
@@ -181,7 +201,7 @@ func (s *ImageService) BuildOCIImageFromRemote(
 func (s *ImageService) BuildOCIImage(
 	ctx context.Context,
 	baseImage string,
-	targetImage string,
+	targetImage Image,
 	apath string,
 	deployment key.Deployment,
 	allArtifacts []*schema.MetadataArtefact,
@@ -196,6 +216,12 @@ func (s *ImageService) BuildOCIImage(
 			artifacts = append(artifacts, i)
 		}
 	}
+	if len(schemaArtifacts) > 0 {
+		err := enhanceSchemaMetadata(filepath.Join(apath, schemaArtifacts[0].Path), string(targetImage), deployment)
+		if err != nil {
+			return errors.Wrapf(err, "failed to enhance schema metadata with image and deployment information")
+		}
+	}
 
 	opts := []name.Option{}
 	// TODO: use http:// scheme for allow/disallow insecure
@@ -208,7 +234,7 @@ func (s *ImageService) BuildOCIImage(
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse image name")
 	}
-	targetRef, err := name.NewTag(targetImage)
+	targetRef, err := name.NewTag(string(targetImage))
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse target image")
 	}
@@ -236,6 +262,10 @@ func (s *ImageService) BuildOCIImage(
 	if err != nil {
 		return errors.Errorf("creating layer: %w", err)
 	}
+	schDigest, err := schLayer.Digest()
+	if err != nil {
+		return errors.Errorf("getting schema layer digest: %w", err)
+	}
 
 	// Append the layer to the base image
 	newImg, err := mutate.AppendLayers(base, layer, schLayer)
@@ -250,6 +280,8 @@ func (s *ImageService) BuildOCIImage(
 	cfg.Config.Env = append(cfg.Config.Env, "FTL_SCHEMA_LOCATION=/deployments/ftl-full-schema.pb")
 	cfg.Config.Env = append(cfg.Config.Env, fmt.Sprintf("FTL_DEPLOYMENT=%s", deployment.String()))
 	cfg.Config.Env = append(cfg.Config.Env, "LOG_LEVEL=DEBUG")
+	cfg.Config.Env = append(cfg.Config.Env, "LOG_FORMAT=json")
+	cfg.Config.Labels[SchemaLabel] = schDigest.String()
 	newImg, err = mutate.Config(newImg, cfg.Config)
 	if err != nil {
 		return errors.Errorf("setting environment var: %w", err)
@@ -264,5 +296,122 @@ func (s *ImageService) BuildOCIImage(
 		}
 	}
 
+	return nil
+}
+
+func (s *ImageService) PullSchema(ctx context.Context, image string) (*schema.Schema, error) {
+	opts := []name.Option{}
+	// TODO: use http:// scheme for allow/disallow insecure
+	if s.config.AllowInsecureImages {
+		opts = append(opts, name.Insecure)
+	}
+	logger := log.FromContext(ctx)
+	ref, err := name.ParseReference(image, opts...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse image name")
+	}
+
+	img, err := daemon.Image(ref)
+	if err != nil {
+		desc, err := googleremote.Get(ref, googleremote.WithContext(ctx), googleremote.WithAuthFromKeychain(s.keyChain), googleremote.Reuse(s.puller))
+		if err != nil {
+			return nil, errors.Errorf("getting base image metadata: %w", err)
+		}
+
+		img, err = desc.Image()
+		if err != nil {
+			return nil, errors.Errorf("loading base image: %w", err)
+		}
+	} else {
+		logger.Infof("Using image %s from local docker daemon", ref.String()) //nolint
+	}
+	cfg, err := img.ConfigFile()
+	if err != nil {
+		return nil, errors.Errorf("getting config file: %w", err)
+	}
+	lbl, ok := cfg.Config.Labels[SchemaLabel]
+	if !ok {
+		return nil, errors.Errorf("image %s does not contain schema label %s", image, SchemaLabel)
+	}
+	var layer v1.Layer
+	layers, err := img.Layers()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get layers from image")
+	}
+	for _, i := range layers {
+		d, err := i.Digest()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get layer digest from image")
+		}
+		if d.String() == lbl {
+			layer = i
+			break
+		}
+	}
+	if layer == nil {
+		return nil, errors.Errorf("image %s does not contain schema layer with digest %s", image, lbl)
+	}
+	reader, err := layer.Uncompressed()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to uncompress layer from layer %s", lbl)
+	}
+	defer reader.Close() // nolint:errcheck
+	tar := tar.NewReader(reader)
+	hdr, err := tar.Next()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read tar header from layer %s", lbl)
+	}
+	if hdr.Name != SchemaLocation {
+		return nil, errors.Errorf("expected schema file at %s, got %s", SchemaLocation, hdr.Name)
+	}
+	bytes, err := io.ReadAll(tar)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read schema file from layer %s", lbl)
+	}
+	sch := schemapb.Schema{}
+	err = proto.Unmarshal(bytes, &sch)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal schema from from layer %s", lbl)
+	}
+	schema, err := schema.FromProto(&sch)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert schema proto to schema from from layer %s", lbl)
+	}
+	logger.Infof("Pulled schema from from layer %s", lbl) //nolint
+	return schema, nil
+}
+
+func enhanceSchemaMetadata(path string, image string, deployment key.Deployment) error {
+	schemaBytes, err := os.ReadFile(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read schema file %s", path)
+	}
+	schp := schemapb.Schema{}
+	err = proto.Unmarshal(schemaBytes, &schp)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal schema")
+	}
+	sch, err := schema.FromProto(&schp)
+	if err != nil {
+		return errors.Wrapf(err, "failed to convert schema proto to schema")
+	}
+	it, ok := sch.FirstInternalRealm().Get()
+	if !ok {
+		return errors.Errorf("realm %s not found in schema", deployment.Payload.Realm)
+	}
+	module, ok := it.Module(deployment.Payload.Module).Get()
+	if !ok {
+		return errors.Errorf("module %s/%s not found in schema", deployment.Payload.Realm, deployment.Payload.Module)
+	}
+	module.Metadata = append(module.Metadata, &schema.MetadataImage{Image: image})
+	module.ModRuntime().ModDeployment().DeploymentKey = deployment
+	tw, err := proto.Marshal(sch.ToProto())
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal schema")
+	}
+	err = os.WriteFile(path, tw, 0644) //nolint:gosec
+	if err != nil {
+		return errors.Wrapf(err, "failed to write schema file %s", path)
+	}
 	return nil
 }

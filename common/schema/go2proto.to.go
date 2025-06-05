@@ -1544,6 +1544,10 @@ func MetadataToProto(value Metadata) *destpb.Metadata {
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Git{value.ToProto()},
 		}
+	case *MetadataImage:
+		return &destpb.Metadata{
+			Value: &destpb.Metadata_Image{value.ToProto()},
+		}
 	case *MetadataIngress:
 		return &destpb.Metadata{
 			Value: &destpb.Metadata_Ingress{value.ToProto()},
@@ -1620,6 +1624,8 @@ func MetadataFromProto(v *destpb.Metadata) (Metadata, error) {
 		return MetadataGeneratedFromProto(v.GetGenerated())
 	case *destpb.Metadata_Git:
 		return MetadataGitFromProto(v.GetGit())
+	case *destpb.Metadata_Image:
+		return MetadataImageFromProto(v.GetImage())
 	case *destpb.Metadata_Ingress:
 		return MetadataIngressFromProto(v.GetIngress())
 	case *destpb.Metadata_Partitions:
@@ -1938,6 +1944,35 @@ func MetadataGitFromProto(v *destpb.MetadataGit) (out *MetadataGit, err error) {
 	}
 	if out.Dirty, err = orZeroR(result.From(ptr(bool(v.Dirty)), nil)).Result(); err != nil {
 		return nil, errors.Wrap(err, "Dirty")
+	}
+	return out, nil
+}
+
+func (x *MetadataImage) ToProto() *destpb.MetadataImage {
+	if x == nil {
+		return nil
+	}
+	return &destpb.MetadataImage{
+		Pos:    x.Pos.ToProto(),
+		Image:  orZero(ptr(string(x.Image))),
+		Digest: orZero(ptr(string(protoMust(x.Digest.MarshalText())))),
+	}
+}
+
+func MetadataImageFromProto(v *destpb.MetadataImage) (out *MetadataImage, err error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	out = &MetadataImage{}
+	if out.Pos, err = orZeroR(result.From(PositionFromProto(v.Pos))).Result(); err != nil {
+		return nil, errors.Wrap(err, "Pos")
+	}
+	if out.Image, err = orZeroR(result.From(ptr(string(v.Image)), nil)).Result(); err != nil {
+		return nil, errors.Wrap(err, "Image")
+	}
+	if out.Digest, err = orZeroR(unmarshallText([]byte(v.Digest), &out.Digest)).Result(); err != nil {
+		return nil, errors.Wrap(err, "Digest")
 	}
 	return out, nil
 }

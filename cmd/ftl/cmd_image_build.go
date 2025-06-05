@@ -18,19 +18,19 @@ import (
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
-type buildImageCmd struct {
-	Parallelism     int                `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
-	Dirs            []string           `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
-	BuildEnv        []string           `help:"Environment variables to set for the build."`
-	ArtefactConfig  oci.ArtefactConfig `embed:""`
-	ImageConfig     oci.ImageConfig    `embed:""`
-	Tag             string             `help:"The image tag" default:"latest"`
-	RunnerImage     string             `help:"An override of the runner base image"`
-	Push            bool               `help:"Push the image to the registry after building." default:"false"`
-	SkipLocalDaemon bool               `help:"Skip pushing to the local docker daemon." default:"false"`
+type imageBuildCmd struct {
+	Parallelism     int             `short:"j" help:"Number of modules to build in parallel." default:"${numcpu}"`
+	Dirs            []string        `arg:"" help:"Base directories containing modules (defaults to modules in project config)." type:"existingdir" optional:""`
+	BuildEnv        []string        `help:"Environment variables to set for the build."`
+	ImageConfig     oci.ImageConfig `embed:""`
+	Tag             string          `help:"The image tag" default:"latest"`
+	RunnerImage     string          `help:"An override of the runner base image"`
+	Push            bool            `help:"Push the image to the registry after building." default:"false"`
+	SkipLocalDaemon bool            `help:"Skip pushing to the local docker daemon." default:"false"`
+	TarFile         string          `help:"File system path to push the image to"`
 }
 
-func (b *buildImageCmd) Run(
+func (b *imageBuildCmd) Run(
 	ctx context.Context,
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
@@ -64,11 +64,7 @@ func (b *buildImageCmd) Run(
 		logger.Warnf("No modules were found to build")
 		return nil
 	}
-	artefactService, err := oci.NewArtefactService(ctx, b.ArtefactConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed to init artefact service")
-	}
-	imageService, err := oci.NewImageService(ctx, artefactService, &b.ImageConfig)
+	imageService, err := oci.NewImageService(ctx, &b.ImageConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
@@ -104,15 +100,17 @@ func (b *buildImageCmd) Run(
 				image += "latest"
 			}
 		}
-		tgt := string(b.ArtefactConfig.Repository)
-		tgt += ":"
-		tgt += b.Tag
+		tgt := imageService.Image(projConfig.Name, moduleSch.Name, b.Tag)
+		moduleSch.Metadata = append(moduleSch.Metadata, &schema.MetadataImage{Image: string(tgt)})
 		targets := []oci.ImageTarget{}
 		if !b.SkipLocalDaemon {
 			targets = append(targets, oci.WithLocalDeamon())
 		}
 		if b.Push {
 			targets = append(targets, oci.WithRemotePush())
+		}
+		if b.TarFile != "" {
+			targets = append(targets, oci.WithDiskImage(b.TarFile))
 		}
 		// TODO: we need to properly sync the deployment with the actual deployment key
 		// this is just a hack to get the module and realm to the runner
