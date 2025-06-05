@@ -77,6 +77,9 @@ func (i *inMemoryEventStream[T, E]) Publish(ctx context.Context, e E) error {
 
 func (i *inMemoryEventStream[T, E]) Changes(ctx context.Context) (iter.Seq[T], error) {
 	updates := i.Updates().Subscribe(nil)
+	context.AfterFunc(ctx, func() {
+		i.Updates().Unsubscribe(updates)
+	})
 	iter := channels.IterContext(ctx, updates)
 
 	return iterops.Map(iter, func(e E) T {
