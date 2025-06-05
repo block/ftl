@@ -82,7 +82,7 @@ func main() {
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeImage)
 	}); !ok {
-		ociProvisioner := provisioner.NewOCIImageProvisioner(imageService, artefactService, cli.DefaultRunnerImage)
+		ociProvisioner := provisioner.NewOCIImageProvisioner(imageService, artefactService, cli.DefaultRunnerImage, provisioner.OCIImageProvisionerConfig{})
 		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
 		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
 	}

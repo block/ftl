@@ -204,11 +204,13 @@ func RegistryFromConfigFile(ctx context.Context, workingDir string, file *os.Fil
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading plugin configuration from %s", file.Name())
 	}
-	if err := toml.Unmarshal(bytes, &config); err != nil {
+
+	md, err := toml.Decode(string(bytes), &config)
+	if err != nil {
 		return nil, errors.Wrap(err, "error parsing plugin configuration")
 	}
 
-	registry, err := registryFromConfig(ctx, workingDir, &config, scaling, adminClient, imageService, artifactService)
+	registry, err := registryFromConfig(ctx, workingDir, &config, &md, scaling, adminClient, imageService, artifactService)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating provisioner registry")
 	}

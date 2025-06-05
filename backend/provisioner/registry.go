@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
@@ -25,6 +26,7 @@ type provisionerPluginConfig struct {
 	Plugins []struct {
 		ID        string                `toml:"id"`
 		Resources []schema.ResourceType `toml:"resources"`
+		Config    *toml.Primitive       `toml:"config"`
 	} `toml:"plugins"`
 }
 
@@ -70,7 +72,7 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 
 type pluginProcesses map[string]Plugin
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, md *toml.MetaData, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
@@ -78,7 +80,7 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	}
 	processes := pluginProcesses{}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, workingDir, runnerScaling, adminClient, imageService, artifactService, processes)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, plugin.Config, md, workingDir, runnerScaling, adminClient, imageService, artifactService, processes)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -91,6 +93,8 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 func provisionerIDToProvisioner(
 	ctx context.Context,
 	id string,
+	config *toml.Primitive,
+	md *toml.MetaData,
 	workingDir string,
 	scaling scaling.RunnerScaling,
 	adminClient adminpbconnect.AdminServiceClient,
@@ -108,7 +112,14 @@ func provisionerIDToProvisioner(
 	case "noop":
 		return NewPluginClient(&NoopProvisioner{}), nil
 	case "oci-image":
-		return NewOCIImageProvisioner(imageService, artifactService, "ftl0/ftl-runner"), nil
+		cfg := OCIImageProvisionerConfig{}
+		if config != nil {
+			if err := md.PrimitiveDecode(*config, &cfg); err != nil {
+				return nil, errors.Wrap(err, "error unmarshalling oci-image provisioner config")
+			}
+		}
+
+		return NewOCIImageProvisioner(imageService, artifactService, "ftl0/ftl-runner", cfg), nil
 	default:
 		if _, ok := processes[id]; ok {
 			return processes[id], nil
