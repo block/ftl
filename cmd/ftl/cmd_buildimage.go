@@ -2,17 +2,8 @@ package main
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
-	errors "github.com/alecthomas/errors"
-
-	"github.com/block/ftl"
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/common/key"
-	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -36,94 +27,96 @@ func (b *buildImageCmd) Run(
 	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
-	logger := log.FromContext(ctx)
-	if len(b.Dirs) == 0 {
-		b.Dirs = projConfig.AbsModuleDirs()
-	}
-	if len(b.Dirs) == 0 {
-		return errors.WithStack(errors.New("no directories specified"))
-	}
+	// TODO: redo all this
 
-	// Cancel build engine context to ensure all language plugins are killed.
-	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(errors.Wrap(context.Canceled, "build stopped"))
-	engine, err := buildengine.New(
-		ctx,
-		adminClient,
-		schemaSource,
-		projConfig,
-		b.Dirs,
-		false,
-		buildengine.BuildEnv(b.BuildEnv),
-		buildengine.Parallelism(b.Parallelism),
-	)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if len(engine.Modules()) == 0 {
-		logger.Warnf("No modules were found to build")
-		return nil
-	}
-	artefactService, err := oci.NewArtefactService(ctx, b.ArtefactConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed to init artefact service")
-	}
-	imageService, err := oci.NewImageService(ctx, artefactService, &b.ImageConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed to init OCI")
-	}
-	if err := engine.BuildWithCallback(ctx, func(ctx context.Context, module buildengine.Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
-		artifacts := []*schema.MetadataArtefact{}
+	// logger := log.FromContext(ctx)
+	// if len(b.Dirs) == 0 {
+	// 	b.Dirs = projConfig.AbsModuleDirs()
+	// }
+	// if len(b.Dirs) == 0 {
+	// 	return errors.WithStack(errors.New("no directories specified"))
+	// }
 
-		for _, i := range deployPaths {
-			s, err := os.Stat(i)
-			if err != nil {
-				return errors.Wrapf(err, "failed to stat file")
-			}
+	// // Cancel build engine context to ensure all language plugins are killed.
+	// ctx, cancel := context.WithCancelCause(ctx)
+	// defer cancel(errors.Wrap(context.Canceled, "build stopped"))
+	// engine, err := buildengine.New(
+	// 	ctx,
+	// 	adminClient,
+	// 	schemaSource,
+	// 	projConfig,
+	// 	b.Dirs,
+	// 	false,
+	// 	buildengine.BuildEnv(b.BuildEnv),
+	// 	buildengine.Parallelism(b.Parallelism),
+	// )
+	// if err != nil {
+	// 	return errors.WithStack(err)
+	// }
+	// if len(engine.Modules()) == 0 {
+	// 	logger.Warnf("No modules were found to build")
+	// 	return nil
+	// }
+	// artefactService, err := oci.NewArtefactService(ctx, b.ArtefactConfig)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to init artefact service")
+	// }
+	// imageService, err := oci.NewImageService(ctx, artefactService, &b.ImageConfig)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to init OCI")
+	// }
+	// if err := engine.BuildWithCallback(ctx, func(ctx context.Context, module buildengine.Module, moduleSch *schema.Module, tmpDeployDir string, deployPaths []string) error {
+	// 	artifacts := []*schema.MetadataArtefact{}
 
-			path, err := filepath.Rel(tmpDeployDir, i)
-			if err != nil {
-				return errors.Wrapf(err, "failed to resolve file")
-			}
-			executable := s.Mode().Perm()&0111 != 0
-			artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable})
-		}
-		var image string
-		if b.RunnerImage != "" {
-			image = b.RunnerImage
-		} else {
-			image = "ftl0/ftl-runner"
-			if moduleSch.ModRuntime().Base.Image != "" {
-				image = moduleSch.ModRuntime().Base.Image
-			}
-			image += ":"
-			if ftl.IsRelease(ftl.Version) && ftl.Version == ftl.BaseVersion(ftl.Version) {
-				image += "v"
-				image += ftl.Version
-			} else {
-				image += "latest"
-			}
-		}
-		tgt := string(b.ArtefactConfig.Repository)
-		tgt += ":"
-		tgt += b.Tag
-		targets := []oci.ImageTarget{}
-		if !b.SkipLocalDaemon {
-			targets = append(targets, oci.WithLocalDeamon())
-		}
-		if b.Push {
-			targets = append(targets, oci.WithRemotePush())
-		}
-		// TODO: we need to properly sync the deployment with the actual deployment key
-		// this is just a hack to get the module and realm to the runner
-		deployment := key.NewDeploymentKey(projConfig.Name, moduleSch.Name)
-		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, targets...)
-		if err != nil {
-			return errors.Wrapf(err, "failed to build image")
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "build failed")
-	}
+	// 	for _, i := range deployPaths {
+	// 		s, err := os.Stat(i)
+	// 		if err != nil {
+	// 			return errors.Wrapf(err, "failed to stat file")
+	// 		}
+
+	// 		path, err := filepath.Rel(tmpDeployDir, i)
+	// 		if err != nil {
+	// 			return errors.Wrapf(err, "failed to resolve file")
+	// 		}
+	// 		executable := s.Mode().Perm()&0111 != 0
+	// 		artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable})
+	// 	}
+	// 	var image string
+	// 	if b.RunnerImage != "" {
+	// 		image = b.RunnerImage
+	// 	} else {
+	// 		image = "ftl0/ftl-runner"
+	// 		if moduleSch.ModRuntime().Base.Image != "" {
+	// 			image = moduleSch.ModRuntime().Base.Image
+	// 		}
+	// 		image += ":"
+	// 		if ftl.IsRelease(ftl.Version) && ftl.Version == ftl.BaseVersion(ftl.Version) {
+	// 			image += "v"
+	// 			image += ftl.Version
+	// 		} else {
+	// 			image += "latest"
+	// 		}
+	// 	}
+	// 	tgt := string(b.ArtefactConfig.Repository)
+	// 	tgt += ":"
+	// 	tgt += b.Tag
+	// 	targets := []oci.ImageTarget{}
+	// 	if !b.SkipLocalDaemon {
+	// 		targets = append(targets, oci.WithLocalDeamon())
+	// 	}
+	// 	if b.Push {
+	// 		targets = append(targets, oci.WithRemotePush())
+	// 	}
+	// 	// TODO: we need to properly sync the deployment with the actual deployment key
+	// 	// this is just a hack to get the module and realm to the runner
+	// 	deployment := key.NewDeploymentKey(projConfig.Name, moduleSch.Name)
+	// 	err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, targets...)
+	// 	if err != nil {
+	// 		return errors.Wrapf(err, "failed to build image")
+	// 	}
+	// 	return nil
+	// }); err != nil {
+	// 	return errors.Wrap(err, "build failed")
+	// }
 	return nil
 }

@@ -24,11 +24,11 @@ import (
 // changed.
 type WatchEvent interface{ watchEvent() }
 
-type WatchEventModuleAdded struct {
-	Config moduleconfig.UnvalidatedModuleConfig
+type WatchEventModulesAdded struct {
+	Configs []moduleconfig.UnvalidatedModuleConfig
 }
 
-func (WatchEventModuleAdded) watchEvent() {}
+func (WatchEventModulesAdded) watchEvent() {}
 
 type WatchEventModuleRemoved struct {
 	Config moduleconfig.UnvalidatedModuleConfig
@@ -193,6 +193,7 @@ func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEv
 	}
 
 	// Compare the modules to the existing modules.
+	addedConfigs := []moduleconfig.UnvalidatedModuleConfig{}
 	for _, config := range modulesByDir {
 		if transactions, ok := w.moduleTransactions[config.Dir]; ok && len(transactions) > 0 {
 			// Skip modules that currently have transactions
@@ -212,7 +213,7 @@ func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEv
 			if ctx.Err() != nil {
 				return
 			}
-			topic.Publish(WatchEventModuleAdded{Config: config})
+			addedConfigs = append(addedConfigs, config)
 		} else {
 			// Compare hashes
 			changes := CompareFileHashes(existingModule.Hashes, hashes)
@@ -230,6 +231,9 @@ func (w *Watcher) detectChanges(ctx context.Context, topic *pubsub.Topic[WatchEv
 				})
 			}
 		}
+	}
+	if len(addedConfigs) > 0 {
+		topic.Publish(WatchEventModulesAdded{Configs: addedConfigs})
 	}
 }
 

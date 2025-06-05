@@ -246,7 +246,6 @@ func (x *ModuleBuildWaiting) GetConfig() *v1.ModuleConfig {
 type ModuleBuildStarted struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *v1.ModuleConfig       `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	IsAutoRebuild bool                   `protobuf:"varint,2,opt,name=is_auto_rebuild,json=isAutoRebuild,proto3" json:"is_auto_rebuild,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,19 +287,11 @@ func (x *ModuleBuildStarted) GetConfig() *v1.ModuleConfig {
 	return nil
 }
 
-func (x *ModuleBuildStarted) GetIsAutoRebuild() bool {
-	if x != nil {
-		return x.IsAutoRebuild
-	}
-	return false
-}
-
 // ModuleBuildFailed is published for any build failures.
 type ModuleBuildFailed struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *v1.ModuleConfig       `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
 	Errors        *v1.ErrorList          `protobuf:"bytes,2,opt,name=errors,proto3" json:"errors,omitempty"`
-	IsAutoRebuild bool                   `protobuf:"varint,3,opt,name=is_auto_rebuild,json=isAutoRebuild,proto3" json:"is_auto_rebuild,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -349,18 +340,10 @@ func (x *ModuleBuildFailed) GetErrors() *v1.ErrorList {
 	return nil
 }
 
-func (x *ModuleBuildFailed) GetIsAutoRebuild() bool {
-	if x != nil {
-		return x.IsAutoRebuild
-	}
-	return false
-}
-
 // ModuleBuildSuccess is published when all modules have been built successfully built.
 type ModuleBuildSuccess struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *v1.ModuleConfig       `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
-	IsAutoRebuild bool                   `protobuf:"varint,2,opt,name=is_auto_rebuild,json=isAutoRebuild,proto3" json:"is_auto_rebuild,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -400,13 +383,6 @@ func (x *ModuleBuildSuccess) GetConfig() *v1.ModuleConfig {
 		return x.Config
 	}
 	return nil
-}
-
-func (x *ModuleBuildSuccess) GetIsAutoRebuild() bool {
-	if x != nil {
-		return x.IsAutoRebuild
-	}
-	return false
 }
 
 // ModuleDeployStarted is published when a deploy has been queued
@@ -1068,17 +1044,14 @@ const file_xyz_block_ftl_buildengine_v1_buildengine_proto_rawDesc = "" +
 	"\rModuleRemoved\x12\x16\n" +
 	"\x06module\x18\x01 \x01(\tR\x06module\"U\n" +
 	"\x12ModuleBuildWaiting\x12?\n" +
-	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\"}\n" +
+	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\"U\n" +
 	"\x12ModuleBuildStarted\x12?\n" +
-	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\x12&\n" +
-	"\x0fis_auto_rebuild\x18\x02 \x01(\bR\risAutoRebuild\"\xba\x01\n" +
+	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\"\x92\x01\n" +
 	"\x11ModuleBuildFailed\x12?\n" +
 	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\x12<\n" +
-	"\x06errors\x18\x02 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\x12&\n" +
-	"\x0fis_auto_rebuild\x18\x03 \x01(\bR\risAutoRebuild\"}\n" +
+	"\x06errors\x18\x02 \x01(\v2$.xyz.block.ftl.language.v1.ErrorListR\x06errors\"U\n" +
 	"\x12ModuleBuildSuccess\x12?\n" +
-	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\x12&\n" +
-	"\x0fis_auto_rebuild\x18\x02 \x01(\bR\risAutoRebuild\"-\n" +
+	"\x06config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\x06config\"-\n" +
 	"\x13ModuleDeployWaiting\x12\x16\n" +
 	"\x06module\x18\x01 \x01(\tR\x06module\"-\n" +
 	"\x13ModuleDeployStarted\x12\x16\n" +

@@ -6,7 +6,6 @@ import (
 	errors "github.com/alecthomas/errors"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
-	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -24,7 +23,7 @@ func (b *buildCmd) Run(
 	schemaSource *schemaeventsource.EventSource,
 	projConfig projectconfig.Config,
 ) error {
-	logger := log.FromContext(ctx)
+	// logger := log.FromContext(ctx)
 	if len(b.Dirs) == 0 {
 		b.Dirs = projConfig.AbsModuleDirs()
 	}
@@ -38,7 +37,7 @@ func (b *buildCmd) Run(
 	engine, err := buildengine.New(
 		ctx,
 		adminClient,
-		schemaSource,
+		// schemaSource,
 		projConfig,
 		b.Dirs,
 		false,
@@ -48,10 +47,10 @@ func (b *buildCmd) Run(
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if len(engine.Modules()) == 0 {
-		logger.Warnf("No modules were found to build")
-		return nil
-	}
+	// if len(engine.Modules()) == 0 {
+	// 	logger.Warnf("No modules were found to build")
+	// 	return nil
+	// }
 	if err := engine.Build(ctx); err != nil {
 		return errors.Wrap(err, "build failed")
 	}

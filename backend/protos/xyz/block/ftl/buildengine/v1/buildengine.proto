@@ -40,20 +40,17 @@ message ModuleBuildWaiting {
 // ModuleBuildStarted is published when a build has started for a module.
 message ModuleBuildStarted {
   xyz.block.ftl.language.v1.ModuleConfig config = 1;
-  bool is_auto_rebuild = 2;
 }
 
 // ModuleBuildFailed is published for any build failures.
 message ModuleBuildFailed {
   xyz.block.ftl.language.v1.ModuleConfig config = 1;
   xyz.block.ftl.language.v1.ErrorList errors = 2;
-  bool is_auto_rebuild = 3;
 }
 
 // ModuleBuildSuccess is published when all modules have been built successfully built.
 message ModuleBuildSuccess {
   xyz.block.ftl.language.v1.ModuleConfig config = 1;
-  bool is_auto_rebuild = 2;
 }
 
 // ModuleDeployStarted is published when a deploy has been queued

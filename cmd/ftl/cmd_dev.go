@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -105,7 +106,7 @@ func (d *devCmd) Run(
 	devModeEndpointUpdates := make(chan dev.LocalEndpoint, 1)
 
 	opts := []buildengine.Option{buildengine.Parallelism(d.Build.Parallelism), buildengine.BuildEnv(d.Build.BuildEnv), buildengine.WithDevMode(devModeEndpointUpdates), buildengine.WithStartTime(startTime)}
-	engine, err := buildengine.New(ctx, deployClient, source, projConfig, d.Build.Dirs, false, opts...)
+	engine, err := buildengine.New(ctx, deployClient, projConfig, d.Build.Dirs, false, opts...)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -122,7 +123,9 @@ func (d *devCmd) Run(
 		}
 
 		g.Go(func() error {
+			fmt.Printf("d.ServeCmd.run\n")
 			err := d.ServeCmd.run(ctx, projConfig, cm, sm, optional.Some(controllerReady), true, bindAllocator, devModeEndpointUpdates, []rpc.Service{engine})
+			fmt.Printf("d.ServeCmd.run finished: %v\n", err)
 			if err != nil {
 				cancel(errors.Wrap(errors.Join(err, context.Canceled), "dev server failed"))
 			} else {
@@ -132,20 +135,20 @@ func (d *devCmd) Run(
 		})
 	}
 
-	g.Go(func() error {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-controllerReady:
-		}
-		starting.Close()
-
-		return errors.WithStack(engine.Dev(ctx, d.Watch))
-	})
-
-	err = g.Wait()
-	if err != nil && !errors.Is(err, context.Canceled) {
-		return errors.Wrap(err, "error during dev")
+	// g.Go(func() error {
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-controllerReady:
 	}
-	return nil
+	starting.Close()
+	fmt.Printf("starting dev\n")
+	return errors.WithStack(engine.Dev(ctx, d.Watch, source))
+	// })
+
+	// err = g.Wait()
+	// if err != nil && !errors.Is(err, context.Canceled) {
+	// 	return errors.Wrap(err, "error during dev")
+	// }
+	// return nil
 }

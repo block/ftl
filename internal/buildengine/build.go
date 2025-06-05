@@ -2,6 +2,7 @@ package buildengine
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,27 +32,59 @@ const (
 var errInvalidateDependencies = errors.New("dependencies need to be updated")
 var errSQLError = errors.New("failed to add queries to schema")
 
-// Build a module in the given directory given the schema and module config.
-//
-// Plugins must use a lock file to ensure that only one build is running at a time.
-//
-// Returns invalidateDependenciesError if the build failed due to a change in dependencies.
-func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, fileTransaction watch.ModifyFilesTransaction, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
-	logger := log.FromContext(ctx).Module(bctx.Config.Module).Scope("build")
+type transactionProviderFunc func() watch.ModifyFilesTransaction
+type buildFunc func(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc, outChan chan internalEvent)
+
+func buildModuleAndPublish(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc, outChan chan internalEvent) {
+	moduleSchema, tmpDeployDir, deployPaths, err := buildModule(ctx, projectConfig, m, plugin, bctx, devMode, devModeEndpoints, transactionProvider)
+	fmt.Printf("build err: %v\n", err)
+	outChan <- moduleBuildEndedEvent{
+		config:       bctx.Config,
+		moduleSchema: moduleSchema,
+		tmpDeployDir: tmpDeployDir,
+		deployPaths:  deployPaths,
+		err:          err,
+	}
+}
+
+func buildModule(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+	logger := log.FromContext(ctx).Module(m.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), bctx.Config.Abs(), bctx.Schema)
+	fileTransaction := transactionProvider()
+	if err = fileTransaction.Begin(); err != nil {
+		return nil, "", nil, errors.WithStack(errors.Wrap(err, "failed to begin file transaction"))
+	}
+	defer func() {
+		if transactionErr := fileTransaction.End(); err != nil {
+			if err == nil {
+				moduleSchema, tmpDeployDir, deployPaths, err = nil, "", nil, transactionErr
+			}
+		}
+	}()
+
+	// TODO: input enough info to know if sql files have changed
+	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), m.Config.Abs(), bctx.Schema)
 	if err != nil {
 		return nil, "", nil, errors.WithStack(errors.Join(errSQLError, err))
 	}
 
-	stubsRoot := stubsLanguageDir(projectConfig.Root(), bctx.Config.Language)
+	stubsRoot := stubsLanguageDir(projectConfig.Root(), m.Config.Language)
 	moduleSchema, tmpDeployDir, deployPaths, err = handleBuildResult(ctx, projectConfig, m, fileTransaction, result.From(plugin.Build(ctx, projectConfig, stubsRoot, bctx, devMode)), devMode, devModeEndpoints, optional.Some(bctx.Schema))
 	if err != nil {
 		return nil, "", nil, errors.WithStack(err)
 	}
 	return moduleSchema, tmpDeployDir, deployPaths, nil
 }
+
+// // Build a module in the given directory given the schema and module config.
+// //
+// // Plugins must use a lock file to ensure that only one build is running at a time.
+// //
+// // Returns invalidateDependenciesError if the build failed due to a change in dependencies.
+// func build(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, fileTransaction watch.ModifyFilesTransaction, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+
+// }
 
 // handleBuildResult processes the result of a build
 func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, m Module, fileTransaction watch.ModifyFilesTransaction, eitherResult result.Result[languageplugin.BuildResult], devMode bool, devModeEndpoints chan dev.LocalEndpoint, schemaOpt optional.Option[*schema.Schema]) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {

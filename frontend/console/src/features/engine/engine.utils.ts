@@ -40,7 +40,7 @@ export const getEventText = (event: EngineEvent | undefined): string => {
     case 'moduleBuildWaiting':
       return 'Build waiting'
     case 'moduleBuildStarted':
-      return `Build started${event.event.value.isAutoRebuild ? ' (auto rebuild)' : ''}`
+      return 'Build started'
     case 'moduleBuildFailed':
       return 'Build failed'
     case 'moduleBuildSuccess':

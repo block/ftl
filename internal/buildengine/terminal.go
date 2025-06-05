@@ -2,6 +2,7 @@ package buildengine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/alecthomas/types/pubsub"
 
@@ -16,7 +17,9 @@ func updateTerminalWithEngineEvents(ctx context.Context, topic *pubsub.Topic[*bu
 
 	go func() {
 		defer topic.Unsubscribe(events)
+		fmt.Printf("terminal waiting for events\n")
 		for event := range channels.IterContext(ctx, events) {
+			fmt.Printf("terminal found event: %T\n", event.Event)
 			switch evt := event.Event.(type) {
 			case *buildenginepb.EngineEvent_EngineStarted:
 			case *buildenginepb.EngineEvent_EngineEnded:

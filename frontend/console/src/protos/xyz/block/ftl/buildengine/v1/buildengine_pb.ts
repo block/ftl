@@ -257,11 +257,6 @@ export class ModuleBuildStarted extends Message<ModuleBuildStarted> {
    */
   config?: ModuleConfig;
 
-  /**
-   * @generated from field: bool is_auto_rebuild = 2;
-   */
-  isAutoRebuild = false;
-
   constructor(data?: PartialMessage<ModuleBuildStarted>) {
     super();
     proto3.util.initPartial(data, this);
@@ -271,7 +266,6 @@ export class ModuleBuildStarted extends Message<ModuleBuildStarted> {
   static readonly typeName = "xyz.block.ftl.buildengine.v1.ModuleBuildStarted";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: ModuleConfig },
-    { no: 2, name: "is_auto_rebuild", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleBuildStarted {
@@ -307,11 +301,6 @@ export class ModuleBuildFailed extends Message<ModuleBuildFailed> {
    */
   errors?: ErrorList;
 
-  /**
-   * @generated from field: bool is_auto_rebuild = 3;
-   */
-  isAutoRebuild = false;
-
   constructor(data?: PartialMessage<ModuleBuildFailed>) {
     super();
     proto3.util.initPartial(data, this);
@@ -322,7 +311,6 @@ export class ModuleBuildFailed extends Message<ModuleBuildFailed> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: ModuleConfig },
     { no: 2, name: "errors", kind: "message", T: ErrorList },
-    { no: 3, name: "is_auto_rebuild", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleBuildFailed {
@@ -353,11 +341,6 @@ export class ModuleBuildSuccess extends Message<ModuleBuildSuccess> {
    */
   config?: ModuleConfig;
 
-  /**
-   * @generated from field: bool is_auto_rebuild = 2;
-   */
-  isAutoRebuild = false;
-
   constructor(data?: PartialMessage<ModuleBuildSuccess>) {
     super();
     proto3.util.initPartial(data, this);
@@ -367,7 +350,6 @@ export class ModuleBuildSuccess extends Message<ModuleBuildSuccess> {
   static readonly typeName = "xyz.block.ftl.buildengine.v1.ModuleBuildSuccess";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: ModuleConfig },
-    { no: 2, name: "is_auto_rebuild", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ModuleBuildSuccess {

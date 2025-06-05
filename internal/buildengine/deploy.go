@@ -15,7 +15,6 @@ import (
 	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
-	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -121,27 +120,21 @@ func NewDeployCoordinator(
 	ctx context.Context,
 	adminClient AdminClient,
 	schemaSource *schemaeventsource.EventSource,
-	dependencyGrapher DependencyGrapher,
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
 	projectConfig projectconfig.Config,
-	externalRealms *xsync.MapOf[string, *schema.Realm],
+	externalRealms []*schema.Realm,
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
-		adminClient:       adminClient,
-		schemaSource:      schemaSource,
-		dependencyGrapher: dependencyGrapher,
-		engineUpdates:     engineUpdates,
-		deploymentQueue:   make(chan pendingDeploy, 128),
-		SchemaUpdates:     make(chan SchemaUpdatedEvent, 128),
-		logChanges:        logChanges,
-		projectConfig:     projectConfig,
+		adminClient:     adminClient,
+		schemaSource:    schemaSource,
+		engineUpdates:   engineUpdates,
+		deploymentQueue: make(chan pendingDeploy, 128),
+		SchemaUpdates:   make(chan SchemaUpdatedEvent, 128),
+		logChanges:      logChanges,
+		projectConfig:   projectConfig,
+		externalRealms:  externalRealms,
 	}
-
-	externalRealms.Range(func(key string, value *schema.Realm) bool {
-		c.externalRealms = append(c.externalRealms, value)
-		return true
-	})
 
 	// Start the deployment queue processor
 	go c.processEvents(ctx)
