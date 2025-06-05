@@ -283,8 +283,7 @@ test-integration *test:
 # Run integration test(s)
 integration-tests *test:
   #!/bin/bash
-  test -z "$CI" && retries=1 || retries=3
-  retry "$retries" /bin/bash -c "go test -vet=off -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')"
+  go test -vet=off -fullpath -count 1 -v -tags integration -run '^({{test}})$' -p 1 $(git ls-files | grep '_test\.go$' | xargs grep -r -l {{test}} | xargs grep -l '//go:build integration' | xargs -I {} dirname './{}' | tr '\n' ' ')
 
 # Alias for infrastructure-tests
 test-infrastructure *test:
