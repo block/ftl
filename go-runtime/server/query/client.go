@@ -28,58 +28,6 @@ func GetTransactionMetadata(txnID string) *ftlv1.Metadata_Pair {
 	}
 }
 
-func BeginTransaction(ctx context.Context, dbName string) (string, error) {
-	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
-	resp, err := client.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{
-		DatabaseName: dbName,
-	}))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to begin transaction")
-	}
-	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return "", errors.Errorf("transaction on %s was not started", dbName)
-	}
-	return resp.Msg.TransactionId, nil
-}
-
-func RollbackCurrentTransaction(ctx context.Context, dbName string) error {
-	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
-	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
-	if !ok {
-		return errors.Errorf("no active transaction found")
-	}
-	resp, err := client.RollbackTransaction(ctx, connect.NewRequest(&querypb.RollbackTransactionRequest{
-		DatabaseName:  dbName,
-		TransactionId: txID,
-	}))
-	if err != nil {
-		return errors.Wrap(err, "failed to rollback transaction")
-	}
-	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return errors.Errorf("transaction %s was not rolled back", txID)
-	}
-	return nil
-}
-
-func CommitCurrentTransaction(ctx context.Context, dbName string) error {
-	client := rpccontext.ClientFromContext[queryconnect.QueryServiceClient](ctx)
-	txID, ok := internal.CallMetadataFromContext(ctx)[TransactionMetadataKey]
-	if !ok {
-		return errors.Errorf("no active transaction found")
-	}
-	resp, err := client.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
-		DatabaseName:  dbName,
-		TransactionId: txID,
-	}))
-	if err != nil {
-		return errors.Wrap(err, "failed to commit transaction")
-	}
-	if resp.Msg.Status != querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS {
-		return errors.Errorf("transaction %s was not committed", txID)
-	}
-	return nil
-}
-
 func One[Req, Resp any](ctx context.Context, dbName string, rawSQL string, params []any, colFieldNames []tuple.Pair[string, string]) (resp Resp, err error) {
 	results, err := performQuery[Resp](ctx, dbName, querypb.CommandType_COMMAND_TYPE_ONE, rawSQL, params, colFieldNames)
 	if err != nil {
@@ -194,13 +142,7 @@ func (c *InlineQueryClient) ExecuteQuery(
 	ctx context.Context,
 	req *connect.Request[querypb.ExecuteQueryRequest],
 ) (*connect.ServerStreamForClient[querypb.ExecuteQueryResponse], error) {
-	if c.service == nil {
-		return nil, errors.WithStack(connect.NewError(connect.CodeInternal, errors.Errorf("query service not initialized")))
-	}
-	if err := c.service.ExecuteQueryInternal(ctx, req, c.collector); err != nil {
-		return nil, errors.Wrap(err, "failed to execute query")
-	}
-	return nil, nil
+	panic("unimplemented")
 }
 
 func (c *InlineQueryClient) BeginTransaction(

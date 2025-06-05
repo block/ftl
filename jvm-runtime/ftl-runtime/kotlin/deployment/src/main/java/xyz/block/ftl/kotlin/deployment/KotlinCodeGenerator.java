@@ -5,7 +5,6 @@ import static com.squareup.kotlinpoet.TypeNames.BOOLEAN;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +34,6 @@ import xyz.block.ftl.EmptyVerb;
 import xyz.block.ftl.EnumHolder;
 import xyz.block.ftl.FunctionVerb;
 import xyz.block.ftl.GeneratedRef;
-import xyz.block.ftl.SQLQueryClient;
 import xyz.block.ftl.SinkVerb;
 import xyz.block.ftl.SourceVerb;
 import xyz.block.ftl.TypeAlias;
@@ -43,14 +41,12 @@ import xyz.block.ftl.TypeAliasMapper;
 import xyz.block.ftl.VerbClient;
 import xyz.block.ftl.deployment.JVMCodeGenerator;
 import xyz.block.ftl.deployment.PackageOutput;
-import xyz.block.ftl.deployment.VerbType;
 import xyz.block.ftl.schema.v1.AliasKind;
 import xyz.block.ftl.schema.v1.Data;
 import xyz.block.ftl.schema.v1.Enum;
 import xyz.block.ftl.schema.v1.EnumVariant;
 import xyz.block.ftl.schema.v1.Metadata;
 import xyz.block.ftl.schema.v1.MetadataAlias;
-import xyz.block.ftl.schema.v1.MetadataSQLQuery;
 import xyz.block.ftl.schema.v1.Module;
 import xyz.block.ftl.schema.v1.Topic;
 import xyz.block.ftl.schema.v1.Type;
@@ -286,7 +282,7 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
     }
 
     protected void generateVerb(Module module, Verb verb, String packageName, Map<DeclRef, Type> typeAliasMap,
-            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir)
+            Map<DeclRef, String> nativeTypeAliasMap, PackageOutput outputDir, boolean isQueryVerb)
             throws IOException {
         String name = verb.getName();
         String thisType = className(name) + CLIENT;
@@ -296,8 +292,12 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
                         .addMember("name=\"" + verb.getName() + "\"")
                         .build())
                 .addModifiers(KModifier.PUBLIC)
-                .addModifiers(KModifier.FUN)
-                .addKdoc("A client for the %L.%L verb", module.getName(), name);
+                .addModifiers(KModifier.FUN);
+        if (isQueryVerb) {
+            typeBuilder.addKdoc("A client for the " + module.getName() + "." + name + " SQL query verb");
+        } else {
+            typeBuilder.addKdoc("A client for the %L.%L verb", module.getName(), name);
+        }
         String comments = String.join("\n", verb.getCommentsList());
 
         if (verb.getRequest().hasUnit() && verb.getResponse().hasUnit()) {
@@ -336,49 +336,6 @@ public class KotlinCodeGenerator extends JVMCodeGenerator {
         }
         FileSpec javaFile = FileSpec.builder(packageName, thisType)
                 .addType(typeBuilder.build())
-                .build();
-        javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
-    }
-
-    protected void generateSQLQueryVerb(Module module, Verb verb, String dbName, MetadataSQLQuery queryMetadata,
-            String packageName,
-            PackageOutput outputDir)
-            throws IOException {
-        String name = verb.getName();
-        String thisType = className(name) + CLIENT;
-        TypeSpec.Builder clientBuilder = TypeSpec.interfaceBuilder(className(name) + CLIENT)
-                .addModifiers(KModifier.PUBLIC)
-                .addModifiers(KModifier.FUN)
-                .addKdoc("A client for the " + module.getName() + "." + name + " SQL query verb");
-
-        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(SQLQueryClient.class)
-                .addMember("module=\"" + module.getName() + "\"")
-                .addMember("command=\"" + queryMetadata.getCommand() + "\"")
-                .addMember("rawSQL=\"" + queryMetadata.getQuery() + "\"")
-                .addMember("dbName=\"" + dbName + "\"");
-
-        FunSpec.Builder callFunc = FunSpec.builder(name)
-                .addModifiers(KModifier.ABSTRACT, KModifier.PUBLIC)
-                .addKdoc(String.join("\n", verb.getCommentsList()));
-        VerbType verbType = VerbType.of(verb);
-        if (verbType == VerbType.SOURCE || verbType == VerbType.VERB) {
-            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getResponse());
-            String[] fields = sqlFields.stream().map(m -> "\"" + m.metadata().getName() + "," + toJavaName(m.name()) + "\"")
-                    .toArray(String[]::new);
-            annotationBuilder.addMember("colToFieldName=[" + String.join(",", fields) + "]");
-            callFunc.returns(toKotlinTypeName(verb.getResponse(), new HashMap<>(), new HashMap<>()));
-        }
-        if (verbType == VerbType.SINK || verbType == VerbType.VERB) {
-            List<SQLColumnField> sqlFields = getOrderedSQLFields(module, verb.getRequest());
-            String[] fields = sqlFields.stream().map(m -> "\"" + toJavaName(m.name()) + "\"").toArray(String[]::new);
-            annotationBuilder.addMember("fields=[" + String.join(",", fields) + "]");
-            callFunc.addParameter("value", toKotlinTypeName(verb.getRequest(), new HashMap<>(), new HashMap<>()));
-        }
-
-        callFunc.addAnnotation(annotationBuilder.build());
-        clientBuilder.addFunction(callFunc.build());
-        FileSpec javaFile = FileSpec.builder(packageName, thisType)
-                .addType(clientBuilder.build())
                 .build();
         javaFile.writeTo(outputDir.writeKotlin(javaFile.getName()));
     }

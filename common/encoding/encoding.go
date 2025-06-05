@@ -82,6 +82,12 @@ func encodeValue(v reflect.Value, w *bytes.Buffer) error {
 
 	case reflect.Slice:
 		if v.Type().Elem().Kind() == reflect.Uint8 {
+			if v.Type() == reflect.TypeFor[json.RawMessage]() {
+				// json.RawMessage should be written as is (it's already JSON text)
+				_, err := w.Write(v.Bytes())
+				return errors.WithStack(err)
+			}
+			// Other []byte types are base64 encoded into a JSON string
 			return errors.WithStack(encodeBytes(v, w))
 		}
 		return errors.WithStack(encodeSlice(v, w))
@@ -299,6 +305,13 @@ func decodeValue(d *json.Decoder, v reflect.Value) error {
 
 	case reflect.Slice:
 		if v.Type().Elem().Kind() == reflect.Uint8 {
+			if v.Type() == reflect.TypeFor[json.RawMessage]() {
+				// Use standard library's decoding for json.RawMessage.
+				// It expects a pointer, so we use v.Addr().Interface().
+				return errors.WithStack(d.Decode(v.Addr().Interface()))
+			}
+			// For other []byte types (not json.RawMessage), use the existing decodeBytes
+			// which expects the JSON string value to be base64 encoded.
 			return errors.WithStack(decodeBytes(d, v))
 		}
 		return errors.WithStack(decodeSlice(d, v))

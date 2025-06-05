@@ -179,7 +179,6 @@
                                 <include>**/hotreload.proto</include>
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
-                                <include>**/query.proto</include>
                                 <include>**/test.proto</include>
                                 <include>**/admin.proto</include>
                                 <include>**/schemaservice.proto</include>
@@ -217,7 +216,6 @@
                                 <include>**/language.proto</include>
                                 <include>**/publish.proto</include>
                                 <include>**/pubsub.proto</include>
-                                <include>**/query.proto</include>
                                 <include>**/test.proto</include>
                                 <include>**/admin.proto</include>
                                 <include>**/schemaservice.proto</include>

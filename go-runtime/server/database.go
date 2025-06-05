@@ -15,7 +15,6 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
-	"github.com/block/ftl/go-runtime/server/query"
 	"github.com/block/ftl/internal/deploymentcontext"
 )
 
@@ -72,43 +71,4 @@ func InitDatabase(ref reflection.Ref, dbtype string, protoDBtype deploymentconte
 			}
 			return db, nil
 		})
-}
-
-// maybeBeginTransaction begins a transaction if the provided ref is a registered transaction verb
-func maybeBeginTransaction(ctx context.Context, ref reflection.Ref) (string, error) {
-	db, ok := reflection.GetTransactionDatabase(ref).Get()
-	if !ok {
-		return "", nil
-	}
-	txID, err := query.BeginTransaction(ctx, db.Name)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to begin transaction")
-	}
-	return txID, nil
-}
-
-// maybeRollbackTransaction rolls back the current transaction if one is open
-func maybeRollbackTransaction(ctx context.Context, ref reflection.Ref) error {
-	db, ok := reflection.GetTransactionDatabase(ref).Get()
-	if !ok {
-		return nil
-	}
-	err := query.RollbackCurrentTransaction(ctx, db.Name)
-	if err != nil {
-		return errors.Wrap(err, "failed to rollback transaction")
-	}
-	return nil
-}
-
-// maybeCommitTransaction commits the current transaction if one is open
-func maybeCommitTransaction(ctx context.Context, ref reflection.Ref) error {
-	db, ok := reflection.GetTransactionDatabase(ref).Get()
-	if !ok {
-		return nil
-	}
-	err := query.CommitCurrentTransaction(ctx, db.Name)
-	if err != nil {
-		return errors.Wrap(err, "failed to commit transaction")
-	}
-	return nil
 }

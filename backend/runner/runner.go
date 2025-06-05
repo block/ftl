@@ -219,20 +219,49 @@ type Service struct {
 }
 
 func (s *Service) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
+	var err error
+	maybeTxnKey, err := s.queryService.MaybeBeginTransaction(ctx, req, s.schema)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to begin transaction")
+	}
+	if txnKey, ok := maybeTxnKey.Get(); ok {
+		ctx = rpc.WithTransactionKey(ctx, txnKey)
+	}
+
+	maybeResp, err := s.queryService.MaybeExecuteQuery(ctx, req, s.schema)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to proxy to query service")
+	}
+	if maybeResp.Ok() {
+		return maybeResp.MustGet(), nil
+	}
+
 	deployment, ok := s.deployment.Load().Get()
 	if !ok {
 		return nil, errors.WithStack(connect.NewError(connect.CodeUnavailable, errors.New("no deployment")))
 	}
 	response, err := deployment.client.Call(ctx, req)
 	if err != nil {
+		if err := s.queryService.MaybeRollbackTransaction(ctx, req); err != nil {
+			return nil, errors.Wrap(err, "failed to rollback transaction")
+		}
 		deploymentLogger := s.getDeploymentLogger(ctx, deployment.key)
 		deploymentLogger.Errorf(err, "Call to deployments %s failed to perform gRPC call", deployment.key)
 		return nil, errors.WithStack(connect.NewError(connect.CodeOf(err), err))
 	} else if response.Msg.GetError() != nil {
+		if err := s.queryService.MaybeRollbackTransaction(ctx, req); err != nil {
+			return nil, errors.Wrap(err, "failed to rollback transaction")
+		}
 		// This is a user level error (i.e. something wrong in the users app)
 		// Log it to the deployment logger
 		deploymentLogger := s.getDeploymentLogger(ctx, deployment.key)
 		deploymentLogger.Errorf(errors.Errorf("%v", response.Msg.GetError().GetMessage()), "Call to deployments %s failed", deployment.key)
+	}
+
+	if response.Msg.GetError() == nil {
+		if err := s.queryService.MaybeCommitTransaction(ctx, req); err != nil {
+			return nil, errors.Wrap(err, "failed to commit transaction")
+		}
 	}
 
 	return connect.NewResponse(response.Msg), nil
@@ -265,7 +294,7 @@ func (s *Service) deploy(ctx context.Context, key key.Deployment, module *schema
 
 	leaseServiceClient := rpc.Dial(ftlleaseconnect.NewLeaseServiceClient, s.config.LeaseEndpoint.String(), log.Error)
 
-	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient, s.config.Deployment, s.config.LocalRunners)
+	s.proxy = proxy.New(s.deploymentContextProvider, leaseServiceClient, s.timelineClient, s.queryService, s.schema, s.config.Deployment, s.config.LocalRunners)
 
 	pubSub, err := pubsub.New(module, key, s, s.timelineClient)
 	if err != nil {

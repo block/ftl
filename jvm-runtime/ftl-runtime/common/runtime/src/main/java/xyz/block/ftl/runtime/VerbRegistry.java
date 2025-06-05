@@ -36,22 +36,13 @@ public class VerbRegistry {
     private final Map<Key, VerbInvoker> verbs = new ConcurrentHashMap<>();
 
     public void register(String module, String name, InstanceHandle<?> verbHandlerClass, Method method,
-            List<ParameterSupplier> paramMappers, boolean allowNullReturn, boolean isTransaction) {
+            List<ParameterSupplier> paramMappers, boolean allowNullReturn) {
         verbs.put(new Key(module, name),
-                new AnnotatedEndpointHandler(verbHandlerClass, method, paramMappers, allowNullReturn, isTransaction));
+                new AnnotatedEndpointHandler(verbHandlerClass, method, paramMappers, allowNullReturn));
     }
 
     public void register(String module, String name, VerbInvoker verbInvoker) {
         verbs.put(new Key(module, name), verbInvoker);
-    }
-
-    public void registerTransactionDbAccess(String module, String name, List<String> databaseUses) {
-        var registeredVerb = verbs.get(new Key(module, name));
-        if (registeredVerb == null) {
-            throw new RuntimeException(
-                    "Transaction verb " + module + "." + name + " not registered; cannot register database uses");
-        }
-        ((AnnotatedEndpointHandler) registeredVerb).addDatasource(databaseUses.get(0));
     }
 
     public CallResponse invoke(CallRequest request, ObjectMapper mapper) {
@@ -60,14 +51,7 @@ public class VerbRegistry {
             return CallResponse.newBuilder().setError(CallResponse.Error.newBuilder().setMessage("Verb not found").build())
                     .build();
         }
-        try {
-            if (request.hasMetadata()) {
-                CurrentTransaction.setCurrentIdFromMetadata(request.getMetadata());
-            }
-            return handler.handle(request, mapper);
-        } finally {
-            CurrentTransaction.clearCurrent();
-        }
+        return handler.handle(request, mapper);
     }
 
     private record Key(String module, String name) {
@@ -79,41 +63,30 @@ public class VerbRegistry {
         final Method method;
         final List<ParameterSupplier> parameterSuppliers;
         final boolean allowNull;
-        final boolean isTransaction;
 
         // Lazily initialized
         private volatile VerbClientHelper verbClientHelper;
         private volatile String datasourceName; // the database accessed by this verb, if applicable
 
         private AnnotatedEndpointHandler(InstanceHandle<?> verbHandlerClass, Method method,
-                List<ParameterSupplier> parameterSuppliers, boolean allowNull, boolean isTransaction) {
+                List<ParameterSupplier> parameterSuppliers, boolean allowNull) {
             this.verbHandlerClass = verbHandlerClass;
             this.method = method;
             this.parameterSuppliers = parameterSuppliers;
             this.allowNull = allowNull;
-            this.isTransaction = isTransaction;
             for (ParameterSupplier parameterSupplier : parameterSuppliers) {
                 parameterSupplier.init(method);
             }
         }
 
         public CallResponse handle(CallRequest in, ObjectMapper mapper) {
-            String transactionId = null;
             try {
-                if (isTransaction) {
-                    transactionId = getVerbClientHelper().beginTransaction(datasourceName);
-                    CurrentTransaction.setCurrentId(transactionId);
-                }
-
                 Object[] params = new Object[parameterSuppliers.size()];
                 for (int i = 0; i < parameterSuppliers.size(); i++) {
                     params[i] = parameterSuppliers.get(i).apply(mapper, in);
                 }
                 Object ret;
                 ret = method.invoke(verbHandlerClass.get(), params);
-                if (isTransaction) {
-                    getVerbClientHelper().commitTransaction(datasourceName, transactionId);
-                }
                 if (ret == null) {
                     if (allowNull) {
                         return CallResponse.newBuilder().setBody(ByteString.copyFrom("{}", StandardCharsets.UTF_8)).build();
@@ -127,9 +100,6 @@ public class VerbRegistry {
                     return CallResponse.newBuilder().setBody(ByteString.copyFrom(mappedResponse)).build();
                 }
             } catch (Throwable e) {
-                if (isTransaction) {
-                    getVerbClientHelper().rollbackTransaction(datasourceName, transactionId);
-                }
                 if (e.getClass() == InvocationTargetException.class) {
                     e = e.getCause();
                 }
@@ -140,24 +110,6 @@ public class VerbRegistry {
                                 .setMessage(message + " " + e.getMessage()).build())
                         .build();
             }
-        }
-
-        public void addDatasource(String datasourceName) {
-            this.datasourceName = datasourceName;
-        }
-
-        private VerbClientHelper getVerbClientHelper() {
-            if (verbClientHelper == null) {
-                synchronized (this) {
-                    if (verbClientHelper == null) {
-                        if (Arc.container() == null) {
-                            throw new IllegalStateException("Arc container is not initialized");
-                        }
-                        verbClientHelper = VerbClientHelper.instance();
-                    }
-                }
-            }
-            return verbClientHelper;
         }
     }
 

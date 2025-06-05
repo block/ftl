@@ -40,8 +40,8 @@ func TestJVMSQLInterfaces(t *testing.T) {
   public val timestampValue: ZonedDateTime,
   public val floatValue: Double,
 )`,
-					"CreateDemoRowClient": "public fun interface CreateDemoRowClient {\n  public fun createDemoRow(`value`: CreateDemoRowQuery)\n}",
-					"ListDemoRowsClient":  "public fun interface ListDemoRowsClient {\n  public fun listDemoRows(): List<DemoRow>\n}",
+					"CreateDemoRowClient": "public fun interface CreateDemoRowClient : SinkVerb<CreateDemoRowQuery> {\n  override fun call(`value`: CreateDemoRowQuery)\n}",
+					"ListDemoRowsClient":  "public fun interface ListDemoRowsClient : SourceVerb<List<DemoRow>> {\n override fun call(): List<DemoRow>\n}",
 				}
 
 			case "java":
@@ -74,8 +74,8 @@ func TestJVMSQLInterfaces(t *testing.T) {
   public CreateDemoRowQuery setFloatValue(double floatValue);
   public double getFloatValue();
 }`,
-					"CreateDemoRowClient": "public interface CreateDemoRowClient {\n  )\n  void createDemoRow(@NotNull CreateDemoRowQuery value);\n}",
-					"ListDemoRowsClient":  "public interface ListDemoRowsClient {\n  )\n  @NotNull List<DemoRow> listDemoRows();\n}",
+					"CreateDemoRowClient": "public interface CreateDemoRowClient extends SinkVerb<CreateDemoRowQuery> {\n  void call(@NotNull CreateDemoRowQuery value);\n}",
+					"ListDemoRowsClient":  "public interface ListDemoRowsClient extends SourceVerb<List<DemoRow>> {\n  @NotNull List<DemoRow> call();\n}",
 				}
 
 			default:

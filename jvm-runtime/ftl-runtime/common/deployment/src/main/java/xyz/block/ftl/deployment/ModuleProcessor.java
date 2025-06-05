@@ -45,7 +45,6 @@ import xyz.block.ftl.hotreload.v1.SchemaState;
 import xyz.block.ftl.language.v1.Error;
 import xyz.block.ftl.language.v1.ErrorList;
 import xyz.block.ftl.runtime.CurrentRequestServerInterceptor;
-import xyz.block.ftl.runtime.CurrentTransaction;
 import xyz.block.ftl.runtime.FTLDatasourceCredentials;
 import xyz.block.ftl.runtime.FTLRecorder;
 import xyz.block.ftl.runtime.JsonSerializationConfig;
@@ -135,7 +134,6 @@ public class ModuleProcessor {
             ModuleNameBuildItem moduleNameBuildItem,
             TopicsBuildItem topicsBuildItem,
             VerbClientBuildItem verbClientBuildItem,
-            SQLQueryClientBuildItem sqlQueryClientBuildItem,
             DefaultOptionalBuildItem defaultOptionalBuildItem,
             List<SchemaContributorBuildItem> schemaContributorBuildItems,
             LaunchModeBuildItem launchModeBuildItem,
@@ -145,14 +143,12 @@ public class ModuleProcessor {
 
         ModuleBuilder moduleBuilder = new ModuleBuilder(index.getIndex(), moduleName,
                 topicsBuildItem.getTopics(), verbClientBuildItem.getVerbClients(),
-                sqlQueryClientBuildItem.getSQLQueryClients(),
                 recorder, comments, defaultOptionalBuildItem.isDefaultToOptional(),
                 projectRootBuildItem.getProjectRoot());
 
         for (var i : schemaContributorBuildItems) {
             i.getSchemaContributor().accept(moduleBuilder);
         }
-        moduleBuilder.registerTransactionDbAccess();
 
         log.debugf("Generating module '%s' schema from %d decls", moduleName, moduleBuilder.getDeclsCount());
         Path output = outputTargetBuildItem.getOutputDirectory().resolve(SCHEMA_OUT);
@@ -253,7 +249,7 @@ public class ModuleProcessor {
                         VerbRegistry.class, FTLHttpHandler.class,
                         CurrentRequestServerInterceptor.class,
                         TopicHelper.class, VerbClientHelper.class, JsonSerializationConfig.class,
-                        FTLDatasourceCredentials.class, CurrentTransaction.class)
+                        FTLDatasourceCredentials.class)
                 .setUnremovable().build();
     }
 

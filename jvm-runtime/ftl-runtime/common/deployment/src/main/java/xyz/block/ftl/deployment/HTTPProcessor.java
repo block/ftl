@@ -44,8 +44,7 @@ public class HTTPProcessor {
     @BuildStep
     @Record(ExecutionTime.STATIC_INIT)
     public MethodScannerBuildItem methodScanners(TopicsBuildItem topics,
-            VerbClientBuildItem verbClients, FTLRecorder recorder,
-            SQLQueryClientBuildItem sqlQueryClients) {
+            VerbClientBuildItem verbClients, FTLRecorder recorder) {
         return new MethodScannerBuildItem(new MethodScanner() {
             @Override
             public ParameterExtractor handleCustomParameter(org.jboss.jandex.Type type,
@@ -72,9 +71,6 @@ public class HTTPProcessor {
                         return recorder.topicParamExtractor(topic.generatedProducer());
                     } else if (verbClients.getVerbClients().containsKey(type.name())) {
                         var client = verbClients.getVerbClients().get(type.name());
-                        return recorder.verbParamExtractor(client.generatedClient());
-                    } else if (sqlQueryClients.getSQLQueryClients().containsKey(type.name())) {
-                        var client = sqlQueryClients.getSQLQueryClients().get(type.name());
                         return recorder.verbParamExtractor(client.generatedClient());
                     } else if (FTLDotNames.LEASE_CLIENT.equals(type.name())) {
                         return recorder.leaseClientExtractor();

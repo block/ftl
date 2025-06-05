@@ -132,24 +132,8 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 			request = optional.None[any]()
 		}
 
-		txID, err := maybeBeginTransaction(ctx, ref)
-		if err != nil {
-			return resp, errors.WithStack(err)
-		}
-		if txID != "" {
-			callMetadata, ok := internal.MaybeCallMetadataFromContext(ctx).Get()
-			if !ok {
-				callMetadata = map[internal.MetadataKey]string{}
-			}
-			callMetadata[query.TransactionMetadataKey] = txID
-			ctx = internal.ContextWithCallMetadata(ctx, callMetadata)
-		}
-
 		out, err := reflection.CallVerb(reflection.Ref{Module: ref.Module, Name: ref.Name})(ctx, request)
 		if err != nil {
-			if err := maybeRollbackTransaction(ctx, ref); err != nil {
-				return resp, errors.Wrapf(err, "%s: failed to rollback transaction", ref)
-			}
 			return resp, errors.WithStack(err)
 		}
 
@@ -161,13 +145,7 @@ func InvokeVerb[Req, Resp any](ref reflection.Ref) func(ctx context.Context, req
 		}
 		resp, ok := respValue.(Resp)
 		if !ok {
-			if err := maybeRollbackTransaction(ctx, ref); err != nil {
-				return resp, errors.Wrapf(err, "%s: failed to rollback transaction", ref)
-			}
 			return resp, errors.Errorf("unexpected response type from verb %s: %T, expected %T", ref, resp, reflect.New(reflect.TypeFor[Resp]()).Interface())
-		}
-		if err = maybeCommitTransaction(ctx, ref); err != nil {
-			return resp, errors.Wrapf(err, "%s: failed to commit transaction", ref)
 		}
 		return resp, errors.WithStack(err)
 	}

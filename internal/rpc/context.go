@@ -22,6 +22,7 @@ type ftlDirectRoutingKey struct{}
 type ftlVerbKey struct{}
 type requestIDKey struct{}
 type parentRequestIDKey struct{}
+type transactionIDKey struct{}
 
 // WithDirectRouting ensures any hops in Verb routing do not redirect.
 //
@@ -89,6 +90,27 @@ func requestKeyFromContextValue(value any) (optional.Option[key.Request], error)
 	parsedKey, err := key.ParseRequestKey(keyStr)
 	if err != nil {
 		return optional.None[key.Request](), errors.Wrap(err, "invalid request key")
+	}
+	return optional.Some(parsedKey), nil
+}
+
+func WithTransactionKey(ctx context.Context, key key.TransactionKey) context.Context {
+	return context.WithValue(ctx, transactionIDKey{}, key.String())
+}
+
+func TransactionKeyFromContext(ctx context.Context) (optional.Option[key.TransactionKey], error) {
+	value := ctx.Value(transactionIDKey{})
+	return errors.WithStack2(transactionIDFromContextValue(value))
+}
+
+func transactionIDFromContextValue(value any) (optional.Option[key.TransactionKey], error) {
+	keyStr, ok := value.(string)
+	if !ok {
+		return optional.None[key.TransactionKey](), nil
+	}
+	parsedKey, err := key.ParseTransactionKey(keyStr)
+	if err != nil {
+		return optional.None[key.TransactionKey](), errors.Wrap(err, "invalid transaction key")
 	}
 	return optional.Some(parsedKey), nil
 }
@@ -252,6 +274,11 @@ func propagateHeaders(ctx context.Context, isClient bool, header http.Header) (c
 		} else if key, ok := key.Get(); ok {
 			headers.SetParentRequestKey(header, key)
 		}
+		if txnID, err := TransactionKeyFromContext(ctx); err != nil {
+			return nil, errors.WithStack(err)
+		} else if txnID, ok := txnID.Get(); ok {
+			headers.SetTransactionKey(header, txnID)
+		}
 	} else {
 		if headers.IsDirectRouted(header) {
 			ctx = WithDirectRouting(ctx)
@@ -270,6 +297,11 @@ func propagateHeaders(ctx context.Context, isClient bool, header http.Header) (c
 			return nil, errors.Wrap(err, "invalid parent request key in header")
 		} else if ok {
 			ctx = WithParentRequestKey(ctx, key)
+		}
+		if txnID, ok, err := headers.GetTransactionKey(header); err != nil {
+			return nil, errors.WithStack(err)
+		} else if ok {
+			ctx = WithTransactionKey(ctx, txnID)
 		}
 	}
 	return ctx, nil

@@ -6,11 +6,12 @@ import (
 	"sync"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
 	_ "modernc.org/sqlite"
 
 	querypb "github.com/block/ftl/backend/protos/xyz/block/ftl/query/v1"
+	"github.com/block/ftl/common/key"
+	"github.com/block/ftl/common/schema"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -55,85 +56,69 @@ func TestQueryService(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("QuerySlice", func(t *testing.T) {
-		response := &responseCollector{}
-		err := svc.ExecuteQuery(ctx, connect.NewRequest(&querypb.ExecuteQueryRequest{
-			RawSql:         `SELECT id FROM test_table WHERE name IN (/*SLICE:names*/?) AND value = ? AND id IN (/*SLICE:ids*/?)`,
-			CommandType:    querypb.CommandType_COMMAND_TYPE_MANY,
-			ParametersJson: `[["test1", "test3"], 100, [1]]`,
-			ResultColumns:  []*querypb.ResultColumn{{TypeName: "INT", SqlName: "id"}},
-		}), response)
+		jsonRows, _, err := svc.ExecuteQuery(ctx, ExecuteQueryRequest{
+			Verb:          &schema.Verb{Name: "getTestTypes", Response: &schema.Array{Element: &schema.Int{}}},
+			RawSQL:        `SELECT id FROM test_table WHERE name IN (/*SLICE:names*/?) AND value = ? AND id IN (/*SLICE:ids*/?)`,
+			CommandType:   Many,
+			Parameters:    []any{[]string{"test1", "test3"}, 100, []int{1}},
+			ResultColumns: []ResultColumn{{TypeName: "INT", SQLName: "id"}},
+		})
 		assert.NoError(t, err)
+		strRows := []string{}
+		for _, row := range jsonRows {
+			strRows = append(strRows, string(row))
+		}
 		assert.Equal(t,
-			[]*querypb.ExecuteQueryResponse{
-				{
-					Result: &querypb.ExecuteQueryResponse_RowResults{
-						RowResults: &querypb.RowResults{
-							JsonRows: "{\"int\":1}",
-							HasMore:  true,
-						},
-					},
-				},
+			[]string{
+				"{\"int\":1}",
 			},
-			response.responses,
+			strRows,
 		)
 	})
 
 	t.Run("TransactionLifecycle", func(t *testing.T) {
-		beginResp, err := svc.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{}))
+		txnKey, err := svc.BeginTransaction(ctx, "test_db")
 		assert.NoError(t, err)
-		assert.NotZero(t, beginResp.Msg.TransactionId)
-		assert.Equal(t, querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS, beginResp.Msg.Status)
-
-		txID := beginResp.Msg.TransactionId
+		assert.NotZero(t, txnKey)
 
 		svc.lock.RLock()
-		_, exists := svc.transactions[txID]
+		_, exists := svc.transactions[txnKey.String()]
 		svc.lock.RUnlock()
 		assert.True(t, exists)
 
-		commitResp, err := svc.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
-			TransactionId: txID,
-		}))
+		err = svc.CommitTransaction(ctx, txnKey)
 		assert.NoError(t, err)
-		assert.Equal(t, querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS, commitResp.Msg.Status)
 
 		svc.lock.RLock()
-		_, exists = svc.transactions[txID]
+		_, exists = svc.transactions[txnKey.String()]
 		svc.lock.RUnlock()
 		assert.False(t, exists)
 	})
 
 	t.Run("TransactionRollback", func(t *testing.T) {
-		beginResp, err := svc.BeginTransaction(ctx, connect.NewRequest(&querypb.BeginTransactionRequest{}))
+		txnKey, err := svc.BeginTransaction(ctx, "test_db")
 		assert.NoError(t, err)
-		txID := beginResp.Msg.TransactionId
+		assert.NotZero(t, txnKey)
 
 		svc.lock.RLock()
-		_, exists := svc.transactions[txID]
+		_, exists := svc.transactions[txnKey.String()]
 		svc.lock.RUnlock()
 		assert.True(t, exists)
 
-		rollbackResp, err := svc.RollbackTransaction(ctx, connect.NewRequest(&querypb.RollbackTransactionRequest{
-			TransactionId: txID,
-		}))
+		err = svc.RollbackTransaction(ctx, txnKey)
 		assert.NoError(t, err)
-		assert.Equal(t, querypb.TransactionStatus_TRANSACTION_STATUS_SUCCESS, rollbackResp.Msg.Status)
 
 		svc.lock.RLock()
-		_, exists = svc.transactions[txID]
+		_, exists = svc.transactions[txnKey.String()]
 		svc.lock.RUnlock()
 		assert.False(t, exists)
 	})
 
 	t.Run("InvalidTransactionID", func(t *testing.T) {
-		_, err := svc.CommitTransaction(ctx, connect.NewRequest(&querypb.CommitTransactionRequest{
-			TransactionId: "invalid",
-		}))
+		err := svc.CommitTransaction(ctx, key.NewTransactionKey("test_db", "invalid"))
 		assert.Error(t, err)
 
-		_, err = svc.RollbackTransaction(ctx, connect.NewRequest(&querypb.RollbackTransactionRequest{
-			TransactionId: "invalid",
-		}))
+		err = svc.RollbackTransaction(ctx, key.NewTransactionKey("test_db", "invalid"))
 		assert.Error(t, err)
 	})
 }

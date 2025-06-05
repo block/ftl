@@ -163,9 +163,9 @@ func interfacesForGeneratedFiles(moduleDir, name string) ([]*langpb.GetSQLInterf
 	return interfaces, nil
 }
 
-var kotlinVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public fun interface ([a-zA-Z0-9_]+) {\n)(.|\n)*?( *public fun .*\n})`)
+var kotlinVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public fun interface ([a-zA-Z0-9_]+) : \w+.*? {\n)(.|\n)*?( *override fun call.*?\n})`)
 var kotlinDataInterfaceRegex = regexp.MustCompile(`Generated data type for use with SQL query verbs(\n|.)*?(public data class ([a-zA-Z0-9_]+)\(\n(.|\n)*?\n\))`)
-var javaVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public interface ([a-zA-Z0-9_]+) {)\n\s*@SQLQueryClient(.|\n)*?(\n\s*\)\n.*\n})`)
+var javaVerbInterfaceRegex = regexp.MustCompile(`SQL query verb(\n|.)*?(public interface ([a-zA-Z0-9_]+) extends \w+.*? {\n)(.|\n)*?( *.*? call.*?\n})`)
 var javaDataInterfaceRegex = regexp.MustCompile(`SQL query verbs(.|\n)*?public class ([a-zA-Z_]+) {((.|\n)*?)\n}`)
 var javaDataFuncInterfaceRegex = regexp.MustCompile(`(public [^\n]*?) {\n`)
 
