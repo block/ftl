@@ -4,6 +4,10 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+
 	"github.com/alecthomas/errors"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -13,9 +17,6 @@ import (
 	googleremote "github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"google.golang.org/protobuf/proto"
-	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
