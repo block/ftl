@@ -1,0 +1,170 @@
+fullnameOverride: "ftl"
+nameOverride: ""
+realmName: "ftl"
+
+logLevel: debug
+logJson: true
+
+image:
+  tag: null
+  pullPolicy: IfNotPresent
+  base: "ftl0"
+
+istio:
+  enabled: false # set to true to have this chart install the grpc config to enable trailers
+  holdApplicationUntilProxyStarts: true
+
+
+ingress:
+  allowOrigin: "*"
+  env: null
+
+  ports:
+    - name: http2
+      containerPort: 8891
+      protocol: TCP
+      port: 8891
+
+  replicas: 1
+  revisionHistoryLimit: 0
+
+  image:
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-http-ingress"
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 10m
+    limits:
+      memory: 128Mi
+      cpu: 2
+
+  envFrom: null
+  serviceAccountName: ftl-http-ingress
+
+  readinessProbe: null
+
+  service:
+    type: ClusterIP
+    annotations: null
+    ports:
+      - name: "http-8892"
+        port: 80
+        protocol: TCP
+        targetPort: 8892
+
+  podAnnotations: null
+  nodeSelector: null
+  affinity: null
+  topologySpreadConstraints: null
+  tolerations: null
+
+timeline:
+  enabled: true
+  env: null
+
+  port: 8892
+
+  replicas: 1
+  revisionHistoryLimit: 0
+
+  image:
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-timeline"
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 10m
+    limits:
+      memory: 256Mi
+      cpu: 2
+  envFrom: null
+  serviceAccountName: ftl-timeline
+  readinessProbe: null
+
+  service:
+    annotations: null
+
+  podAnnotations: null
+  nodeSelector: null
+  affinity: null
+  topologySpreadConstraints: null
+  tolerations: null
+
+schemaMirror:
+  enabled: true
+  replicas: 1
+  env: null
+
+  revisionHistoryLimit: 0
+
+  image:
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-schema-mirror"
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 10m
+    limits:
+      memory: 256Mi
+      cpu: 2
+
+  envFrom: null
+  serviceAccountName: ftl-schema-mirror
+
+  readinessProbe: null
+
+  service:
+    annotations: null
+    port: 8892
+  podAnnotations: null
+  nodeSelector: null
+  affinity: null
+  topologySpreadConstraints: null
+  tolerations: null
+
+lease:
+  env: null
+  port: 8892
+  logLevel: debug
+  logJson: true
+
+  replicas: 1
+  revisionHistoryLimit: 0
+
+  image:
+    repository: null
+    tag: null
+    pullPolicy: null
+    name: "ftl-lease"
+
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 10m
+    limits:
+      memory: 128Mi
+      cpu: 2
+
+  envFrom: null
+  serviceAccountName: ftl-lease
+
+  readinessProbe: null
+
+  service:
+    annotations: null
+
+  podAnnotations: null
+  nodeSelector: null
+  affinity: null
+  topologySpreadConstraints: null
+  tolerations: null

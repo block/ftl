@@ -1,5 +1,5 @@
 
-ftl:
+ftl-system:
   provisioner:
     userNamespace: "demo"
   runner:
@@ -10,5 +10,9 @@ ftl:
     pullPolicy: Always
     base: "ftl:5000"
 
-
+ftl-services:
+  image:
+    tag: "latest"
+    pullPolicy: Always
+    base: "ftl:5000"
 

@@ -32,26 +32,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Selector labels
 */}}
-{{- define "ftl-controller.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: controller
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-runner.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: runner
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-provisioner.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: provisioner
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-cron.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: cron
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
 {{- define "ftl-http-ingress.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "ftl.fullname" . }}
 app.kubernetes.io/component: http-ingress
@@ -65,21 +45,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "ftl-lease.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "ftl.fullname" . }}
 app.kubernetes.io/component: lease
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-console.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: console
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-admin.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: admin
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-{{- define "ftl-schema.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ftl.fullname" . }}
-app.kubernetes.io/component: schema
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- define "ftl-schema-mirror.selectorLabels" -}}
