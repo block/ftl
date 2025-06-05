@@ -29,6 +29,10 @@ func NewOCIImageProvisioner(storage *oci.ImageService, astorage *oci.ArtefactSer
 
 func provisionOCIImage(storage *oci.ImageService, astorage *oci.ArtefactService, defaultImage string, cfg OCIImageProvisionerConfig) InMemResourceProvisionerFn {
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, rc schema.Provisioned, moduleSch *schema.Module) (*schema.RuntimeElement, error) {
+		if moduleSch.GetRuntime().Image != nil && moduleSch.GetRuntime().Image.Image != "" {
+			// We already have an image defined in the module schema, so we don't need to build one.
+			return nil, nil
+		}
 		logger := log.FromContext(ctx)
 		variants := goslices.Collect(slices.FilterVariants[*schema.MetadataArtefact](moduleSch.Metadata))
 

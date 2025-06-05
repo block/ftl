@@ -67,6 +67,9 @@ const (
 	// AdminServiceApplyChangesetProcedure is the fully-qualified name of the AdminService's
 	// ApplyChangeset RPC.
 	AdminServiceApplyChangesetProcedure = "/xyz.block.ftl.admin.v1.AdminService/ApplyChangeset"
+	// AdminServiceDeployImagesProcedure is the fully-qualified name of the AdminService's DeployImages
+	// RPC.
+	AdminServiceDeployImagesProcedure = "/xyz.block.ftl.admin.v1.AdminService/DeployImages"
 	// AdminServiceUpdateDeploymentRuntimeProcedure is the fully-qualified name of the AdminService's
 	// UpdateDeploymentRuntime RPC.
 	AdminServiceUpdateDeploymentRuntimeProcedure = "/xyz.block.ftl.admin.v1.AdminService/UpdateDeploymentRuntime"
@@ -132,6 +135,9 @@ type AdminServiceClient interface {
 	// Creates and applies a changeset, returning the result
 	// This blocks until the changeset has completed
 	ApplyChangeset(context.Context, *connect.Request[v11.ApplyChangesetRequest]) (*connect.ServerStreamForClient[v11.ApplyChangesetResponse], error)
+	// Creates and applies a changeset, returning the result
+	// This blocks until the changeset has completed
+	DeployImages(context.Context, *connect.Request[v11.DeployImagesRequest]) (*connect.ServerStreamForClient[v11.DeployImagesResponse], error)
 	// Updates a runtime deployment
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v11.UpdateDeploymentRuntimeRequest]) (*connect.Response[v11.UpdateDeploymentRuntimeResponse], error)
 	// Get the full schema.
@@ -252,6 +258,12 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("ApplyChangeset")),
 			connect.WithClientOptions(opts...),
 		),
+		deployImages: connect.NewClient[v11.DeployImagesRequest, v11.DeployImagesResponse](
+			httpClient,
+			baseURL+AdminServiceDeployImagesProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("DeployImages")),
+			connect.WithClientOptions(opts...),
+		),
 		updateDeploymentRuntime: connect.NewClient[v11.UpdateDeploymentRuntimeRequest, v11.UpdateDeploymentRuntimeResponse](
 			httpClient,
 			baseURL+AdminServiceUpdateDeploymentRuntimeProcedure,
@@ -344,6 +356,7 @@ type adminServiceClient struct {
 	mapSecretsForModule     *connect.Client[v11.MapSecretsForModuleRequest, v11.MapSecretsForModuleResponse]
 	resetSubscription       *connect.Client[v11.ResetSubscriptionRequest, v11.ResetSubscriptionResponse]
 	applyChangeset          *connect.Client[v11.ApplyChangesetRequest, v11.ApplyChangesetResponse]
+	deployImages            *connect.Client[v11.DeployImagesRequest, v11.DeployImagesResponse]
 	updateDeploymentRuntime *connect.Client[v11.UpdateDeploymentRuntimeRequest, v11.UpdateDeploymentRuntimeResponse]
 	getSchema               *connect.Client[v1.GetSchemaRequest, v1.GetSchemaResponse]
 	pullSchema              *connect.Client[v1.PullSchemaRequest, v1.PullSchemaResponse]
@@ -421,6 +434,11 @@ func (c *adminServiceClient) ResetSubscription(ctx context.Context, req *connect
 // ApplyChangeset calls xyz.block.ftl.admin.v1.AdminService.ApplyChangeset.
 func (c *adminServiceClient) ApplyChangeset(ctx context.Context, req *connect.Request[v11.ApplyChangesetRequest]) (*connect.ServerStreamForClient[v11.ApplyChangesetResponse], error) {
 	return c.applyChangeset.CallServerStream(ctx, req)
+}
+
+// DeployImages calls xyz.block.ftl.admin.v1.AdminService.DeployImages.
+func (c *adminServiceClient) DeployImages(ctx context.Context, req *connect.Request[v11.DeployImagesRequest]) (*connect.ServerStreamForClient[v11.DeployImagesResponse], error) {
+	return c.deployImages.CallServerStream(ctx, req)
 }
 
 // UpdateDeploymentRuntime calls xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime.
@@ -513,6 +531,9 @@ type AdminServiceHandler interface {
 	// Creates and applies a changeset, returning the result
 	// This blocks until the changeset has completed
 	ApplyChangeset(context.Context, *connect.Request[v11.ApplyChangesetRequest], *connect.ServerStream[v11.ApplyChangesetResponse]) error
+	// Creates and applies a changeset, returning the result
+	// This blocks until the changeset has completed
+	DeployImages(context.Context, *connect.Request[v11.DeployImagesRequest], *connect.ServerStream[v11.DeployImagesResponse]) error
 	// Updates a runtime deployment
 	UpdateDeploymentRuntime(context.Context, *connect.Request[v11.UpdateDeploymentRuntimeRequest]) (*connect.Response[v11.UpdateDeploymentRuntimeResponse], error)
 	// Get the full schema.
@@ -629,6 +650,12 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("ApplyChangeset")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceDeployImagesHandler := connect.NewServerStreamHandler(
+		AdminServiceDeployImagesProcedure,
+		svc.DeployImages,
+		connect.WithSchema(adminServiceMethods.ByName("DeployImages")),
+		connect.WithHandlerOptions(opts...),
+	)
 	adminServiceUpdateDeploymentRuntimeHandler := connect.NewUnaryHandler(
 		AdminServiceUpdateDeploymentRuntimeProcedure,
 		svc.UpdateDeploymentRuntime,
@@ -731,6 +758,8 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceResetSubscriptionHandler.ServeHTTP(w, r)
 		case AdminServiceApplyChangesetProcedure:
 			adminServiceApplyChangesetHandler.ServeHTTP(w, r)
+		case AdminServiceDeployImagesProcedure:
+			adminServiceDeployImagesHandler.ServeHTTP(w, r)
 		case AdminServiceUpdateDeploymentRuntimeProcedure:
 			adminServiceUpdateDeploymentRuntimeHandler.ServeHTTP(w, r)
 		case AdminServiceGetSchemaProcedure:
@@ -814,6 +843,10 @@ func (UnimplementedAdminServiceHandler) ResetSubscription(context.Context, *conn
 
 func (UnimplementedAdminServiceHandler) ApplyChangeset(context.Context, *connect.Request[v11.ApplyChangesetRequest], *connect.ServerStream[v11.ApplyChangesetResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.ApplyChangeset is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) DeployImages(context.Context, *connect.Request[v11.DeployImagesRequest], *connect.ServerStream[v11.DeployImagesResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("xyz.block.ftl.admin.v1.AdminService.DeployImages is not implemented"))
 }
 
 func (UnimplementedAdminServiceHandler) UpdateDeploymentRuntime(context.Context, *connect.Request[v11.UpdateDeploymentRuntimeRequest]) (*connect.Response[v11.UpdateDeploymentRuntimeResponse], error) {

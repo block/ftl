@@ -160,6 +160,14 @@ message ApplyChangesetResponse {
   ftl.schema.v1.Changeset changeset = 2;
 }
 
+message DeployImagesRequest {
+  repeated string image = 1;
+}
+
+message DeployImagesResponse {
+  // The changeset, the result can be determined by checking the state
+  ftl.schema.v1.Changeset changeset = 1;
+}
 message UpdateDeploymentRuntimeRequest {
   // The modules to add or update.
   ftl.schema.v1.RuntimeElement element = 1;
@@ -290,6 +298,10 @@ service AdminService {
   // Creates and applies a changeset, returning the result
   // This blocks until the changeset has completed
   rpc ApplyChangeset(ApplyChangesetRequest) returns (stream ApplyChangesetResponse);
+
+  // Creates and applies a changeset, returning the result
+  // This blocks until the changeset has completed
+  rpc DeployImages(DeployImagesRequest) returns (stream DeployImagesResponse);
 
   // Updates a runtime deployment
   rpc UpdateDeploymentRuntime(UpdateDeploymentRuntimeRequest) returns (UpdateDeploymentRuntimeResponse);
