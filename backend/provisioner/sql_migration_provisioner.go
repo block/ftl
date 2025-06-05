@@ -56,6 +56,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to extract tar")
 			}
+			defer os.RemoveAll(dir) //nolint:errcheck
 			d := ""
 
 			switch db.Type {
@@ -102,7 +103,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			dbm := dbmate.New(u)
 			dbm.AutoDumpSchema = false
 			dbm.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
-			dbm.MigrationsDir = []string{dir}
+			dbm.MigrationsDir = []string{filepath.Join(dir, "migrations", db.Name)}
 			err = dbm.CreateAndMigrate()
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create and migrate database")
@@ -170,6 +171,10 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 
 		// Construct the full path for the file
 		targetPath := filepath.Join(tempDir, filepath.Clean(header.Name))
+		err = os.MkdirAll(filepath.Join(targetPath, ".."), 0744)
+		if err != nil {
+			return "", err
+		}
 
 		// Create the file
 		file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
