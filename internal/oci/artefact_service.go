@@ -356,7 +356,7 @@ func (s *ArtefactService) DownloadArtifacts(ctx context.Context, dest string, ar
 	return nil
 }
 
-// createLayer returns a v1.Layer with a single text file.
+// createLayer returns a v1.Layer containing the files specified in the artifacts.
 func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -370,6 +370,15 @@ func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, e
 	}
 	// TODO: use a file
 	return tarball.LayerFromReader(&buf) //nolint
+}
+
+// createMigrationsLayer returns a v1.Layer of the migrations tarball.
+func createMigrationsLayer(path string, artifact *schema.MetadataArtefact) (v1.Layer, error) {
+	layer, err := tarball.LayerFromFile(filepath.Join(path, artifact.Path))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create layer from file %s", artifact.Path)
+	}
+	return layer, nil
 }
 
 // addFileToTar adds a single file to the tar writer.

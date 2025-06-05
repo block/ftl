@@ -22,6 +22,7 @@ import (
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/slices"
 )
 
 const SchemaLabel = "ftl.schema.digest"
@@ -197,12 +198,13 @@ func (s *ImageService) BuildOCIImageFromRemote(
 	if err != nil {
 		return errors.Wrapf(err, "failed to download artifacts")
 	}
-	return s.BuildOCIImage(ctx, baseImage, targetImage, target, deployment, artifacts, envVars, targets...)
+	return s.BuildOCIImage(ctx, module, baseImage, targetImage, target, deployment, artifacts, envVars, targets...)
 
 }
 
 func (s *ImageService) BuildOCIImage(
 	ctx context.Context,
+	module *schema.Module,
 	baseImage name.Reference,
 	targetImage name.Tag,
 	apath string,
@@ -211,11 +213,26 @@ func (s *ImageService) BuildOCIImage(
 	envVars map[string]string,
 	targets ...ImageTarget,
 ) error {
+
+	migrations := map[string]bool{}
+
+	for db := range slices.FilterVariants[*schema.Database](module.Decls) {
+		for _, m := range db.Metadata {
+			if sqlMigration, ok := m.(*schema.MetadataSQLMigration); ok {
+				migrations[sqlMigration.Digest] = true
+			}
+		}
+	}
+
 	var artifacts []*schema.MetadataArtefact
 	var schemaArtifacts []*schema.MetadataArtefact
+	var migrationArtifacts []*schema.MetadataArtefact
+
 	for _, i := range allArtifacts {
 		if i.Path == FTLFullSchemaPath {
 			schemaArtifacts = append(schemaArtifacts, i)
+		} else if migrations[i.Digest.String()] {
+			migrationArtifacts = append(migrationArtifacts, i)
 		} else {
 			artifacts = append(artifacts, i)
 		}
@@ -245,21 +262,31 @@ func (s *ImageService) BuildOCIImage(
 		logger.Infof("Using image %s from local docker daemon", baseImage.String()) //nolint
 	}
 
+	layers := []v1.Layer{}
 	layer, err := createLayer(apath, artifacts)
 	if err != nil {
 		return errors.Errorf("creating layer: %w", err)
 	}
+	layers = append(layers, layer)
 	schLayer, err := createLayer(apath, schemaArtifacts)
 	if err != nil {
 		return errors.Errorf("creating layer: %w", err)
 	}
+	layers = append(layers, schLayer)
 	schDigest, err := schLayer.Digest()
 	if err != nil {
 		return errors.Errorf("getting schema layer digest: %w", err)
 	}
+	for _, mig := range migrationArtifacts {
+		l, err := createMigrationsLayer(apath, mig)
+		if err != nil {
+			return errors.Errorf("creating migration layer: %w", err)
+		}
+		layers = append(layers, l)
+	}
 
 	// Append the layer to the base image
-	newImg, err := mutate.AppendLayers(base, layer, schLayer)
+	newImg, err := mutate.AppendLayers(base, layers...)
 	if err != nil {
 		return errors.Errorf("appending layer: %w", err)
 	}

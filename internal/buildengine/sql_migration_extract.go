@@ -38,7 +38,7 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 		target := filepath.Join(targetDir, fileName)
 		schemaDir = filepath.Join(cfg.Dir, schemaDir)
 		logger.Debugf("Reading migrations from %s", schemaDir)
-		err := createMigrationTarball(schemaDir, target)
+		err := createMigrationTarball(schemaDir, target, db.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create migration tar %s", schemaDir)
 		}
@@ -52,7 +52,7 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 	return ret, nil
 }
 
-func createMigrationTarball(migrationDir string, target string) error {
+func createMigrationTarball(migrationDir string, target string, db string) error {
 	// Create the tar file
 	tarFile, err := os.Create(target)
 	if err != nil {
@@ -92,7 +92,7 @@ func createMigrationTarball(migrationDir string, target string) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to create tar header")
 		}
-		header.Name = file.Name()
+		header.Name = filepath.Join("migrations", db, file.Name())
 		header.ModTime = epoch
 		header.AccessTime = epoch
 		header.ChangeTime = epoch
