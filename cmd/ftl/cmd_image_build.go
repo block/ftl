@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/block/ftl/common/sha256"
 	"os"
 	"path/filepath"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
+	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/projectconfig"

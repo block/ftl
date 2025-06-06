@@ -2,6 +2,7 @@ package buildengine
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"io"
 	"os"
@@ -34,7 +35,7 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 			logger.Debugf("No schema content for %s", db.Name)
 			continue
 		}
-		fileName := db.Name + ".tar"
+		fileName := db.Name + ".tar.gz"
 		target := filepath.Join(targetDir, fileName)
 		schemaDir = filepath.Join(cfg.Dir, schemaDir)
 		logger.Debugf("Reading migrations from %s", schemaDir)
@@ -53,15 +54,19 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 }
 
 func createMigrationTarball(migrationDir string, target string, db string) error {
-	// Create the tar file
+	// Create the tar.gz file
 	tarFile, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "failed to create tar file")
+		return errors.Wrap(err, "failed to create tar.gz file")
 	}
 	defer tarFile.Close()
 
+	// Create a gzip writer
+	gw := gzip.NewWriter(tarFile)
+	defer gw.Close()
+
 	// Create a new tar writer
-	tw := tar.NewWriter(tarFile)
+	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
 	// Read the directory
