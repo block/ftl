@@ -26,7 +26,11 @@ type Config struct {
 	TimelineEndpoint *url.URL `help:"Timeline endpoint (discard:// to disable)." env:"FTL_TIMELINE_ENDPOINT" default:"http://127.0.0.1:8892"`
 }
 
-type Client struct {
+type Publisher interface {
+	Publish(ctx context.Context, event Event)
+}
+
+type RealClient struct {
 	timelinepbconnect.TimelineServiceClient
 
 	entries          chan *timelinepb.CreateEventsRequest_EventEntry
@@ -34,7 +38,9 @@ type Client struct {
 	lastFailedError  atomic.Value[time.Time]
 }
 
-func (c *Client) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+var _ Publisher = &RealClient{}
+
+func (c *RealClient) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
 	return connect.NewResponse(&v1.PingResponse{}), nil
 }
 
@@ -46,12 +52,12 @@ var NullConfig = Config{
 //
 // If endpoint is discard:// the client will not create an RPC client or send any RPC requests, and all events
 // will be immediately discarded.
-func NewClient(ctx context.Context, config Config) *Client {
+func NewClient(ctx context.Context, config Config) *RealClient {
 	var c timelinepbconnect.TimelineServiceClient
 	if config.TimelineEndpoint.Scheme != "discard" {
 		c = rpc.Dial(timelinepbconnect.NewTimelineServiceClient, config.TimelineEndpoint.String(), log.Error)
 	}
-	client := &Client{
+	client := &RealClient{
 		TimelineServiceClient: c,
 		entries:               make(chan *timelinepb.CreateEventsRequest_EventEntry, 1000),
 	}
@@ -70,7 +76,7 @@ type Event interface {
 }
 
 // Publish asynchronously enqueues an event for publication to the timeline.
-func (c *Client) Publish(ctx context.Context, event Event) {
+func (c *RealClient) Publish(ctx context.Context, event Event) {
 	entry, err := event.ToEntry()
 	entry.Timestamp = timestamppb.New(time.Now())
 	if err != nil {
@@ -87,7 +93,7 @@ func (c *Client) Publish(ctx context.Context, event Event) {
 	}
 }
 
-func (c *Client) noopEvents(ctx context.Context) {
+func (c *RealClient) noopEvents(ctx context.Context) {
 	for {
 		select {
 		case <-c.entries:
@@ -97,7 +103,7 @@ func (c *Client) noopEvents(ctx context.Context) {
 	}
 }
 
-func (c *Client) processEvents(ctx context.Context) {
+func (c *RealClient) processEvents(ctx context.Context) {
 	lastFlush := time.Now()
 	buffer := make([]*timelinepb.CreateEventsRequest_EventEntry, 0, maxBatchSize)
 	for {
@@ -125,7 +131,7 @@ func (c *Client) processEvents(ctx context.Context) {
 }
 
 // Flush all events in the buffer to the timeline service in a single call.
-func (c *Client) flushEvents(ctx context.Context, entries []*timelinepb.CreateEventsRequest_EventEntry) {
+func (c *RealClient) flushEvents(ctx context.Context, entries []*timelinepb.CreateEventsRequest_EventEntry) {
 	logger := log.FromContext(ctx).Scope("timeline")
 	_, err := c.CreateEvents(ctx, connect.NewRequest(&timelinepb.CreateEventsRequest{
 		Entries: entries,

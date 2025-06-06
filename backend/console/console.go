@@ -41,7 +41,7 @@ type Config struct {
 
 type Service struct {
 	schemaEventSource *schemaeventsource.EventSource
-	timelineClient    *timelineclient.Client
+	timelineClient    *timelineclient.RealClient
 	adminClient       admin.EnvironmentClient
 	callClient        routing.CallClient
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
@@ -55,7 +55,7 @@ var _ consolepbconnect.ConsoleServiceHandler = (*Service)(nil)
 
 func New(
 	eventSource *schemaeventsource.EventSource,
-	timelineClient *timelineclient.Client,
+	timelineClient *timelineclient.RealClient,
 	adminClient admin.EnvironmentClient,
 	client routing.CallClient,
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,

@@ -30,7 +30,7 @@ type VerbClient interface {
 var _ pubsubpbconnect.PublishServiceHandler = (*Service)(nil)
 var _ pubsubpbconnect.PubSubAdminServiceHandler = (*Service)(nil)
 
-func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient, timelineClient *timelineclient.Client) (*Service, error) {
+func New(module *schema.Module, deployment key.Deployment, verbClient VerbClient, timelineClient timelineclient.Publisher) (*Service, error) {
 	publishers := map[string]*publisher{}
 	for t := range sl.FilterVariants[*schema.Topic](module.Decls) {
 		publisher, err := newPublisher(module.Name, t, deployment, timelineClient)

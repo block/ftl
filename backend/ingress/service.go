@@ -40,13 +40,13 @@ type service struct {
 	// Complete schema synchronised from the database.
 	view           *atomic.Value[materialisedView]
 	client         routing.CallClient
-	timelineClient *timelineclient.Client
+	timelineClient timelineclient.Publisher
 	routeTable     *routing.RouteTable
 	urlPrefix      string
 }
 
 // Start the HTTP ingress service. Blocks until the context is cancelled.
-func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
+func Start(ctx context.Context, bind *url.URL, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient timelineclient.Publisher) error {
 	logger := log.FromContext(ctx).Scope("http-ingress")
 	ctx = log.ContextWithLogger(ctx, logger)
 	svc := &service{

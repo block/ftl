@@ -36,7 +36,7 @@ type Config struct {
 type Service struct {
 	State          *statemachine.SingleQueryHandle[struct{}, SchemaState, EventWrapper]
 	Config         Config
-	timelineClient *timelineclient.Client
+	timelineClient timelineclient.Publisher
 	receiverClient optional.Option[ftlv1connect.SchemaMirrorServiceClient] // TODO: rename as mirror
 	devMode        bool
 	creationLock   sync.Mutex
@@ -65,7 +65,7 @@ func (s *Service) GetDeployment(ctx context.Context, c *connect.Request[ftlv1.Ge
 
 var _ ftlv1connect.SchemaServiceHandler = (*Service)(nil)
 
-func NewLocalService(ctx context.Context, config Config, timelineClient *timelineclient.Client, devMode bool) *Service {
+func NewLocalService(ctx context.Context, config Config, timelineClient timelineclient.Publisher, devMode bool) *Service {
 	s := &Service{
 		State:          statemachine.NewSingleQueryHandle(statemachine.NewLocalHandle(newStateMachine(ctx, "")), struct{}{}),
 		Config:         config,
@@ -85,7 +85,7 @@ func (s *Service) StartServices(context.Context) ([]rpc.Option, error) {
 func New(
 	ctx context.Context,
 	config Config,
-	timelineClient *timelineclient.Client,
+	timelineClient timelineclient.Publisher,
 	receiverClient optional.Option[ftlv1connect.SchemaMirrorServiceClient],
 	realm string,
 	devMode bool,
