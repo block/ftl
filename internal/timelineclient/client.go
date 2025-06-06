@@ -146,3 +146,16 @@ func (c *RealClient) flushEvents(ctx context.Context, entries []*timelinepb.Crea
 	}
 	metrics.Inserted(ctx, len(entries))
 }
+
+// NewFakePublisher for testing.
+func NewFakePublisher() *FakePublisher {
+	return &FakePublisher{}
+}
+
+type FakePublisher struct {
+	Events []Event
+}
+
+func (f *FakePublisher) Publish(_ context.Context, event Event) {
+	f.Events = append(f.Events, event)
+}
