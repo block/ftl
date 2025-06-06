@@ -3,10 +3,3 @@
 
 # By default ftl-reviewers will be added to all PRs.
 *                @block/ftl-reviewers @alecthomas
-
-# Below are team-specific overrides. These should supercede the default ftl-reviewers team.
-frontend/        @block/ftl-frontend-team
-pnpm-*           @block/ftl-frontend-team
-go-runtime/      @block/ftl-go-team
-jvm-runtime/     @block/ftl-jvm-team
-deployment/      @block/ftl-infra-team
