@@ -1,20 +1,19 @@
 package timeline
 
 import (
-	"iter"
 	"strconv"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/alecthomas/assert/v2"
-	"github.com/alecthomas/types/result"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	sops "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/iterops"
+	"github.com/block/ftl/internal/channels"
+	"github.com/block/ftl/internal/rpc"
 )
 
 func BenchmarkTimelineInsert(b *testing.B) {
@@ -61,7 +60,6 @@ func BenchmarkTimelineFilterID(b *testing.B) {
 func TestGetTimeline(t *testing.T) {
 	t.Parallel()
 	t.Run("Limits", func(t *testing.T) {
-		t.Parallel()
 
 		entryCount := 100
 		service := createTestService(t, callEventsFixture(entryCount))
@@ -91,7 +89,6 @@ func TestGetTimeline(t *testing.T) {
 	})
 
 	t.Run("Delete old events", func(t *testing.T) {
-		t.Parallel()
 
 		service := createTestService(t, timestampFixture(100))
 
@@ -109,31 +106,29 @@ func TestStreamTimeline(t *testing.T) {
 	t.Parallel()
 
 	t.Run("DESC order", func(t *testing.T) {
-		t.Parallel()
 		query := &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_DESC, Limit: 5}
 
 		t.Run("returns an empty batch initially if there are no events", func(t *testing.T) {
 			service := createTestService(t, callEventsFixture(0))
-			iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: query})
-			assert.NoError(t, err)
-			res, _ := iterops.Next(iter)
-			assert.Equal(t, []int{}, sops.Map(assertSuccees(t, res).Events, getID))
+			events, stream := rpc.NewServerStream[timelinepb.StreamTimelineResponse]()
+			go service.StreamTimeline(t.Context(), connect.NewRequest(&timelinepb.StreamTimelineRequest{Query: query}), stream) //nolint:errcheck
+			res := channels.Take(t, time.Second, events)
+			assert.Equal(t, []int{}, sops.Map(res.Events, getID))
 		})
 
 		service := createTestService(t, callEventsFixture(20))
-		iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: query})
-		assert.NoError(t, err)
+		events, stream := rpc.NewServerStream[timelinepb.StreamTimelineResponse]()
+		go service.StreamTimeline(t.Context(), connect.NewRequest(&timelinepb.StreamTimelineRequest{Query: query}), stream) //nolint:errcheck
 
 		t.Run("with the first <Limit> events in the first batch are returned in descending order", func(t *testing.T) {
-			res, _ := iterops.Next(iter)
-			events := assertSuccees(t, res).Events
-			assert.Equal(t, []int{4, 3, 2, 1, 0}, sops.Map(events, getID))
+			res := channels.Take(t, time.Second, events)
+			assert.Equal(t, []int{4, 3, 2, 1, 0}, sops.Map(res.Events, getID))
 		})
 		t.Run("after the first batch, the remaining events in batches are in descending order", func(t *testing.T) {
-			_, err = service.CreateEvents(t.Context(), connect.NewRequest(callEventsFixture(100)))
+			_, err := service.CreateEvents(t.Context(), connect.NewRequest(callEventsFixture(100)))
 			assert.NoError(t, err)
 
-			events := readEventIDs(t, 2, iter)
+			events := readEventIDs(2, events)
 			assert.Equal(t, [][]int{
 				{9, 8, 7, 6, 5},
 				{14, 13, 12, 11, 10},
@@ -141,31 +136,30 @@ func TestStreamTimeline(t *testing.T) {
 		})
 	})
 	t.Run("ASC order", func(t *testing.T) {
-		t.Parallel()
 		query := &timelinepb.TimelineQuery{Order: timelinepb.TimelineQuery_ORDER_ASC, Limit: 5}
 
 		t.Run("returns an empty batch initially if there are no events", func(t *testing.T) {
 			service := createTestService(t, callEventsFixture(0))
-			iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: query})
-			assert.NoError(t, err)
-			res, _ := iterops.Next(iter)
-			assert.Equal(t, []int{}, sops.Map(assertSuccees(t, res).Events, getID))
+			events, stream := rpc.NewServerStream[timelinepb.StreamTimelineResponse]()
+			go service.StreamTimeline(t.Context(), connect.NewRequest(&timelinepb.StreamTimelineRequest{Query: query}), stream) //nolint:errcheck
+
+			res := channels.Take(t, time.Second, events)
+			assert.Equal(t, []int{}, sops.Map(res.Events, getID))
 		})
 
 		service := createTestService(t, callEventsFixture(20))
-		iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: query})
-		assert.NoError(t, err)
+		events, stream := rpc.NewServerStream[timelinepb.StreamTimelineResponse]()
+		go service.StreamTimeline(t.Context(), connect.NewRequest(&timelinepb.StreamTimelineRequest{Query: query}), stream) //nolint:errcheck
 
 		t.Run("with the last <Limit> events in the first batch are returned in ascending order", func(t *testing.T) {
-			res, _ := iterops.Next(iter)
-			events := assertSuccees(t, res).Events
-			assert.Equal(t, []int{15, 16, 17, 18, 19}, sops.Map(events, getID))
+			res := channels.Take(t, time.Second, events)
+			assert.Equal(t, []int{15, 16, 17, 18, 19}, sops.Map(res.Events, getID))
 		})
 		t.Run("after the first batch, the next batches are in ascending order", func(t *testing.T) {
-			_, err = service.CreateEvents(t.Context(), connect.NewRequest(callEventsFixture(100)))
+			_, err := service.CreateEvents(t.Context(), connect.NewRequest(callEventsFixture(100)))
 			assert.NoError(t, err)
 
-			events := readEventIDs(t, 2, iter)
+			events := readEventIDs(2, events)
 			assert.Equal(t, [][]int{
 				{20, 21, 22, 23, 24},
 				{25, 26, 27, 28, 29},
@@ -223,18 +217,18 @@ func TestQueries(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: tc.query})
-			assert.NoError(t, err)
-			events := readEventIDs(t, 1, iter)
-			assert.Equal(t, tc.wantIDs, events[0])
+			events, stream := rpc.NewServerStream[timelinepb.StreamTimelineResponse]()
+			go service.StreamTimeline(t.Context(), connect.NewRequest(&timelinepb.StreamTimelineRequest{Query: tc.query}), stream) //nolint:errcheck
+			eventIDs := readEventIDs(1, events)
+			assert.Equal(t, tc.wantIDs, eventIDs[0])
 		})
 	}
 }
 
-func readEventIDs(t *testing.T, n int, iter iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]]) [][]int {
+func readEventIDs(n int, iter chan *timelinepb.StreamTimelineResponse) [][]int {
 	var eventsIDs [][]int
 	for res := range iter {
-		events := assertSuccees(t, res).Events
+		events := res.Events
 		eventsIDs = append(eventsIDs, sops.Map(events, getID))
 
 		if len(eventsIDs) >= n {
@@ -252,12 +246,6 @@ func createTestService(t testing.TB, dataFixture *timelinepb.CreateEventsRequest
 	_, err = service.CreateEvents(t.Context(), connect.NewRequest(dataFixture))
 	assert.NoError(t, err)
 	return service
-}
-
-func assertSuccees[T any](t *testing.T, r result.Result[T]) T {
-	v, err := r.Result()
-	assert.NoError(t, err)
-	return v
 }
 
 func callEventsFixture(entryCount int) *timelinepb.CreateEventsRequest {
