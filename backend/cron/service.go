@@ -60,7 +60,7 @@ type Config struct {
 }
 
 // Start the cron service. Blocks until the context is cancelled.
-func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient *timelineclient.Client) error {
+func Start(ctx context.Context, config Config, eventSource *schemaeventsource.EventSource, client routing.CallClient, timelineClient timelineclient.Publisher) error {
 	logger := log.FromContext(ctx).Scope("cron")
 	ctx = log.ContextWithLogger(ctx, logger)
 	// Map of cron jobs for each module.
@@ -153,7 +153,7 @@ func Start(ctx context.Context, config Config, eventSource *schemaeventsource.Ev
 	return nil
 }
 
-func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struct{}, CronState, CronEvent], client routing.CallClient, job *cronJob, timelineClient *timelineclient.Client) error {
+func executeJob(ctx context.Context, state *statemachine.SingleQueryHandle[struct{}, CronState, CronEvent], client routing.CallClient, job *cronJob, timelineClient timelineclient.Publisher) error {
 	logger := log.FromContext(ctx).Scope("cron").Module(job.module)
 	logger.Debugf("Executing cron job %s", job)
 
@@ -249,7 +249,7 @@ func scheduleNext(cronQueue []*cronJob) (time.Duration, bool) {
 	return next, true
 }
 
-func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change schema.Notification, timelineClient *timelineclient.Client) error {
+func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change schema.Notification, timelineClient timelineclient.Publisher) error {
 	logger := log.FromContext(ctx).Scope("cron")
 
 	// Track jobs before the update to detect changes
@@ -297,7 +297,7 @@ func updateCronJobs(ctx context.Context, cronJobs map[string][]*cronJob, change 
 	return nil
 }
 
-func publishNewOrChangedJobs(ctx context.Context, newJobs []*cronJob, oldJobs map[string]*cronJob, timelineClient *timelineclient.Client) {
+func publishNewOrChangedJobs(ctx context.Context, newJobs []*cronJob, oldJobs map[string]*cronJob, timelineClient timelineclient.Publisher) {
 	for _, job := range newJobs {
 		oldJob, exists := oldJobs[job.Key()]
 		// Publish event if job is new or if the schedule has changed

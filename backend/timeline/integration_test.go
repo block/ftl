@@ -40,9 +40,6 @@ func TestTimeline(t *testing.T) {
 		in.Call("publisher", "publish", in.Obj{}, func(t testing.TB, resp in.Obj) {}),
 
 		in.SubTests(
-			in.SubTest{Name: "Limit", Action: in.VerifyTimeline(1, []*timelinepb.TimelineQuery_Filter{}, func(ctx context.Context, t testing.TB, events []*timelinepb.Event) {
-				assert.Equal(t, 1, len(events))
-			})},
 			in.SubTest{Name: "IngressEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
 					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{

@@ -27,10 +27,10 @@ type publisher struct {
 	topic      *schema.Topic
 	producer   sarama.SyncProducer
 
-	timelineClient *timelineclient.Client
+	timelineClient timelineclient.Publisher
 }
 
-func newPublisher(module string, t *schema.Topic, deployment key.Deployment, timelineClient *timelineclient.Client) (*publisher, error) {
+func newPublisher(module string, t *schema.Topic, deployment key.Deployment, timelineClient timelineclient.Publisher) (*publisher, error) {
 	if t.Runtime == nil {
 		return nil, errors.Errorf("topic %s has no runtime", t.Name)
 	}

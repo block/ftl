@@ -33,7 +33,7 @@ type CallClient interface {
 type VerbCallRouter struct {
 	routingTable   *RouteTable
 	moduleClients  *xsync.MapOf[string, optional.Option[ftlv1connect.VerbServiceClient]]
-	timelineClient *timelineclient.Client
+	timelineClient timelineclient.Publisher
 }
 
 func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.CallRequest]) (*connect.Response[ftlv1.CallResponse], error) {
@@ -89,7 +89,7 @@ func (s *VerbCallRouter) Call(ctx context.Context, req *connect.Request[ftlv1.Ca
 	return resp, nil
 }
 
-func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelineClient *timelineclient.Client) *VerbCallRouter {
+func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelineClient timelineclient.Publisher) *VerbCallRouter {
 	svc := &VerbCallRouter{
 		routingTable:   routeTable,
 		moduleClients:  xsync.NewMapOf[string, optional.Option[ftlv1connect.VerbServiceClient]](),
@@ -106,7 +106,7 @@ func NewVerbRouterFromTable(ctx context.Context, routeTable *RouteTable, timelin
 	}()
 	return svc
 }
-func NewVerbRouter(ctx context.Context, changes *schemaeventsource.EventSource, timelineClient *timelineclient.Client) *VerbCallRouter {
+func NewVerbRouter(ctx context.Context, changes *schemaeventsource.EventSource, timelineClient timelineclient.Publisher) *VerbCallRouter {
 	return NewVerbRouterFromTable(ctx, New(ctx, changes), timelineClient)
 }
 

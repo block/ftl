@@ -38,7 +38,7 @@ type Service struct {
 	deploymentContextProvider deploymentcontext.DeploymentContextProvider
 	controllerLeaseService    ftlleaseconnect.LeaseServiceClient
 	moduleVerbService         *xsync.MapOf[string, moduleVerbService]
-	timelineClient            *timelineclient.Client
+	timelineClient            timelineclient.Publisher
 	queryService              *query.Service
 	localModuleName           string
 	schema                    *schema.Module
@@ -49,7 +49,7 @@ type Service struct {
 
 func New(controllerModuleService deploymentcontext.DeploymentContextProvider,
 	leaseClient ftlleaseconnect.LeaseServiceClient,
-	timelineClient *timelineclient.Client,
+	timelineClient timelineclient.Publisher,
 	queryService *query.Service,
 	schema *schema.Module,
 	localDeployment key.Deployment,

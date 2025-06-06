@@ -204,7 +204,7 @@ type Service struct {
 	deploymentProvider        oci.DeploymentArtefactProvider
 	deploymentContextProvider deploymentcontext.DeploymentContextProvider
 	schema                    *schema.Module
-	timelineClient            *timeline.Client
+	timelineClient            timeline.Publisher
 	timelineLogSink           *timeline.LogSink
 	// Failed to register with the Controller
 	registrationFailure  atomic.Value[optional.Option[error]]

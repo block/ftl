@@ -260,7 +260,7 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		kctx.Bind(csm)
 		kctx.Bind(&cli.SharedCLI)
 
-		err = kctx.BindToProvider(func() (*timelineclient.Client, error) {
+		err = kctx.BindToProvider(func() (*timelineclient.RealClient, error) {
 			return timelineclient.NewClient(ctx, cli.TimelineConfig), nil
 		})
 		kctx.FatalIfErrorf(err)

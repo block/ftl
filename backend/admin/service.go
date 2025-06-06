@@ -48,7 +48,7 @@ type Config struct {
 
 type Service struct {
 	env            *EnvironmentManager
-	timelineClient *timelineclient.Client
+	timelineClient *timelineclient.RealClient
 	schemaClient   ftlv1connect.SchemaServiceClient
 	source         *schemaeventsource.EventSource
 	storage        *oci.ArtefactService
@@ -86,7 +86,7 @@ func NewAdminService(
 	source *schemaeventsource.EventSource,
 	storage *oci.ArtefactService,
 	routes *routing.VerbCallRouter,
-	timelineClient *timelineclient.Client,
+	timelineClient *timelineclient.RealClient,
 	waitFor []string,
 ) *Service {
 	return &Service{

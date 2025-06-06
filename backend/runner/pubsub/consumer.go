@@ -73,13 +73,13 @@ type consumer struct {
 	deadLetterPublisher optional.Option[*publisher]
 
 	verbClient     VerbClient
-	timelineClient *timelineclient.Client
+	timelineClient timelineclient.Publisher
 
 	claimedPartitionsChan chan partitionEvent
 }
 
 func newConsumer(moduleName string, verb *schema.Verb, subscriber *schema.MetadataSubscriber, deployment key.Deployment,
-	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient *timelineclient.Client) (*consumer, error) {
+	deadLetterPublisher optional.Option[*publisher], verbClient VerbClient, timelineClient timelineclient.Publisher) (*consumer, error) {
 	if verb.Runtime == nil {
 		return nil, errors.Errorf("subscription %s has no runtime", verb.Name)
 	}

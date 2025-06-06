@@ -30,7 +30,7 @@ func (c *replayCmd) Run(
 	ctx context.Context,
 	verbClient ftlv1connect.VerbServiceClient,
 	eventSource *schemaeventsource.EventSource,
-	timelineClient *timelineclient.Client,
+	timelineClient *timelineclient.RealClient,
 ) error {
 	// Wait timeout is for both pings to complete, not each ping individually
 	startTime := time.Now()

@@ -15,14 +15,14 @@ import (
 //
 // It needs to be run in a separate goroutine after creation by calling RunLogLoop.
 type LogSink struct {
-	client   *Client
+	client   Publisher
 	logQueue chan log.Entry
 	level    log.Level
 }
 
 var _ log.Sink = (*LogSink)(nil)
 
-func NewLogSink(client *Client, level log.Level) *LogSink {
+func NewLogSink(client Publisher, level log.Level) *LogSink {
 	return &LogSink{
 		client:   client,
 		logQueue: make(chan log.Entry, 10000),

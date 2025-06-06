@@ -81,7 +81,7 @@ func Start(
 	ctx context.Context,
 	registry *ProvisionerRegistry,
 	schemaClient schemaconnect.SchemaServiceClient,
-	timelineClient *timeline.Client,
+	timelineClient timeline.Publisher,
 ) error {
 	timelineLogSink := timeline.NewLogSink(timelineClient, log.Debug)
 	go timelineLogSink.RunLogLoop(ctx)
