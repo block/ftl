@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/url"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -62,11 +61,6 @@ func (c *replayCmd) Run(
 		}
 	}
 	if !found {
-		suggestions, err := findSuggestions(ctx, eventSource, c.Verb)
-		// if we have suggestions, return a helpful error message. otherwise continue to the original error
-		if err == nil {
-			return errors.Errorf("verb not found: %s\n\nDid you mean one of these?\n%s", c.Verb, strings.Join(suggestions, "\n"))
-		}
 		return errors.Errorf("verb not found: %s", c.Verb)
 	}
 
@@ -109,5 +103,5 @@ func (c *replayCmd) Run(
 		ConsoleEndpoint: c.ConsoleEndpoint,
 		Verbose:         c.Verbose,
 	}
-	return errors.WithStack(callVerb(ctx, verbClient, eventSource, c.Verb, []byte(requestJSON), c.Verbose, cmd))
+	return errors.WithStack(callVerb(ctx, verbClient, c.Verb, []byte(requestJSON), c.Verbose, cmd))
 }
