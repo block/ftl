@@ -152,6 +152,7 @@ func (s *ImageService) BuildOCIImageFromRemote(
 	module *schema.Module,
 	deployment key.Deployment,
 	artifacts []*schema.MetadataArtefact,
+	envVars map[string]string,
 	targets ...ImageTarget,
 ) error {
 	target, err := os.MkdirTemp(tempDir, "ftl-image-")
@@ -194,7 +195,7 @@ func (s *ImageService) BuildOCIImageFromRemote(
 	if err != nil {
 		return errors.Wrapf(err, "failed to download artifacts")
 	}
-	return s.BuildOCIImage(ctx, baseImage, targetImage, target, deployment, artifacts, targets...)
+	return s.BuildOCIImage(ctx, baseImage, targetImage, target, deployment, artifacts, envVars, targets...)
 
 }
 
@@ -205,6 +206,7 @@ func (s *ImageService) BuildOCIImage(
 	apath string,
 	deployment key.Deployment,
 	allArtifacts []*schema.MetadataArtefact,
+	envVars map[string]string,
 	targets ...ImageTarget,
 ) error {
 	var artifacts []*schema.MetadataArtefact
@@ -281,6 +283,9 @@ func (s *ImageService) BuildOCIImage(
 	cfg.Config.Env = append(cfg.Config.Env, fmt.Sprintf("FTL_DEPLOYMENT=%s", deployment.String()))
 	cfg.Config.Env = append(cfg.Config.Env, "LOG_LEVEL=DEBUG")
 	cfg.Config.Env = append(cfg.Config.Env, "LOG_FORMAT=json")
+	for k, v := range envVars {
+		cfg.Config.Env = append(cfg.Config.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 	cfg.Config.Labels[SchemaLabel] = schDigest.String()
 	newImg, err = mutate.Config(newImg, cfg.Config)
 	if err != nil {

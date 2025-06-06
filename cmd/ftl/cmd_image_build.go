@@ -115,7 +115,7 @@ func (b *imageBuildCmd) Run(
 		// TODO: we need to properly sync the deployment with the actual deployment key
 		// this is just a hack to get the module and realm to the runner
 		deployment := key.NewDeploymentKey(projConfig.Name, moduleSch.Name)
-		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, targets...)
+		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, nil, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")
 		}
