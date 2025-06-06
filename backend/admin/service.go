@@ -52,6 +52,7 @@ type Service struct {
 	schemaClient   ftlv1connect.SchemaServiceClient
 	source         *schemaeventsource.EventSource
 	storage        *oci.ArtefactService
+	imageService   *oci.ImageService
 	config         Config
 	routeTable     *routing.VerbCallRouter
 	waitFor        []string
@@ -87,6 +88,7 @@ func NewAdminService(
 	storage *oci.ArtefactService,
 	routes *routing.VerbCallRouter,
 	timelineClient *timelineclient.RealClient,
+	imageService *oci.ImageService,
 	waitFor []string,
 ) *Service {
 	return &Service{
@@ -98,6 +100,7 @@ func NewAdminService(
 		timelineClient: timelineClient,
 		routeTable:     routes,
 		waitFor:        waitFor,
+		imageService:   imageService,
 	}
 }
 
@@ -511,6 +514,61 @@ func (s *Service) GetSchema(ctx context.Context, c *connect.Request[ftlv1.GetSch
 	return connect.NewResponse(sch.Msg), nil
 }
 
+func (s *Service) DeployImages(ctx context.Context, c *connect.Request[adminpb.DeployImagesRequest], stream *connect.ServerStream[adminpb.DeployImagesResponse]) error {
+	var changes []*ftlv1.RealmChange
+	var pbchanges []*schemapb.RealmChange
+	var mpbchanges []*schemapb.Module
+	realm := ""
+	for _, image := range c.Msg.Image {
+		ref, err := s.imageService.ParseName(image, c.Msg.AllowInsecure)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse image name %s", image)
+		}
+		sch, module, err := s.imageService.PullSchema(ctx, ref)
+		if err != nil {
+			return errors.Wrap(err, "failed to pull schema")
+		}
+		rlm, ok := sch.FirstInternalRealm().Get()
+		if !ok {
+			return errors.Wrapf(err, "failed to find internal realm in image %s", image)
+		}
+		mod, ok := rlm.Module(module).Get()
+		if !ok {
+			return errors.Wrapf(err, "failed to find module %s in image %s", module, image)
+		}
+		if realm == "" {
+			realm = mod.Runtime.Deployment.DeploymentKey.Payload.Realm
+		} else if realm != mod.Runtime.Deployment.DeploymentKey.Payload.Realm {
+			//TODO: multi realm changes
+			return errors.Errorf("image %s has different realm %s than previous images %s", image, mod.Runtime.Deployment.DeploymentKey.Payload.Realm, realm)
+		}
+		modpb := mod.ToProto()
+		mpbchanges = append(mpbchanges, modpb)
+	}
+	pbchanges = append(pbchanges, &schemapb.RealmChange{
+		Name:    realm,
+		Modules: mpbchanges,
+	})
+	changes = append(changes, &ftlv1.RealmChange{
+		Name:    realm,
+		Modules: mpbchanges,
+	})
+	cs, err := s.schemaClient.CreateChangeset(ctx, connect.NewRequest(&ftlv1.CreateChangesetRequest{
+		RealmChanges: changes,
+	}))
+	if err != nil {
+		return errors.Wrap(err, "failed to create changeset")
+	}
+	return s.streamChangesetState(ctx, pbchanges, cs, func(changeset *schemapb.Changeset) error {
+		if err := stream.Send(&adminpb.DeployImagesResponse{
+			Changeset: changeset,
+		}); err != nil {
+			return errors.Wrap(err, "failed to send changeset")
+		}
+		return nil
+	})
+}
+
 func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[adminpb.ApplyChangesetRequest], stream *connect.ServerStream[adminpb.ApplyChangesetResponse]) error {
 	var changes []*ftlv1.RealmChange
 	var pbchanges []*schemapb.RealmChange
@@ -534,6 +592,18 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	if err != nil {
 		return errors.Wrap(err, "failed to create changeset")
 	}
+	return s.streamChangesetState(ctx, pbchanges, cs, func(changeset *schemapb.Changeset) error {
+		if err := stream.Send(&adminpb.ApplyChangesetResponse{
+			Changeset: changeset,
+		}); err != nil {
+			return errors.Wrap(err, "failed to send changeset")
+		}
+		return nil
+	})
+
+}
+
+func (s *Service) streamChangesetState(ctx context.Context, pbchanges []*schemapb.RealmChange, cs *connect.Response[ftlv1.CreateChangesetResponse], handler func(changeset *schemapb.Changeset) error) error {
 	key, err := key.ParseChangesetKey(cs.Msg.Changeset)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse changeset key")
@@ -542,9 +612,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 		Key:          cs.Msg.Changeset,
 		RealmChanges: pbchanges,
 	}
-	if err := stream.Send(&adminpb.ApplyChangesetResponse{
-		Changeset: changeset,
-	}); err != nil {
+	if err := handler(changeset); err != nil {
 		return errors.Wrap(err, "failed to send changeset")
 	}
 	for e := range channels.IterContext(ctx, s.source.Subscribe(ctx)) {
@@ -553,9 +621,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 			if event.Key != key {
 				continue
 			}
-			if err := stream.Send(&adminpb.ApplyChangesetResponse{
-				Changeset: changeset,
-			}); err != nil {
+			if err := handler(changeset); err != nil {
 				return errors.Wrap(err, "failed to send changeset")
 			}
 			return nil
@@ -570,9 +636,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 			}
 			changeset = event.Changeset.ToProto()
 			// We don't wait for cleanup, just return immediately
-			if err := stream.Send(&adminpb.ApplyChangesetResponse{
-				Changeset: changeset,
-			}); err != nil {
+			if err := handler(changeset); err != nil {
 				return errors.Wrap(err, "failed to send changeset")
 			}
 			return nil

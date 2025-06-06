@@ -5,7 +5,7 @@
 
 import { PingRequest, PingResponse } from "../../v1/ftl_pb.js";
 import { MethodIdempotency, MethodKind } from "@bufbuild/protobuf";
-import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetSubscriptionInfoRequest, GetSubscriptionInfoResponse, GetTopicInfoRequest, GetTopicInfoResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamLogsRequest, StreamLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
+import { ApplyChangesetRequest, ApplyChangesetResponse, ClusterInfoRequest, ClusterInfoResponse, ConfigGetRequest, ConfigGetResponse, ConfigListRequest, ConfigListResponse, ConfigSetRequest, ConfigSetResponse, ConfigUnsetRequest, ConfigUnsetResponse, DeployImagesRequest, DeployImagesResponse, GetArtefactDiffsRequest, GetArtefactDiffsResponse, GetDeploymentArtefactsRequest, GetDeploymentArtefactsResponse, GetSubscriptionInfoRequest, GetSubscriptionInfoResponse, GetTopicInfoRequest, GetTopicInfoResponse, MapConfigsForModuleRequest, MapConfigsForModuleResponse, MapSecretsForModuleRequest, MapSecretsForModuleResponse, ResetSubscriptionRequest, ResetSubscriptionResponse, SecretGetRequest, SecretGetResponse, SecretSetRequest, SecretSetResponse, SecretsListRequest, SecretsListResponse, SecretUnsetRequest, SecretUnsetResponse, StreamLogsRequest, StreamLogsResponse, UpdateDeploymentRuntimeRequest, UpdateDeploymentRuntimeResponse, UploadArtefactRequest, UploadArtefactResponse } from "./admin_pb.js";
 import { FailChangesetRequest, FailChangesetResponse, GetSchemaRequest, GetSchemaResponse, PullSchemaRequest, PullSchemaResponse, RollbackChangesetRequest, RollbackChangesetResponse } from "../../v1/schemaservice_pb.js";
 
 /**
@@ -160,6 +160,18 @@ export const AdminService = {
       name: "ApplyChangeset",
       I: ApplyChangesetRequest,
       O: ApplyChangesetResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Creates and applies a changeset, returning the result
+     * This blocks until the changeset has completed
+     *
+     * @generated from rpc xyz.block.ftl.admin.v1.AdminService.DeployImages
+     */
+    deployImages: {
+      name: "DeployImages",
+      I: DeployImagesRequest,
+      O: DeployImagesResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
