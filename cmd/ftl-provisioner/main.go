@@ -62,7 +62,7 @@ func main() {
 	imageService, err := oci.NewImageService(ctx)
 	kctx.FatalIfErrorf(err, "failed to create image service")
 
-	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, cli.KubeConfig.RouteTemplate(), cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, cli.KubeConfig.RouteTemplate(), cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount, imageService)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
 	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService, artefactService, cli.ImageConfig)
