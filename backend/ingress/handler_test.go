@@ -120,10 +120,11 @@ func TestIngress(t *testing.T) {
 			// Publish the test module to the event source
 			assert.NoError(t, eventSource.PublishModuleForTest(testModule))
 
+			timeline := timelineclient.NewFakePublisher()
 			svc := &service{
 				view:           syncView(ctx, eventSource),
 				client:         fv,
-				timelineClient: timelineclient.NewClient(ctx, timelineclient.NullConfig),
+				timelineClient: timeline,
 				routeTable:     routing.New(ctx, eventSource),
 			}
 			svc.handleHTTP(time.Now(), sch, reqKey, routes, rec, req, fv)
@@ -134,6 +135,13 @@ func TestIngress(t *testing.T) {
 				return
 			}
 			assert.Equal(t, response.Body, rec.Body.Bytes())
+
+			t.Log("ingress produces a timeline event")
+			assert.Equal(t, 1, len(timeline.Events))
+			ingress, ok := timeline.Events[0].(timelineclient.Ingress)
+			assert.True(t, ok, "expected ingress event, got %T", timeline.Events[0])
+			assert.Equal(t, ingress.Verb.Module, "test")
+			assert.Equal(t, ingress.Verb.Name, "getAlias")
 		})
 	}
 }

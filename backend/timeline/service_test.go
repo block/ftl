@@ -177,12 +177,11 @@ func TestStreamTimeline(t *testing.T) {
 func TestQueries(t *testing.T) {
 	t.Parallel()
 
-	service := createTestService(t, callEventsFixture(50))
-
 	type testCase struct {
 		name    string
 		query   *timelinepb.TimelineQuery
 		wantIDs []int
+		fixture *timelinepb.CreateEventsRequest
 	}
 
 	testCases := []testCase{{
@@ -191,6 +190,7 @@ func TestQueries(t *testing.T) {
 			Limit: 5,
 			Order: timelinepb.TimelineQuery_ORDER_DESC,
 		},
+		fixture: callEventsFixture(50),
 		wantIDs: []int{4, 3, 2, 1, 0},
 	}, {
 		name: "events in ascending order",
@@ -198,6 +198,7 @@ func TestQueries(t *testing.T) {
 			Limit: 5,
 			Order: timelinepb.TimelineQuery_ORDER_ASC,
 		},
+		fixture: callEventsFixture(50),
 		wantIDs: []int{45, 46, 47, 48, 49},
 	}, {
 		name: "events in ascending order with a lower than id filter",
@@ -208,6 +209,7 @@ func TestQueries(t *testing.T) {
 				higherIDThanFilter(45),
 			},
 		},
+		fixture: callEventsFixture(50),
 		wantIDs: []int{46, 47, 48, 49},
 	}, {
 		name: "events in descending order with a higher than id filter",
@@ -218,11 +220,37 @@ func TestQueries(t *testing.T) {
 				lowerIDThanFilter(5),
 			},
 		},
+		fixture: callEventsFixture(50),
 		wantIDs: []int{4, 3, 2, 1, 0},
+	}, {
+		name: "events filtered by ingress type",
+		query: &timelinepb.TimelineQuery{
+			Limit: 10,
+			Order: timelinepb.TimelineQuery_ORDER_DESC,
+			Filters: []*timelinepb.TimelineQuery_Filter{
+				evetTypeFilter(timelinepb.EventType_EVENT_TYPE_INGRESS),
+			},
+		},
+		fixture: &timelinepb.CreateEventsRequest{Entries: []*timelinepb.CreateEventsRequest_EventEntry{{
+			Timestamp: timestamppb.New(time.Now()),
+			Entry: &timelinepb.CreateEventsRequest_EventEntry_Ingress{
+				Ingress: &timelinepb.IngressEvent{},
+			},
+		}, {
+			Timestamp: timestamppb.New(time.Now()),
+			Entry: &timelinepb.CreateEventsRequest_EventEntry_Call{
+				Call: &timelinepb.CallEvent{
+					Request:  "request",
+					Response: "response",
+				},
+			},
+		}}},
+		wantIDs: []int{0},
 	}}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			service := createTestService(t, tc.fixture)
 			iter, err := service.streamTimelineIter(t.Context(), &timelinepb.StreamTimelineRequest{Query: tc.query})
 			assert.NoError(t, err)
 			events := readEventIDs(t, 1, iter)

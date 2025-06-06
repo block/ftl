@@ -40,22 +40,6 @@ func TestTimeline(t *testing.T) {
 		in.Call("publisher", "publish", in.Obj{}, func(t testing.TB, resp in.Obj) {}),
 
 		in.SubTests(
-			in.SubTest{Name: "IngressEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
-				{
-					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
-						EventTypes: &timelinepb.TimelineQuery_EventTypeFilter{
-							EventTypes: []timelinepb.EventType{timelinepb.EventType_EVENT_TYPE_INGRESS},
-						},
-					},
-				},
-			}, func(ctx context.Context, t testing.TB, events []*timelinepb.Event) {
-				assert.Equal(t, 1, len(events))
-				ingress, ok := events[0].Entry.(*timelinepb.Event_Ingress)
-				assert.True(t, ok, "expected ingress event")
-
-				assert.Equal(t, ingress.Ingress.VerbRef.Module, "ingress")
-				assert.Equal(t, ingress.Ingress.VerbRef.Name, "get")
-			})},
 			in.SubTest{Name: "CallEvent", Action: in.VerifyTimeline(1000, []*timelinepb.TimelineQuery_Filter{
 				{
 					Filter: &timelinepb.TimelineQuery_Filter_EventTypes{
