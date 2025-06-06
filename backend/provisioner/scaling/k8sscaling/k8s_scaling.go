@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/block/ftl/internal/oci"
-	name2 "github.com/google/go-containerregistry/pkg/name"
 	"io"
 	"net/url"
 	"strings"
@@ -14,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	name2 "github.com/google/go-containerregistry/pkg/name"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
@@ -38,6 +37,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/kube"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/rpc"
 )
 
