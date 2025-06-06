@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/errors"
 
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/realm"
 )
 
@@ -19,8 +19,8 @@ type realmAddCmd struct {
 	GitPath   string `help:"The path to the schema file in the git repository." default:"ftl-external-schema.json"`
 }
 
-func (c *realmAddCmd) Run(ctx context.Context, p projectconfig.Config) error {
-	realm, commitSHA, err := realm.LatestExternalRealm(ctx, projectconfig.ExternalRealmConfig{
+func (c *realmAddCmd) Run(ctx context.Context, project *profiles.Project) error {
+	realm, commitSHA, err := realm.LatestExternalRealm(ctx, profiles.ExternalRealmConfig{
 		GitRepo:   c.GitRepo,
 		GitBranch: c.GitBranch,
 		GitPath:   c.GitPath,
@@ -29,16 +29,17 @@ func (c *realmAddCmd) Run(ctx context.Context, p projectconfig.Config) error {
 		return errors.Wrap(err, "failed to fetch external realm")
 	}
 
-	if p.ExternalRealms == nil {
-		p.ExternalRealms = make(map[string]projectconfig.ExternalRealmConfig)
+	projectConfig := project.Config()
+	if projectConfig.ExternalRealms == nil {
+		projectConfig.ExternalRealms = make(map[string]profiles.ExternalRealmConfig)
 	}
-	p.ExternalRealms[realm.Name] = projectconfig.ExternalRealmConfig{
+	projectConfig.ExternalRealms[realm.Name] = profiles.ExternalRealmConfig{
 		GitRepo:   c.GitRepo,
 		GitBranch: c.GitBranch,
 		GitPath:   c.GitPath,
 		GitCommit: commitSHA,
 	}
-	if err := projectconfig.Save(p); err != nil {
+	if err := project.Reconfigure(projectConfig); err != nil {
 		return errors.Wrap(err, "failed to save project config")
 	}
 	return nil

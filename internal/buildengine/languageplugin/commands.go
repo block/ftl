@@ -17,7 +17,7 @@ import (
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 // GetNewModuleFlags returns the flags that can be used to create a module for this language.
@@ -68,7 +68,7 @@ func kongFlagsFromProto(protoFlags []*langpb.GetNewModuleFlagsResponse_Flag) ([]
 }
 
 // NewModule creates a new module in the given directory with the given name and language.
-func NewModule(ctx context.Context, language string, projConfig projectconfig.Config, moduleConfig moduleconfig.ModuleConfig, flags map[string]string) error {
+func NewModule(ctx context.Context, language string, projConfig profiles.ProjectConfig, moduleConfig moduleconfig.ModuleConfig, flags map[string]string) error {
 	genericFlags := map[string]any{}
 	for k, v := range flags {
 		genericFlags[k] = v
@@ -169,7 +169,7 @@ func runCommand[Resp proto.Message](ctx context.Context, name string, language s
 // - environment variable overrides
 //
 // Language plugins take time to launch, so we return the one we created so it can be reused in Run().
-func PrepareNewCmd(ctx context.Context, projectConfig projectconfig.Config, k *kong.Kong, args []string) error {
+func PrepareNewCmd(ctx context.Context, k *kong.Kong, args []string) error {
 	if len(args) < 2 {
 		return nil
 	} else if args[0] != "new" {

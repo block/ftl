@@ -24,7 +24,6 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/terminal"
 )
 
@@ -364,18 +363,17 @@ func ComposeUp(ctx context.Context, name, composeYAML string, profile optional.O
 	logger := log.FromContext(ctx).Scope(name)
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	// A flock is used to provent Docker compose getting confused, which happens when we call `docker compose up`
-	// multiple times simultaneously for the same services.
-	projCfg, ok := projectconfig.DefaultConfigPath().Get()
-	if !ok {
-		return nil, errors.Errorf("failed to get project config path")
+	// This is not ideal but it's maybe slightly better than trying to find the project config.
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get user home directory")
 	}
-	dir := filepath.Join(filepath.Dir(projCfg), ".ftl")
+	dir = filepath.Join(dir, ".ftl")
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create directory")
 	}
-	release, err := flock.Acquire(ctx, filepath.Join(dir, fmt.Sprintf(".docker.%v.lock", name)), 1*time.Minute)
+	release, err := flock.Acquire(ctx, filepath.Join(dir, fmt.Sprintf("docker.%v.lock", name)), 1*time.Minute)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to acquire lock")
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/block/ftl/internal/bind"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/dev"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/terminal"
 	"github.com/block/ftl/internal/test"
@@ -25,7 +25,7 @@ func (d *testCmd) Run(
 	ctx context.Context,
 	cm config.Provider[config.Configuration],
 	sm config.Provider[config.Secrets],
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 ) error {
 	cli.AdminEndpoint = d.ServeCmd.Bind
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -37,7 +37,7 @@ func (d *testCmd) Run(
 	g, ctx := errgroup.WithContext(ctx)
 
 	devModeEndpointUpdates := make(chan dev.LocalEndpoint, 1)
-	service := test.NewTestService(projConfig.Name, devModeEndpointUpdates)
+	service := test.NewTestService(projConfig.Realm, devModeEndpointUpdates)
 
 	statusManager := terminal.FromContext(ctx)
 	defer statusManager.Close()

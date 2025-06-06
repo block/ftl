@@ -40,7 +40,7 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/observability"
 	"github.com/block/ftl/internal/oci"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -84,7 +84,7 @@ func (s *serveCmd) Run(
 	ctx context.Context,
 	cm configuration.Provider[configuration.Configuration],
 	sm configuration.Provider[configuration.Secrets],
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 ) error {
 	bindAllocator, err := bind.NewBindAllocator(cli.AdminEndpoint, 2)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *serveCmd) Run(
 //nolint:maintidx
 func (s *serveCommonConfig) run(
 	ctx context.Context,
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 	cm configuration.Provider[configuration.Configuration],
 	sm configuration.Provider[configuration.Secrets],
 	initialised optional.Option[chan bool],
@@ -194,9 +194,9 @@ func (s *serveCommonConfig) run(
 		s.Bind,
 		s.Bind,
 		s.Bind,
-		projConfig.Path,
-		!projConfig.DisableIDEIntegration && !projConfig.DisableVSCodeIntegration,
-		!projConfig.DisableIDEIntegration && !projConfig.DisableIntellijIntegration,
+		projConfig.Root(),
+		projConfig.IDEIntegration && projConfig.VSCodeIntegration,
+		projConfig.IDEIntegration && projConfig.IntellijIntegration,
 		artefactService,
 		bool(s.ObservabilityConfig.ExportOTEL),
 		devModeEndpoints,

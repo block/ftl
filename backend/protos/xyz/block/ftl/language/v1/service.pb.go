@@ -265,12 +265,12 @@ func (x *ModuleConfig) GetRealm() string {
 	return ""
 }
 
-// ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
+// ProjectConfig contains a subset of the configuration for a project.
 type ProjectConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Dir           string                 `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	NoGit         bool                   `protobuf:"varint,3,opt,name=no_git,json=noGit,proto3" json:"no_git,omitempty"`
+	Root          string                 `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
+	Realm         string                 `protobuf:"bytes,2,opt,name=realm,proto3" json:"realm,omitempty"`
+	Git           bool                   `protobuf:"varint,3,opt,name=git,proto3" json:"git,omitempty"`
 	Hermit        bool                   `protobuf:"varint,4,opt,name=hermit,proto3" json:"hermit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -306,23 +306,23 @@ func (*ProjectConfig) Descriptor() ([]byte, []int) {
 	return file_xyz_block_ftl_language_v1_service_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ProjectConfig) GetDir() string {
+func (x *ProjectConfig) GetRoot() string {
 	if x != nil {
-		return x.Dir
+		return x.Root
 	}
 	return ""
 }
 
-func (x *ProjectConfig) GetName() string {
+func (x *ProjectConfig) GetRealm() string {
 	if x != nil {
-		return x.Name
+		return x.Realm
 	}
 	return ""
 }
 
-func (x *ProjectConfig) GetNoGit() bool {
+func (x *ProjectConfig) GetGit() bool {
 	if x != nil {
-		return x.NoGit
+		return x.Git
 	}
 	return false
 }
@@ -1368,11 +1368,11 @@ const file_xyz_block_ftl_language_v1_service_proto_rawDesc = "" +
 	"sqlRootDir\x12\x14\n" +
 	"\x05realm\x18\f \x01(\tR\x05realmB\b\n" +
 	"\x06_buildB\x11\n" +
-	"\x0f_dev_mode_build\"d\n" +
-	"\rProjectConfig\x12\x10\n" +
-	"\x03dir\x18\x01 \x01(\tR\x03dir\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x15\n" +
-	"\x06no_git\x18\x03 \x01(\bR\x05noGit\x12\x16\n" +
+	"\x0f_dev_mode_build\"c\n" +
+	"\rProjectConfig\x12\x12\n" +
+	"\x04root\x18\x01 \x01(\tR\x04root\x12\x14\n" +
+	"\x05realm\x18\x02 \x01(\tR\x05realm\x12\x10\n" +
+	"\x03git\x18\x03 \x01(\bR\x03git\x12\x16\n" +
 	"\x06hermit\x18\x04 \x01(\bR\x06hermit\"f\n" +
 	"\x16GetDependenciesRequest\x12L\n" +
 	"\rmodule_config\x18\x01 \x01(\v2'.xyz.block.ftl.language.v1.ModuleConfigR\fmoduleConfig\"3\n" +

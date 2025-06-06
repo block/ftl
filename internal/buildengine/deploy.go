@@ -31,7 +31,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -113,7 +113,7 @@ type DeployCoordinator struct {
 
 	logChanges bool // log changes from timeline
 
-	projectConfig  projectconfig.Config
+	projectConfig  profiles.ProjectConfig
 	externalRealms []*schema.Realm
 }
 
@@ -124,7 +124,7 @@ func NewDeployCoordinator(
 	dependencyGrapher DependencyGrapher,
 	engineUpdates chan *buildenginepb.EngineEvent,
 	logChanges bool,
-	projectConfig projectconfig.Config,
+	projectConfig profiles.ProjectConfig,
 	externalRealms *xsync.MapOf[string, *schema.Realm],
 ) *DeployCoordinator {
 	c := &DeployCoordinator{
@@ -197,7 +197,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		logger.Debugf("Schema source is not live, skipping initial sync.")
 		sch = &schema.Schema{
 			Realms: []*schema.Realm{{
-				Name:    c.projectConfig.Name,
+				Name:    c.projectConfig.Realm,
 				Modules: []*schema.Module{schema.Builtins()},
 			}},
 		}
@@ -208,7 +208,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 		sch = c.schemaSource.CanonicalView()
 		if len(sch.Realms) == 0 {
 			sch.Realms = []*schema.Realm{{
-				Name:    c.projectConfig.Name,
+				Name:    c.projectConfig.Realm,
 				Modules: []*schema.Module{schema.Builtins()},
 			}}
 		}
@@ -406,7 +406,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
-		err := deploy(ctx, c.projectConfig.Name, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.externalRealms)
+		err := deploy(ctx, c.projectConfig.Realm, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.externalRealms)
 		if err != nil {
 			// Handle deployment failure
 			for _, module := range deployment.modules {
@@ -552,7 +552,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 	logger := log.FromContext(ctx)
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
-	realm := &schema.Realm{Name: c.projectConfig.Name}
+	realm := &schema.Realm{Name: c.projectConfig.Realm}
 	sch := &schema.Schema{
 		Realms: append([]*schema.Realm{realm}, c.externalRealms...),
 	}
@@ -624,7 +624,7 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, module string) error {
 	logger := log.FromContext(ctx).Module(module).Scope("terminate")
 
-	mod, ok := c.schemaSource.CanonicalView().Module(c.projectConfig.Name, module).Get()
+	mod, ok := c.schemaSource.CanonicalView().Module(c.projectConfig.Realm, module).Get()
 
 	if !ok {
 		return errors.Errorf("deployment for module %s not found", module)
@@ -634,7 +634,7 @@ func (c *DeployCoordinator) terminateModuleDeployment(ctx context.Context, modul
 	logger.Infof("Terminating deployment %s", key) //nolint:forbidigo
 	stream, err := c.adminClient.ApplyChangeset(ctx, connect.NewRequest(&adminpb.ApplyChangesetRequest{
 		RealmChanges: []*adminpb.RealmChange{{
-			Name:     c.projectConfig.Name,
+			Name:     c.projectConfig.Realm,
 			ToRemove: []string{key.String()},
 		}},
 	}))

@@ -8,14 +8,13 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/block/ftl/internal/buildengine/languageplugin"
-	"github.com/block/ftl/internal/projectconfig"
 )
 
 type innerCommandPanic struct{}
 type KongContextBinder func(ctx context.Context, kctx *kong.Context) context.Context
 
 // runInnerCmd runs a kong command and recovers from a panic if needed
-func runInnerCmd(ctx context.Context, k *kong.Kong, projConfig projectconfig.Config, binder KongContextBinder, args []string, additionalExit func(int)) error {
+func runInnerCmd(ctx context.Context, k *kong.Kong, binder KongContextBinder, args []string, additionalExit func(int)) error {
 	// Overload the exit function to avoid exiting the process
 	k.Exit = func(i int) {
 		if i != 0 {
@@ -38,7 +37,7 @@ func runInnerCmd(ctx context.Context, k *kong.Kong, projConfig projectconfig.Con
 		}
 	}()
 	// Dynamically update the kong app with language specific flags for the "ftl module new" command.
-	err := languageplugin.PrepareNewCmd(ctx, projConfig, k, args)
+	err := languageplugin.PrepareNewCmd(ctx, k, args)
 	if err != nil {
 		return errors.Wrap(err, "could not prepare for command")
 	}

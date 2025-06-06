@@ -1,0 +1,9 @@
+realm = "ftl"
+module-roots = ["examples/go"]
+git = true
+default-profile = "local"
+ide-integration = true
+intellij-integration = true
+
+[commands]
+  startup = ["echo 'FTL startup command ⚡️'"]

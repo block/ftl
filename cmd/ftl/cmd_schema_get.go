@@ -14,7 +14,7 @@ import (
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 type schemaGetCmd struct {
@@ -25,7 +25,7 @@ type schemaGetCmd struct {
 	External bool     `help:"Outputs the externally exported part of the schema"`
 }
 
-func (g *schemaGetCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig projectconfig.Config) error {
+func (g *schemaGetCmd) Run(ctx context.Context, client adminpbconnect.AdminServiceClient, projConfig profiles.ProjectConfig) error {
 	resp, err := client.PullSchema(ctx, connect.NewRequest(&ftlv1.PullSchemaRequest{SubscriptionId: "cli-schema-get"}))
 	if err != nil {
 		return errors.WithStack(err)
@@ -67,7 +67,7 @@ func (g *schemaGetCmd) Run(ctx context.Context, client adminpbconnect.AdminServi
 			var modules []*schema.Module
 			modules = append(modules, e.Changeset.InternalRealm().Modules...)
 			realm := &schema.Realm{
-				Name:    projConfig.Name,
+				Name:    projConfig.Realm,
 				Modules: modules,
 			}
 			sch.Realms = append(sch.Realms, realm)

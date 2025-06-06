@@ -21,7 +21,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1/buildenginepbconnect"
 	"github.com/block/ftl/common/reflection"
 	islices "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 const (
@@ -114,7 +114,7 @@ func (c CLIConfig) Option(name string) *CLIOptionConfig {
 
 type CLIExecutor func(ctx context.Context, k *kong.Kong, args []string) error
 
-func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, executor CLIExecutor, title string, cmdPath []string, toolOptions ...CLIToolOption) (mcp.Tool, server.ToolHandlerFunc) {
+func ToolFromCLI(serverCtx context.Context, k *kong.Kong, projectConfig profiles.ProjectConfig, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, executor CLIExecutor, title string, cmdPath []string, toolOptions ...CLIToolOption) (mcp.Tool, server.ToolHandlerFunc) {
 	config := &CLIConfig{
 		InputOptions: map[string]*CLIOptionConfig{},
 	}
@@ -393,7 +393,7 @@ func statusContent(ctx context.Context, buildEngineClient buildenginepbconnect.B
 	return annotateTextContent(mcp.NewTextContent(string(statusJSON)), []mcp.Role{mcp.RoleAssistant}, 1.0), nil
 }
 
-func autoReadFilePaths(projectConfig projectconfig.Config, cliOutput string) []mcp.Content {
+func autoReadFilePaths(projectConfig profiles.ProjectConfig, cliOutput string) []mcp.Content {
 	var contents []mcp.Content
 	root := projectConfig.Root()
 	for _, word := range strings.Fields(cliOutput) {
@@ -411,7 +411,7 @@ func autoReadFilePaths(projectConfig projectconfig.Config, cliOutput string) []m
 			}
 
 			result, err := newReadResult(fileContent, token, false,
-				`File at " + word + " may be relevant to the changes that were just made so it has been pre-fetched and included. 
+				`File at " + word + " may be relevant to the changes that were just made so it has been pre-fetched and included.
 			The WriteVerificationToken can be used to update the file.`)
 			if err != nil {
 				continue

@@ -13,6 +13,9 @@ import (
 
 const FileProviderKind ProviderKind = "file"
 
+// NewFileProviderKey creates a new FileProviderKey.
+//
+// If relPath is omitted the path will default to .ftl/<role>.json.
 func NewFileProviderKey[R Role](relPath Option[string]) ProviderKey {
 	var r R
 	return NewProviderKey(FileProviderKind, relPath.Default(filepath.Join(".ftl", r.String()+".json")))

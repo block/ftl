@@ -3,9 +3,6 @@ package admin
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -35,7 +32,7 @@ func TestAdminService(t *testing.T) {
 		{Ref: configuration.Ref{Name: "bar"}, Value: string(expectedEnvarValue)},
 		{Ref: configuration.Ref{Name: "foo"}, Value: `"foobar"`},
 		{Ref: configuration.Ref{Name: "mutable"}, Value: `"helloworld"`},
-		{Ref: configuration.Ref{Module: optional.Some[string]("echo"), Name: "default"}, Value: `"anonymous"`},
+		{Ref: configuration.Ref{Module: optional.Some("echo"), Name: "default"}, Value: `"anonymous"`},
 	})
 
 	testAdminSecrets(t, ctx, "FTL_SECRET_YmFy", admin, []expectedEntry{
@@ -47,22 +44,6 @@ func TestAdminService(t *testing.T) {
 type expectedEntry struct {
 	Ref   configuration.Ref
 	Value string
-}
-
-func tempConfigPath(t *testing.T, existingPath string, prefix string) string {
-	t.Helper()
-	config := filepath.Join(t.TempDir(), fmt.Sprintf("%s-ftl-project.toml", prefix))
-	var existing []byte
-	var err error
-	if existingPath == "" {
-		existing = []byte(`name = "generated"`)
-	} else {
-		existing, err = os.ReadFile(existingPath)
-		assert.NoError(t, err)
-	}
-	err = os.WriteFile(config, existing, 0600)
-	assert.NoError(t, err)
-	return config
 }
 
 // nolint

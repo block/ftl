@@ -1,6 +1,0 @@
-name = "testdata"
-module-dirs = ["a/b/c", "d"]
-ftl-min-version = "0.129.2"
-
-[commands]
-  startup = ["echo 'Executing global pre-build command'"]

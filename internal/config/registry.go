@@ -19,16 +19,21 @@ func NewConfigurationRegistry(adminClient Option[adminpbconnect.AdminServiceClie
 	registry := NewRegistry[Configuration]()
 	registry.Register(NewFileProviderFactory[Configuration]())
 	registry.Register(NewMemoryProviderFactory[Configuration]())
+	registry.Register(NewProfileProviderFactory[Configuration]())
 	if adminClient, ok := adminClient.Get(); ok {
 		registry.Register(NewRemoteProviderFactory[Configuration](adminClient))
 	}
 	return registry
 }
 
+// NewSecretsRegistry creates a new secrets registry.
+//
+// If adminClient is provided, a remote provider will be registered
 func NewSecretsRegistry(adminClient Option[adminpbconnect.AdminServiceClient]) *Registry[Secrets] {
 	registry := NewRegistry[Secrets]()
 	registry.Register(NewFileProviderFactory[Secrets]())
 	registry.Register(NewMemoryProviderFactory[Secrets]())
+	registry.Register(NewProfileProviderFactory[Secrets]())
 	registry.Register(NewOnePasswordProviderFactory())
 	if adminClient, ok := adminClient.Get(); ok {
 		registry.Register(NewRemoteProviderFactory[Secrets](adminClient))

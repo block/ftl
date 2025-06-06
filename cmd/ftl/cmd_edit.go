@@ -11,7 +11,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/devstate"
 	"github.com/block/ftl/internal/editor"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 type editCmd struct {
@@ -25,7 +25,7 @@ func (editCmd) Completions() map[string][]string {
 	}
 }
 
-func (i editCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, pc projectconfig.Config) error {
+func (i editCmd) Run(ctx context.Context, buildEngineClient buildenginepbconnect.BuildEngineServiceClient, adminClient adminpbconnect.AdminServiceClient, pc profiles.ProjectConfig) error {
 	state, err := devstate.WaitForDevState(ctx, buildEngineClient, adminClient, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not get dev state; is FTL running?")

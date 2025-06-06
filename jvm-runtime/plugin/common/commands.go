@@ -50,7 +50,7 @@ func (CmdService) GetNewModuleFlags(ctx context.Context, req *connect.Request[la
 func (c CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.NewModuleRequest]) (*connect.Response[langpb.NewModuleResponse], error) {
 	logger := log.FromContext(ctx)
 	logger = logger.Module(req.Msg.Name)
-	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+	projConfig := req.Msg.ProjectConfig
 	groupAny, ok := req.Msg.Flags.AsMap()["group"]
 	if !ok {
 		groupAny = ""
@@ -83,7 +83,7 @@ func (c CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.N
 		PackageDir string
 		Version    string
 	}{
-		Dir:        projConfig.Path,
+		Dir:        projConfig.Root,
 		Name:       req.Msg.Name,
 		Group:      group,
 		PackageDir: packageDir,

@@ -8,7 +8,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -22,7 +22,7 @@ func (b *buildCmd) Run(
 	ctx context.Context,
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 ) error {
 	logger := log.FromContext(ctx)
 	if len(b.Dirs) == 0 {

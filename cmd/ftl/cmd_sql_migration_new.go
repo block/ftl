@@ -14,7 +14,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -25,7 +25,7 @@ type migrationSQLCmd struct {
 	DevDirs []string `help:"Module directories that FTL Dev is discovering modules in" env:"FTL_DEV_DIRS" hidden:""`
 }
 
-func (i migrationSQLCmd) Run(ctx context.Context, projectConfig projectconfig.Config) error {
+func (i migrationSQLCmd) Run(ctx context.Context, projectConfig profiles.ProjectConfig) error {
 	var searchDirs []string
 	if len(i.DevDirs) > 0 {
 		searchDirs = i.DevDirs

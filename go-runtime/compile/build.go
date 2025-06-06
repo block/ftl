@@ -25,6 +25,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/block/ftl"
+	languagepb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	"github.com/block/ftl/common/builderrors"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/reflect"
@@ -37,7 +38,6 @@ import (
 	"github.com/block/ftl/internal"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/watch"
 )
 
@@ -487,7 +487,7 @@ func (s *OngoingState) IsEmpty() bool {
 }
 
 // Build the given module.
-func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot string, config moduleconfig.AbsModuleConfig,
+func Build(ctx context.Context, projectConfig *languagepb.ProjectConfig, stubsRoot string, config moduleconfig.AbsModuleConfig,
 	sch *schema.Schema, deps, buildEnv []string, filesTransaction watch.ModifyFilesTransaction, ongoingState *OngoingState,
 	devMode bool) (moduleSch optional.Option[*schema.Module], invalidateDeps bool, buildErrors []builderrors.Error) {
 	logger := log.FromContext(ctx)
@@ -569,7 +569,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	extractResultChan := make(chan result.Result[extract.Result], 1)
 	go func() {
 		logger.Debugf("Extracting schema")
-		extractResultChan <- result.From(extract.Extract(projectConfig.Root(), config.Dir, sch))
+		extractResultChan <- result.From(extract.Extract(projectConfig.Root, config.Dir, sch))
 	}()
 	optimisticHashesChan := make(chan watch.FileHashes, 1)
 	optimisticCompileChan := make(chan []builderrors.Error, 1)
@@ -594,7 +594,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	// We do not fail yet if result has terminal errors. These errors may be due to missing templated files (queries.ftl.go).
 	// Instead we scaffold if needed and then re-extract the schema to see if the errors are resolved.
 	logger.Debugf("Generating main package")
-	projectName := projectConfig.Name
+	projectName := projectConfig.Realm
 	mctx, err := buildMainDeploymentContext(sch, extractResult, goModVersion, projectName, sharedModulesPaths, replacements)
 	if err != nil {
 		// Combine with compiler errors as they are likely the cause of why we would not build mctx.
@@ -610,7 +610,7 @@ func Build(ctx context.Context, projectConfig projectconfig.Config, stubsRoot st
 	if mainModuleCtxChanged && builderrors.ContainsTerminalError(extractResult.Errors) {
 		// We may have terminal errors that are resolved by scaffolding queries.
 		logger.Debugf("Re-extracting schema after scaffolding")
-		extractResult, err = extract.Extract(projectConfig.Root(), config.Dir, sch)
+		extractResult, err = extract.Extract(projectConfig.Root, config.Dir, sch)
 		if err != nil {
 			return moduleSch, false, []builderrors.Error{buildErrorFromError(errors.Wrap(err, "could not extract schema"))}
 		}

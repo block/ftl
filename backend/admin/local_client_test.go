@@ -10,34 +10,37 @@ import (
 	"github.com/alecthomas/errors"
 	. "github.com/alecthomas/types/optional"
 
+	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	configuration "github.com/block/ftl/internal/config"
+	"github.com/block/ftl/internal/config"
 	in "github.com/block/ftl/internal/integration"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
-func getDiskSchema(t testing.TB, ctx context.Context) (*schema.Schema, error) {
+func getDiskSchema(t testing.TB, ctx context.Context, dir string) (*schema.Schema, error) {
 	t.Helper()
-	projConfig, err := projectconfig.Load(ctx, None[string]())
+	project, err := profiles.Open(dir,
+		config.NewSecretsRegistry(None[adminpbconnect.AdminServiceClient]()),
+		config.NewConfigurationRegistry(None[adminpbconnect.AdminServiceClient]()),
+	)
 	assert.NoError(t, err)
-	dsr := newDiskSchemaRetriever(projConfig)
+	dsr := newDiskSchemaRetriever(project.Config())
 	return errors.WithStack2(dsr.GetSchema(ctx))
 }
 
 func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
 	in.Run(t,
-		in.WithFTLConfig("ftl-project-dr.toml"),
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule("dischema"),
 		in.Build("dischema"),
 		func(t testing.TB, ic in.TestContext) {
-			sch, err := getDiskSchema(t, ic.Context)
+			sch, err := getDiskSchema(t, ic.Context, ic.WorkingDir())
 			assert.NoError(t, err)
 
-			module, ok := sch.Module("dr", "dischema").Get()
-			assert.Equal(t, ok, true)
+			module, ok := sch.Module("test", "dischema").Get()
+			assert.Equal(t, ok, true, "Couldn't find test.dischema:\n%s", sch)
 			assert.Equal(t, "dischema", module.Name)
 		},
 	)
@@ -45,12 +48,11 @@ func TestDiskSchemaRetrieverWithBuildArtefact(t *testing.T) {
 
 func TestDiskSchemaRetrieverWithNoSchema(t *testing.T) {
 	in.Run(t,
-		in.WithFTLConfig("ftl-project-dr.toml"),
 		in.WithoutController(),
 		in.WithoutTimeline(),
 		in.CopyModule("dischema"),
 		func(t testing.TB, ic in.TestContext) {
-			_, err := getDiskSchema(t, ic.Context)
+			_, err := getDiskSchema(t, ic.Context, ic.WorkingDir())
 			assert.Error(t, err)
 		},
 	)
@@ -59,13 +61,16 @@ func TestDiskSchemaRetrieverWithNoSchema(t *testing.T) {
 func TestAdminNoValidationWithNoSchema(t *testing.T) {
 	ctx := log.ContextWithNewDefaultLogger(context.Background())
 
-	cm := configuration.NewMemoryProvider[configuration.Configuration]()
-	sm := configuration.NewMemoryProvider[configuration.Secrets]()
+	cm := config.NewMemoryProvider[config.Configuration]()
+	sm := config.NewMemoryProvider[config.Secrets]()
 
-	projConfig, err := projectconfig.Load(ctx, None[string]())
+	project, err := profiles.Open("testdata",
+		config.NewSecretsRegistry(None[adminpbconnect.AdminServiceClient]()),
+		config.NewConfigurationRegistry(None[adminpbconnect.AdminServiceClient]()),
+	)
 	assert.NoError(t, err)
 
-	dsr := newDiskSchemaRetriever(projConfig)
+	dsr := newDiskSchemaRetriever(project.Config())
 	_, err = dsr.GetSchema(ctx)
 	assert.Error(t, err)
 

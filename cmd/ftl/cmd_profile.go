@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -18,25 +19,31 @@ type profileCmd struct {
 	Default profileDefaultCmd `cmd:"" help:"Set a profile as default."`
 	Switch  profileSwitchCmd  `cmd:"" help:"Switch locally active profile."`
 	New     profileNewCmd     `cmd:"" help:"Create a new local or remote profile."`
+	Delete  profileDeleteCmd  `cmd:"" help:"Delete a profile."`
 }
 
 type profileInitCmd struct {
-	Project     string   `arg:"" help:"Name of the project."`
-	Dir         string   `arg:"" help:"Directory to initialize the project in." default:"${gitroot}" required:""`
-	ModuleRoots []string `help:"Root directories of existing modules."`
-	NoGit       bool     `help:"Don't add files to the git repository."`
+	Project             string   `arg:"" help:"Name of the project."`
+	Dir                 string   `arg:"" help:"Directory to initialize the project in." default:"${gitroot}" required:""`
+	ModuleRoots         []string `help:"Root directories of existing modules."`
+	Git                 bool     `help:"Use git to manage configuration automatically." default:"true" negatable:""`
+	IDEIntegration      bool     `help:"Enable IDE integration." default:"true" negatable:""`
+	VSCodeIntegration   bool     `help:"Enable VSCode integration." default:"true" negatable:""`
+	IntellijIntegration bool     `help:"Enable IntelliJ integration." default:"true" negatable:""`
 }
 
 func (p profileInitCmd) Run(
 	configRegistry *config.Registry[config.Configuration],
 	secretsRegistry *config.Registry[config.Secrets],
 ) error {
-	_, err := profiles.Init(profiles.ProjectConfig{
-		Realm:         p.Project,
-		FTLMinVersion: ftl.Version,
-		ModuleRoots:   p.ModuleRoots,
-		Git:           !p.NoGit,
-		Root:          p.Dir,
+	_, err := profiles.Init(p.Dir, profiles.ProjectConfig{
+		Realm:               p.Project,
+		FTLMinVersion:       ftl.Version,
+		ModuleRoots:         p.ModuleRoots,
+		Git:                 p.Git,
+		IDEIntegration:      p.IDEIntegration,
+		VSCodeIntegration:   p.VSCodeIntegration,
+		IntellijIntegration: p.IntellijIntegration,
 	}, secretsRegistry, configRegistry)
 	if err != nil {
 		return errors.Wrap(err, "init project")
@@ -47,8 +54,8 @@ func (p profileInitCmd) Run(
 
 type profileListCmd struct{}
 
-func (profileListCmd) Run(project *profiles.Project) error {
-	active, err := project.ActiveProfile()
+func (profileListCmd) Run(ctx context.Context, project *profiles.Project) error {
+	active, err := project.ActiveProfile(ctx)
 	if err != nil {
 		return errors.Wrap(err, "active profile")
 	}
@@ -67,7 +74,7 @@ func (profileListCmd) Run(project *profiles.Project) error {
 		if project.DefaultProfile() == profile.Name {
 			attrs = append(attrs, "default")
 		}
-		if active == profile.Name {
+		if active.Name() == profile.Name {
 			attrs = append(attrs, "active")
 		}
 		fmt.Printf("%s (%s)\n", profile, strings.Join(attrs, "+"))
@@ -92,7 +99,7 @@ type profileSwitchCmd struct {
 }
 
 func (p profileSwitchCmd) Run(project *profiles.Project) error {
-	err := project.Switch(p.Profile)
+	err := project.Switch(p.Profile, false)
 	if err != nil {
 		return errors.Wrap(err, "switch profile")
 	}
@@ -100,10 +107,10 @@ func (p profileSwitchCmd) Run(project *profiles.Project) error {
 }
 
 type profileNewCmd struct {
-	Local         bool               `help:"Create a local profile." xor:"location" and:"providers"`
+	Local         bool               `help:"Create a local profile." xor:"location"`
 	Remote        *url.URL           `help:"Create a remote profile." xor:"location" placeholder:"ENDPOINT"`
-	Secrets       config.ProviderKey `help:"Secrets provider." default:"file" and:"providers"`
-	Configuration config.ProviderKey `help:"Configuration provider." default:"file" and:"providers"`
+	Secrets       config.ProviderKey `help:"Secrets provider." default:"profile"`
+	Configuration config.ProviderKey `help:"Configuration provider." default:"profile"`
 	Name          string             `arg:"" help:"Profile name."`
 }
 
@@ -131,25 +138,44 @@ Create a new remote profile:
 }
 
 func (p profileNewCmd) Run(project *profiles.Project) error {
-	var config profiles.ProfileConfigKind
+	var conf profiles.ProfileConfig
 	switch {
 	case p.Local:
-		config = profiles.LocalProfileConfig{
+		// This is a bit of a hack but I currently don't have any better ideas.
+		if p.Secrets == "profile" {
+			p.Secrets = config.NewProfileProviderKey(p.Name)
+		}
+		if p.Configuration == "profile" {
+			p.Configuration = config.NewProfileProviderKey(p.Name)
+		}
+		conf = profiles.LocalProfileConfig{
 			SecretsProvider: p.Secrets,
 			ConfigProvider:  p.Configuration,
 		}
 
 	case p.Remote != nil:
-		config = profiles.RemoteProfileConfig{
+		conf = profiles.RemoteProfileConfig{
 			Endpoint: p.Remote,
 		}
 	}
-	err := project.New(profiles.ProfileConfig{
+	err := project.New(profiles.NewProfileConfig{
 		Name:   p.Name,
-		Config: config,
+		Config: conf,
 	})
 	if err != nil {
 		return errors.Wrap(err, "new profile")
+	}
+	return nil
+}
+
+type profileDeleteCmd struct {
+	Name string `arg:"" help:"Profile name."`
+}
+
+func (p profileDeleteCmd) Run(project *profiles.Project) error {
+	err := project.Delete(p.Name)
+	if err != nil {
+		return errors.Wrap(err, "delete profile")
 	}
 	return nil
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/mcp"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/terminal"
 )
 
@@ -35,15 +35,15 @@ type gooseCmd struct {
 type gooseResetCmd struct {
 }
 
-func (c *gooseResetCmd) Run(projectConfig projectconfig.Config) error {
+func (c *gooseResetCmd) Run(projectConfig profiles.ProjectConfig) error {
 	return resetGooseSession(projectConfig)
 }
 
-func logPath(projectConfig projectconfig.Config) string {
+func logPath(projectConfig profiles.ProjectConfig) string {
 	return filepath.Join(projectConfig.Root(), ".ftl", "goose-logs.jsonl")
 }
 
-func resetGooseSession(projectConfig projectconfig.Config) error {
+func resetGooseSession(projectConfig profiles.ProjectConfig) error {
 	gooseLogsPath := logPath(projectConfig)
 	if err := os.Remove(gooseLogsPath); err != nil {
 		if os.IsNotExist(err) {
@@ -58,7 +58,7 @@ type gooseChatCmd struct {
 	Prompt []string `arg:"" required:"" help:"Prompt for Goose"`
 }
 
-func (c *gooseChatCmd) Run(ctx context.Context, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func (c *gooseChatCmd) Run(ctx context.Context, projectConfig profiles.ProjectConfig, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient) error {
 	gooseName := "🔮 Goose"
 	terminal.UpdateModuleState(ctx, gooseName, terminal.BuildStateBuilding)

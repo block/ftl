@@ -130,25 +130,25 @@ export class ModuleConfig extends Message<ModuleConfig> {
 }
 
 /**
- * ProjectConfig contains the configuration for a project, found in the ftl-project.toml file.
+ * ProjectConfig contains a subset of the configuration for a project.
  *
  * @generated from message xyz.block.ftl.language.v1.ProjectConfig
  */
 export class ProjectConfig extends Message<ProjectConfig> {
   /**
-   * @generated from field: string dir = 1;
+   * @generated from field: string root = 1;
    */
-  dir = "";
+  root = "";
 
   /**
-   * @generated from field: string name = 2;
+   * @generated from field: string realm = 2;
    */
-  name = "";
+  realm = "";
 
   /**
-   * @generated from field: bool no_git = 3;
+   * @generated from field: bool git = 3;
    */
-  noGit = false;
+  git = false;
 
   /**
    * @generated from field: bool hermit = 4;
@@ -163,9 +163,9 @@ export class ProjectConfig extends Message<ProjectConfig> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "xyz.block.ftl.language.v1.ProjectConfig";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "no_git", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 1, name: "root", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "realm", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "git", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "hermit", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 

@@ -19,7 +19,6 @@ import (
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/profiles"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/projectinit"
 )
 
@@ -27,13 +26,16 @@ import (
 var userHermitPackages string
 
 type initCmd struct {
-	Name        string   `arg:"" help:"Name of the project."`
-	Dir         string   `arg:"" optional:"" help:"Directory to initialize the project in. If not specified, creates a new directory with the project name."`
-	Hermit      bool     `help:"Include Hermit language-specific toolchain binaries." negatable:"" default:"true"`
-	ModuleDirs  []string `help:"Child directories of existing modules."`
-	ModuleRoots []string `help:"Root directories of existing modules."`
-	Git         bool     `help:"Commit generated files to git." negatable:"" default:"true"`
-	Startup     []string `help:"Commands to run on startup."`
+	Name                string   `arg:"" help:"Name of the project."`
+	Dir                 string   `arg:"" optional:"" help:"Directory to initialize the project in. If not specified, creates a new directory with the project name."`
+	Hermit              bool     `help:"Include Hermit language-specific toolchain binaries." negatable:"" default:"true"`
+	ModuleDirs          []string `help:"Child directories of existing modules."`
+	ModuleRoots         []string `help:"Root directories of existing modules."`
+	Git                 bool     `help:"Commit generated files to git." negatable:"" default:"true"`
+	IDEIntegration      bool     `help:"Enable IDE integration support." negatable:"" default:"true"`
+	VSCodeIntegration   bool     `help:"Enable VSCode integration support." negatable:"" default:"true"`
+	IntellijIntegration bool     `help:"Enable IntelliJ integration support." negatable:"" default:"true"`
+	Startup             []string `help:"Commands to run on startup."`
 }
 
 func (i initCmd) Help() string {
@@ -64,26 +66,14 @@ func (i initCmd) Run(
 		return errors.WithStack(err)
 	}
 
-	config := projectconfig.Config{
-		Name:          i.Name,
-		Hermit:        i.Hermit,
-		NoGit:         !i.Git,
-		FTLMinVersion: ftl.Version,
-		ModuleDirs:    i.ModuleDirs,
-		Commands: projectconfig.Commands{
-			Startup: i.Startup,
-		},
-	}
-	if err := projectconfig.Create(ctx, config, i.Dir); err != nil {
-		return errors.WithStack(err)
-	}
-
-	_, err := profiles.Init(profiles.ProjectConfig{
-		Realm:         i.Name,
-		FTLMinVersion: ftl.Version,
-		ModuleRoots:   i.ModuleRoots,
-		Git:           !i.Git,
-		Root:          i.Dir,
+	_, err := profiles.Init(i.Dir, profiles.ProjectConfig{
+		Realm:               i.Name,
+		FTLMinVersion:       ftl.Version,
+		ModuleRoots:         i.ModuleRoots,
+		Git:                 !i.Git,
+		IDEIntegration:      i.IDEIntegration,
+		VSCodeIntegration:   i.VSCodeIntegration,
+		IntellijIntegration: i.IntellijIntegration,
 	}, secretsRegistry, configRegistry)
 	if err != nil {
 		return errors.Wrap(err, "initialize project")

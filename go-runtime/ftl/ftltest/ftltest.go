@@ -3,9 +3,7 @@ package ftltest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -28,7 +26,7 @@ import (
 	"github.com/block/ftl/go-runtime/server/rpccontext"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/deploymentcontext"
-	pc "github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	mcu "github.com/block/ftl/internal/testutils/modulecontext"
 )
 
@@ -36,6 +34,7 @@ import (
 var moduleGetter = reflection.Module
 
 type OptionsState struct {
+	project                 *profiles.Project
 	databases               map[string]deploymentcontext.Database
 	mockVerbs               map[schema.RefKey]deploymentcontext.Verb
 	allowDirectVerbBehavior bool
@@ -45,7 +44,7 @@ type OptionsState struct {
 type optionRank int
 
 const (
-	profile optionRank = iota
+	setup optionRank = iota
 	other
 )
 
@@ -62,7 +61,16 @@ func Context(options ...Option) context.Context {
 }
 
 func newContext(ctx context.Context, module string, options ...Option) context.Context {
+	project, err := profiles.Open(
+		".",
+		config.NewSecretsRegistry(optional.None[adminpbconnect.AdminServiceClient]()),
+		config.NewConfigurationRegistry(optional.None[adminpbconnect.AdminServiceClient]()),
+	)
+	if err != nil {
+		panic(errors.Errorf("could not open project: %w", err))
+	}
 	state := &OptionsState{
+		project:   project,
 		databases: make(map[string]deploymentcontext.Database),
 		mockVerbs: make(map[schema.RefKey]deploymentcontext.Verb),
 	}
@@ -110,85 +118,17 @@ func SubContext(ctx context.Context, options ...Option) context.Context {
 	return newContext(ctx, module, append(oldFtl.options, options...)...)
 }
 
-// WithDefaultProjectFile loads config and secrets from the default project
-// file, which is either the FTL_CONFIG environment variable or the
-// ftl-project.toml file in the git root.
-func WithDefaultProjectFile() Option {
-	return WithProjectFile("")
-}
-
-// WithProjectFile loads config and secrets from a project file
-//
-// Takes a path to an FTL project file. If an empty path is provided, the path
-// is inferred from the FTL_CONFIG environment variable. If that is not found,
-// the ftl-project.toml file in the git root is used. If a project file is not
-// found, an error is returned.
-//
-// To be used when setting up a context for a test:
-//
-//	ctx := ftltest.Context(
-//		ftltest.WithProjectFile("path/to/ftl-project.yaml"),
-//		// ... other options
-//	)
-func WithProjectFile(path string) Option {
-	// Convert to absolute path immediately in case working directory changes
-	var preprocessingErr error
-	if path == "" {
-		var ok bool
-		path, ok = pc.DefaultConfigPath().Get()
-		if !ok {
-			preprocessingErr = errors.Errorf("could not find default project file in $FTL_CONFIG or git")
-		}
-	}
+// WithProfile switches the project profile used for testing.
+func WithProfile(profile string) Option {
 	return Option{
-		rank: profile,
+		rank: other,
 		apply: func(ctx context.Context, state *OptionsState) error {
-			if preprocessingErr != nil {
-				return errors.WithStack(preprocessingErr)
+			if profile == "" {
+				return errors.New("profile cannot be empty")
 			}
-			if _, err := os.Stat(path); err != nil {
-				return errors.Wrap(err, "error accessing project file")
-			}
-			projectConfig, err := pc.Load(ctx, optional.Some(path))
-			if err != nil {
-				return errors.Wrap(err, "project")
-			}
-
-			cr := config.NewConfigurationRegistry(optional.None[adminpbconnect.AdminServiceClient]())
-			cm, err := cr.Get(ctx, projectConfig.Root(), projectConfig.ConfigProvider)
-			if err != nil {
-				return errors.Wrap(err, "could not set up configs")
-			}
-			configs, err := config.MapForModule(ctx, cm, moduleGetter())
-			if err != nil {
-				return errors.Wrap(err, "could not read configs")
-			}
-
-			fftl := internal.FromContext(ctx).(*fakeFTL) //nolint:forcetypeassert
-			for name, data := range configs {
-				if err := fftl.setConfig(name, json.RawMessage(data)); err != nil {
-					return errors.WithStack(err)
-				}
-			}
-
-			sr := config.NewSecretsRegistry(optional.None[adminpbconnect.AdminServiceClient]())
-			sm, err := sr.Get(ctx, projectConfig.Root(), projectConfig.SecretsProvider)
-			if err != nil {
-				return errors.Wrap(err, "could not set up secrets")
-			}
-			secrets, err := config.MapForModule(ctx, sm, moduleGetter())
-			if err != nil {
-				return errors.Wrap(err, "could not read secrets")
-			}
-			for name, data := range secrets {
-				if err := fftl.setSecret(name, json.RawMessage(data)); err != nil {
-					return errors.WithStack(err)
-				}
-			}
-			return nil
+			return errors.WithStack(state.project.Switch(profile, true))
 		},
 	}
-
 }
 
 // WithConfig sets a configuration for the current module

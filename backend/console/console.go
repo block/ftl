@@ -28,7 +28,7 @@ import (
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/editor"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/routing"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
@@ -47,7 +47,7 @@ type Service struct {
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient
 	bind              *url.URL
 	config            Config
-	pc                optional.Option[projectconfig.Config]
+	pc                optional.Option[profiles.ProjectConfig]
 	isLocalDev        bool
 }
 
@@ -61,7 +61,7 @@ func New(
 	buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	bind *url.URL,
 	config Config,
-	pc optional.Option[projectconfig.Config],
+	pc optional.Option[profiles.ProjectConfig],
 	isLocalDev bool,
 ) *Service {
 

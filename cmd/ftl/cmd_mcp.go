@@ -12,13 +12,13 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1/timelinepbconnect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal/mcp"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/rpc"
 )
 
 type mcpCmd struct{}
 
-func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, projectConfig profiles.ProjectConfig, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient, bindContext KongContextBinder) error {
 	timelineClient := rpc.Dial(timelinepbconnect.NewTimelineServiceClient, cli.TimelineConfig.TimelineEndpoint.String(), log.Error)
 
@@ -27,12 +27,12 @@ func (m mcpCmd) Run(ctx context.Context, k *kong.Kong, projectConfig projectconf
 	return nil
 }
 
-func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig projectconfig.Config, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
+func newMCPServer(ctx context.Context, k *kong.Kong, projectConfig profiles.ProjectConfig, buildEngineClient buildenginepbconnect.BuildEngineServiceClient,
 	adminClient adminpbconnect.AdminServiceClient, timelineClient timelinepbconnect.TimelineServiceClient, bindContext KongContextBinder) *mcp.Server {
 	s := mcp.New()
 
 	executor := func(ctx context.Context, k *kong.Kong, args []string) error {
-		return errors.WithStack(runInnerCmd(ctx, k, projectConfig, bindContext, args, nil))
+		return errors.WithStack(runInnerCmd(ctx, k, bindContext, args, nil))
 	}
 
 	s.AddTool(mcp.StatusTool(ctx, buildEngineClient, adminClient))
