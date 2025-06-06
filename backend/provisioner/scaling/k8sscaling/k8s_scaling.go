@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	name2 "github.com/google/go-containerregistry/pkg/name"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
@@ -34,9 +35,9 @@ import (
 	"github.com/block/ftl/common/key"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/common/schema/builder"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/kube"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -55,6 +56,7 @@ var _ scaling.RunnerScaling = &k8sScaling{}
 type k8sScaling struct {
 	disableIstio bool
 
+	imageService    *oci.ImageService
 	client          *kubernetes.Clientset
 	systemNamespace string
 	// Map of known deployments
@@ -70,8 +72,8 @@ type k8sScaling struct {
 	routeTemplate             string
 }
 
-func NewK8sScaling(disableIstio bool, realm string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, realm: realm, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate}
+func NewK8sScaling(disableIstio bool, realm string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string, imageService *oci.ImageService) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, realm: realm, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate, imageService: imageService}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -347,13 +349,20 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		}
 		logger.Debugf("Created ConfigMap %s in namespace %s", configsConfigMapName, userNamespace)
 	}
-	rlmBuilder := builder.Realm(realm, sch)
-	rlm, err := rlmBuilder.Build()
+
+	img, err := name2.ParseReference(sch.Runtime.Image.Image)
 	if err != nil {
-		return errors.Wrapf(err, "failed to build schema for module %s in realm %s", module, realm)
+		return errors.Wrapf(err, "failed to parse image reference %s for module %s in realm %s", sch.Runtime.Image.Image, module, realm)
 	}
-	sche := builder.Schema(rlm)
-	bytes, err := proto.Marshal(sche.MustBuild().ToProto())
+	full, _, err := r.imageService.PullSchema(ctx, img)
+	if err != nil {
+		return errors.Wrapf(err, "failed to pull schema for module %s in realm %s", module, realm)
+	}
+	if ir, ok := full.FirstInternalRealm().Get(); ok {
+		ir.UpsertModule(sch)
+	}
+
+	bytes, err := proto.Marshal(full.ToProto())
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal schema for module %s in realm %s", module, realm)
 	}
