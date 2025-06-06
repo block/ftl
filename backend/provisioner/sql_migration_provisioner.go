@@ -171,9 +171,9 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 
 		// Construct the full path for the file
 		targetPath := filepath.Join(tempDir, filepath.Clean(header.Name))
-		err = os.MkdirAll(filepath.Join(targetPath, ".."), 0744)
+		err = os.MkdirAll(filepath.Join(targetPath, ".."), 0744) //nolint: gosec
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to create temp directory for: %s", targetPath)
 		}
 
 		// Create the file
