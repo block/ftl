@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"fmt"
 	"runtime"
 	"sort"
 	"strings"
@@ -435,7 +434,7 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration) error {
 
 // watchForModuleChanges watches for changes and all build start and event state changes.
 func (e *Engine) watchForModuleChanges(ctx context.Context, period time.Duration) error {
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).Scope("engine")
 
 	watchEvents := make(chan watch.WatchEvent, 128)
 	topic, err := e.watcher.Watch(ctx, period, e.moduleDirs)
@@ -749,12 +748,9 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 							errs = append(errs, moduleErr)
 						}
 					}
-					if len(errs) > 1 {
-						logger.Logf(log.Error, "Initial build failed:\n%s", strings.Join(slices.Map(errs, func(err error) string {
-							return fmt.Sprintf("  %s", err)
-						}), "\n"))
-					} else {
-						logger.Errorf(errors.Join(errs...), "Initial build failed")
+					// Skip logging errors during first round as they're already logged in BuildAndDeploy
+					if !isFirstRound {
+						logger.Errorf(errors.Join(errs...), "Build failed")
 					}
 				} else if start, ok := e.startTime.Get(); ok {
 					e.startTime = optional.None[time.Time]()
@@ -821,8 +817,11 @@ func (e *Engine) watchForEventsToPublish(ctx context.Context, hasInitialModules 
 			case *buildenginepb.EngineEvent_ModuleBuildFailed:
 				moduleStates[rawEvent.ModuleBuildFailed.Config.Name] = moduleStateFailed
 				moduleErrors[rawEvent.ModuleBuildFailed.Config.Name] = rawEvent.ModuleBuildFailed.Errors
-				moduleErr := errors.Errorf("%s", langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
-				logger.Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
+				// Only log module errors for rebuilds, not initial build
+				if !isFirstRound {
+					moduleErr := errors.Errorf("%s", langpb.ErrorListString(rawEvent.ModuleBuildFailed.Errors))
+					logger.Module(rawEvent.ModuleBuildFailed.Config.Name).Scope("build").Errorf(moduleErr, "Build failed")
+				}
 			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
 				moduleStates[rawEvent.ModuleBuildSuccess.Config.Name] = moduleStateBuilt
 				delete(moduleErrors, rawEvent.ModuleBuildSuccess.Config.Name)
