@@ -224,6 +224,13 @@ func (s *ArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) e
 }
 
 func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.ReadCloser, error) {
+	return s.DownloadFromRepository(ctx, s.targetConfig.Repository, dg)
+}
+
+func (s *ArtefactService) DownloadFromRepository(ctx context.Context, repo Repository, dg sha256.SHA256) (io.ReadCloser, error) {
+	if repo == "" {
+		repo = s.targetConfig.Repository
+	}
 	// ORAS is really annoying, and needs you to know the size of the blob you're downloading
 	// So we are using google's go-containerregistry to do the actual download
 	// This is not great, we should remove oras at some point
@@ -231,7 +238,7 @@ func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.Re
 	if s.targetConfig.AllowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.targetConfig.Repository, dg.String()), opts...)
+	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", repo, dg.String()), opts...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
