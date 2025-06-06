@@ -256,7 +256,7 @@ func ValidateModuleInRealm(realm *Realm, m optional.Option[*Module]) (*Realm, er
 						for _, call := range md.Calls {
 							resolved := scopes.Resolve(*call)
 							if resolved == nil {
-								merr = append(merr, errorf(call, "unknown call %q", call))
+								merr = append(merr, errorf(call, "unknown call %q: %s", call, realm))
 								continue
 							}
 							verb, ok := resolved.Symbol.(*Verb)

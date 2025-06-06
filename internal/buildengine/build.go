@@ -60,9 +60,6 @@ func buildModule(ctx context.Context, projectConfig projectconfig.Config, m Modu
 		}
 	}()
 
-	// Remove previous module schema
-	bctx.Schema.RemoveModule(projectConfig.Name, m.Config.Module)
-
 	// TODO: input enough info to know if sql files have changed
 	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), m.Config.Abs(), bctx.Schema)
 	if err != nil {

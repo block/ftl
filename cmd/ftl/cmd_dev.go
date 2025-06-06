@@ -135,20 +135,19 @@ func (d *devCmd) Run(
 		})
 	}
 
-	// g.Go(func() error {
-	select {
-	case <-ctx.Done():
-		return nil
-	case <-controllerReady:
-	}
-	starting.Close()
-	fmt.Printf("starting dev\n")
-	return errors.WithStack(engine.Dev(ctx, d.Watch, source))
-	// })
+	g.Go(func() error {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-controllerReady:
+		}
+		starting.Close()
+		return errors.WithStack(engine.Dev(ctx, d.Watch, source))
+	})
 
-	// err = g.Wait()
-	// if err != nil && !errors.Is(err, context.Canceled) {
-	// 	return errors.Wrap(err, "error during dev")
-	// }
-	// return nil
+	err = g.Wait()
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return errors.Wrap(err, "error during dev")
+	}
+	return nil
 }
