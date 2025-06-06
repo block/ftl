@@ -323,3 +323,19 @@ func (t *modifyFilesTransaction) ModifiedFiles(paths ...string) error {
 
 	return nil
 }
+
+type NoOpFilesTransation struct{}
+
+var _ ModifyFilesTransaction = NoOpFilesTransation{}
+
+func (NoOpFilesTransation) Begin() error {
+	return nil
+}
+
+func (NoOpFilesTransation) End() error {
+	return nil
+}
+
+func (NoOpFilesTransation) ModifiedFiles(paths ...string) error {
+	return nil
+}

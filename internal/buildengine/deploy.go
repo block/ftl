@@ -16,11 +16,8 @@ import (
 	"github.com/alecthomas/types/optional"
 	"github.com/alecthomas/types/result"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	adminpb "github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1"
-	buildenginepb "github.com/block/ftl/backend/protos/xyz/block/ftl/buildengine/v1"
-	langpb "github.com/block/ftl/backend/protos/xyz/block/ftl/language/v1"
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
 	ftlv1 "github.com/block/ftl/backend/protos/xyz/block/ftl/v1"
 	"github.com/block/ftl/common/key"
@@ -41,10 +38,6 @@ type AdminClient interface {
 	UploadArtefact(ctx context.Context) *connect.ClientStreamForClient[adminpb.UploadArtefactRequest, adminpb.UploadArtefactResponse]
 	StreamLogs(ctx context.Context, req *connect.Request[adminpb.StreamLogsRequest]) (*connect.ServerStreamForClient[adminpb.StreamLogsResponse], error)
 	Ping(ctx context.Context, req *connect.Request[ftlv1.PingRequest]) (*connect.Response[ftlv1.PingResponse], error)
-}
-
-type DependencyGrapher interface {
-	Graph(moduleNames ...string) (map[string][]string, error)
 }
 
 type pendingModule struct {
@@ -86,7 +79,7 @@ type pendingDeploy struct {
 type SchemaUpdatedEvent struct {
 	schema *schema.Schema
 	// marks which modules were changed together (ie. in the same changeset or queued together)
-	updatedModules map[string]bool
+	updatedModules []schema.ModuleRefKey
 }
 
 // DeployCoordinator manages the deployment of modules through changesets. It ensures that changesets are deployed
@@ -98,12 +91,11 @@ type SchemaUpdatedEvent struct {
 // but publish it as part of the its schema. This allows the build engine to react and build module A against the new schema for module B.
 // The DeployCoordinator will then create a changeset of A and B together.
 type DeployCoordinator struct {
-	adminClient       AdminClient
-	schemaSource      *schemaeventsource.EventSource
-	dependencyGrapher DependencyGrapher
+	adminClient  AdminClient
+	schemaSource *schemaeventsource.EventSource
 
 	// for publishing deploy events
-	engineUpdates chan *buildenginepb.EngineEvent
+	deployUpdates chan internalEvent
 
 	// deployment queue and state tracking
 	deploymentQueue chan pendingDeploy
@@ -120,7 +112,7 @@ func NewDeployCoordinator(
 	ctx context.Context,
 	adminClient AdminClient,
 	schemaSource *schemaeventsource.EventSource,
-	engineUpdates chan *buildenginepb.EngineEvent,
+	deployUpdates chan internalEvent,
 	logChanges bool,
 	projectConfig projectconfig.Config,
 	externalRealms []*schema.Realm,
@@ -128,7 +120,7 @@ func NewDeployCoordinator(
 	c := &DeployCoordinator{
 		adminClient:     adminClient,
 		schemaSource:    schemaSource,
-		engineUpdates:   engineUpdates,
+		deployUpdates:   deployUpdates,
 		deploymentQueue: make(chan pendingDeploy, 128),
 		SchemaUpdates:   make(chan SchemaUpdatedEvent, 128),
 		logChanges:      logChanges,
@@ -142,27 +134,20 @@ func NewDeployCoordinator(
 	return c
 }
 
-func (c *DeployCoordinator) deploy(ctx context.Context, modules []*pendingModule, replicas optional.Option[int32]) error {
-	logger := log.FromContext(ctx)
-	for _, module := range modules {
-		c.engineUpdates <- &buildenginepb.EngineEvent{
-			Event: &buildenginepb.EngineEvent_ModuleDeployWaiting{
-				ModuleDeployWaiting: &buildenginepb.ModuleDeployWaiting{
-					Module: module.module.Config.Module,
-				},
-			},
-		}
-	}
-	pendingModules := make(map[string]*pendingModule, len(modules))
-	for _, m := range modules {
-		pendingModules[m.moduleName()] = m
+type deployFunc func(ctx context.Context, module *pendingModule) (willDeploy bool)
 
-		defer func() {
-			if err := os.RemoveAll(m.tmpDeployDir); err != nil {
-				logger.Errorf(err, "failed to remove tmp deploy dir %s", m.tmpDeployDir)
-			}
-		}()
+func (c *DeployCoordinator) deploy(ctx context.Context, module *pendingModule, replicas optional.Option[int32]) error {
+	logger := log.FromContext(ctx)
+
+	pendingModules := map[string]*pendingModule{
+		module.moduleName(): module,
 	}
+
+	defer func() {
+		if err := os.RemoveAll(module.tmpDeployDir); err != nil {
+			logger.Errorf(err, "failed to remove tmp deploy dir %s", module.tmpDeployDir)
+		}
+	}()
 
 	errChan := make(chan error, 1)
 	c.deploymentQueue <- pendingDeploy{
@@ -174,7 +159,7 @@ func (c *DeployCoordinator) deploy(ctx context.Context, modules []*pendingModule
 		return errors.WithStack(ctx.Err()) //nolint:wrapcheck
 	case err := <-errChan:
 		if err != nil {
-			logger.Errorf(err, "Failed to deploy %s", strings.Join(slices.Map(modules, func(m *pendingModule) string { return m.moduleName() }), ", "))
+			logger.Errorf(err, "Failed to deploy %s", module)
 		}
 		return errors.WithStack(err)
 	}
@@ -255,7 +240,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 
 			// Check for modules that need to be rebuilt for this change to be valid
 			// Try and deploy, unless there are conflicting changesets this will happen immediately
-			graph, err := c.dependencyGrapher.Graph()
+			graph, err := c.dependencyGraphForDeploymentState(toDeploy, deploying, deployment)
 			if err != nil {
 				log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
 				continue
@@ -286,38 +271,48 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				toDeploy = append(toDeploy, deployment)
 			}
 			if deployment.publishInSchema {
-				c.publishUpdatedSchema(ctx, stdslices.Collect(maps.Keys(deployment.modules)), toDeploy, deploying)
+				c.publishUpdatedSchema(ctx, slices.Map(stdslices.Collect(maps.Keys(deployment.modules)), func(name string) schema.ModuleRefKey {
+					return schema.ModuleRefKey{Realm: c.projectConfig.Name, Module: name}
+				}), toDeploy, deploying)
 			}
 		case notification := <-events:
 			var key key.Changeset
-			var updatedModules []string
+			var updatedModules []schema.ModuleRefKey
 			switch e := notification.(type) {
 			case *schema.ChangesetCommittedNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) string { return m.Name })
+				// TODO: use e.Changeset.RealmChanges so external modules are handled
+				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) schema.ModuleRefKey {
+					return schema.ModuleRefKey{Realm: e.Changeset.InternalRealm().Name, Module: m.Name}
+				})
 
-				for _, m := range e.Changeset.InternalRealm().RemovingModules {
-					if _, ok := slices.Find(updatedModules, func(s string) bool { return s == m.Name }); ok {
-						continue
-					}
-					c.engineUpdates <- &buildenginepb.EngineEvent{
-						Timestamp: timestamppb.Now(),
-						Event: &buildenginepb.EngineEvent_ModuleRemoved{
-							ModuleRemoved: &buildenginepb.ModuleRemoved{
-								Module: m.Name,
-							},
-						},
-					}
-				}
+				// TODO: bring this back
+				// for _, m := range e.Changeset.InternalRealm().RemovingModules {
+				// if _, ok := slices.Find(updatedModules, func(r schema.ModuleRefKey) bool { return r.Module == m.Name }); ok {
+				// 	continue
+				// }
+
+				// c.engineUpdates <- &buildenginepb.EngineEvent{
+				// 	Timestamp: timestamppb.Now(),
+				// 	Event: &buildenginepb.EngineEvent_ModuleRemoved{
+				// 		ModuleRemoved: &buildenginepb.ModuleRemoved{
+				// 			Module: m.Name,
+				// 		},
+				// 	},
+				// }
+				// }
 			case *schema.ChangesetRollingBackNotification:
 				key = e.Changeset.Key
-				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) string { return m.Name })
+				// TODO: use e.Changeset.RealmChanges so external modules are handled
+				updatedModules = slices.Map(e.Changeset.InternalRealm().Modules, func(m *schema.Module) schema.ModuleRefKey {
+					return schema.ModuleRefKey{Realm: e.Changeset.InternalRealm().Name, Module: m.Name}
+				})
 			default:
 				continue
 			}
 
 			tmp := []*pendingDeploy{}
-			graph, err := c.dependencyGrapher.Graph()
+			graph, err := c.dependencyGraphForDeploymentState(toDeploy, deploying)
 			if err != nil {
 				log.FromContext(ctx).Errorf(err, "could not build graph to order deployment")
 				continue
@@ -328,7 +323,7 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				}
 				if d.publishInSchema {
 					// already in published schema
-					updatedModules = []string{}
+					updatedModules = []schema.ModuleRefKey{}
 				}
 				return false
 			})
@@ -345,6 +340,23 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 			c.publishUpdatedSchema(ctx, updatedModules, toDeploy, deploying)
 		}
 	}
+}
+
+func (c *DeployCoordinator) dependencyGraphForDeploymentState(toDeploy []*pendingDeploy, deploying []*pendingDeploy, extra ...*pendingDeploy) (map[string][]string, error) {
+	allDeploys := append([]*pendingDeploy{}, toDeploy...)
+	allDeploys = append(allDeploys, deploying...)
+	allDeploys = append(allDeploys, extra...)
+	customDependencyProviders := map[string]customDependencyProvider{
+		"builtin": func() []string { return []string{} },
+	}
+	for _, deployment := range allDeploys {
+		for _, module := range deployment.modules {
+			customDependencyProviders[module.moduleName()] = func() []string {
+				return module.module.Dependencies(AlwaysIncludeBuiltin)
+			}
+		}
+	}
+	return Graph(customDependencyProviders, c.schemaSource.CanonicalView(), stdslices.Collect(maps.Keys(customDependencyProviders))...)
 }
 
 func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *pendingDeploy, toDeploy []*pendingDeploy, depGraph map[string][]string) bool {
@@ -384,14 +396,8 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 	// No conflicts, lets deploy
 	moduleNames := slices.Sort(slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) string { return m.moduleName() }))
 	logger.Debugf("Deploying %s", strings.Join(moduleNames, ","))
+	c.deployUpdates <- moduleDeployStartedEvent{modules: slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) string { return m.moduleName() })}
 	for _, module := range deployment.modules {
-		c.engineUpdates <- &buildenginepb.EngineEvent{
-			Event: &buildenginepb.EngineEvent_ModuleDeployStarted{
-				ModuleDeployStarted: &buildenginepb.ModuleDeployStarted{
-					Module: module.moduleName(),
-				},
-			},
-		}
 		if repo, ok := deployment.replicas.Get(); ok {
 			module.schema.ModRuntime().ModScaling().MinReplicas = repo
 		}
@@ -400,32 +406,7 @@ func (c *DeployCoordinator) tryDeployFromQueue(ctx context.Context, deployment *
 	keyChan := make(chan result.Result[key.Changeset], 1)
 	go func() {
 		err := deploy(ctx, c.projectConfig.Name, slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(m *pendingModule) *schema.Module { return m.schema }), c.adminClient, keyChan, c.externalRealms)
-		if err != nil {
-			// Handle deployment failure
-			for _, module := range deployment.modules {
-				c.engineUpdates <- &buildenginepb.EngineEvent{
-					Event: &buildenginepb.EngineEvent_ModuleDeployFailed{
-						ModuleDeployFailed: &buildenginepb.ModuleDeployFailed{
-							Module: module.moduleName(),
-							Errors: &langpb.ErrorList{
-								Errors: errorToLangError(err),
-							},
-						},
-					},
-				}
-			}
-		} else {
-			// Handle deployment success
-			for _, module := range deployment.modules {
-				c.engineUpdates <- &buildenginepb.EngineEvent{
-					Event: &buildenginepb.EngineEvent_ModuleDeploySuccess{
-						ModuleDeploySuccess: &buildenginepb.ModuleDeploySuccess{
-							Module: module.moduleName(),
-						},
-					},
-				}
-			}
-		}
+		c.deployUpdates <- moduleDeployEndedEvent{modules: slices.Map(stdslices.Collect(maps.Values(deployment.modules)), func(module *pendingModule) string { return module.moduleName() }), err: err}
 		deployment.err <- err
 		for _, sup := range deployment.supercededModules {
 			sup.err <- err
@@ -541,7 +522,7 @@ func (c *DeployCoordinator) invalidModulesForDeployment(originalSch *schema.Sche
 	return out
 }
 
-func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedModules []string, toDeploy, deploying []*pendingDeploy) {
+func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedModules []schema.ModuleRefKey, toDeploy, deploying []*pendingDeploy) {
 	logger := log.FromContext(ctx)
 	overridden := map[string]bool{}
 	toRemove := map[string]bool{}
@@ -604,13 +585,9 @@ func (c *DeployCoordinator) publishUpdatedSchema(ctx context.Context, updatedMod
 		logger.Errorf(err, "Deploy coordinator could not publish invalid schema")
 		return
 	}
-	updated := map[string]bool{}
-	for _, m := range updatedModules {
-		updated[m] = true
-	}
 	c.SchemaUpdates <- SchemaUpdatedEvent{
 		schema:         sch,
-		updatedModules: updated,
+		updatedModules: updatedModules,
 	}
 }
 

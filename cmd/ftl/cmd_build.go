@@ -37,7 +37,6 @@ func (b *buildCmd) Run(
 	engine, err := buildengine.New(
 		ctx,
 		adminClient,
-		// schemaSource,
 		projConfig,
 		b.Dirs,
 		false,
@@ -51,7 +50,7 @@ func (b *buildCmd) Run(
 	// 	logger.Warnf("No modules were found to build")
 	// 	return nil
 	// }
-	if err := engine.Build(ctx); err != nil {
+	if err := engine.Build(ctx, schemaSource); err != nil {
 		return errors.Wrap(err, "build failed")
 	}
 	return nil

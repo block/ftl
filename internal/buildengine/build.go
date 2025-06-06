@@ -2,7 +2,6 @@ package buildengine
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,11 +32,10 @@ var errInvalidateDependencies = errors.New("dependencies need to be updated")
 var errSQLError = errors.New("failed to add queries to schema")
 
 type transactionProviderFunc func() watch.ModifyFilesTransaction
-type buildFunc func(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc, outChan chan internalEvent)
+type buildFunc func(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, fileTransaction watch.ModifyFilesTransaction, outChan chan internalEvent)
 
-func buildModuleAndPublish(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc, outChan chan internalEvent) {
-	moduleSchema, tmpDeployDir, deployPaths, err := buildModule(ctx, projectConfig, m, plugin, bctx, devMode, devModeEndpoints, transactionProvider)
-	fmt.Printf("build err: %v\n", err)
+func buildModuleAndPublish(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, fileTransaction watch.ModifyFilesTransaction, outChan chan internalEvent) {
+	moduleSchema, tmpDeployDir, deployPaths, err := buildModule(ctx, projectConfig, m, plugin, bctx, devMode, devModeEndpoints, fileTransaction)
 	outChan <- moduleBuildEndedEvent{
 		config:       bctx.Config,
 		moduleSchema: moduleSchema,
@@ -47,11 +45,10 @@ func buildModuleAndPublish(ctx context.Context, projectConfig projectconfig.Conf
 	}
 }
 
-func buildModule(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, transactionProvider transactionProviderFunc) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
+func buildModule(ctx context.Context, projectConfig projectconfig.Config, m Module, plugin *languageplugin.LanguagePlugin, bctx languageplugin.BuildContext, devMode bool, devModeEndpoints chan dev.LocalEndpoint, fileTransaction watch.ModifyFilesTransaction) (moduleSchema *schema.Module, tmpDeployDir string, deployPaths []string, err error) {
 	logger := log.FromContext(ctx).Module(m.Config.Module).Scope("build")
 	ctx = log.ContextWithLogger(ctx, logger)
 
-	fileTransaction := transactionProvider()
 	if err = fileTransaction.Begin(); err != nil {
 		return nil, "", nil, errors.WithStack(errors.Wrap(err, "failed to begin file transaction"))
 	}
@@ -62,6 +59,9 @@ func buildModule(ctx context.Context, projectConfig projectconfig.Config, m Modu
 			}
 		}
 	}()
+
+	// Remove previous module schema
+	bctx.Schema.RemoveModule(projectConfig.Name, m.Config.Module)
 
 	// TODO: input enough info to know if sql files have changed
 	err = sql.AddDatabaseDeclsToSchema(ctx, projectConfig.Root(), m.Config.Abs(), bctx.Schema)
@@ -96,9 +96,6 @@ func handleBuildResult(ctx context.Context, projectConfig projectconfig.Config, 
 		return nil, "", nil, errors.Wrap(err, "failed to build module")
 	}
 
-	if len(result.ModifiedFiles) > 0 {
-		logger.Infof("Modified files: %v", result.ModifiedFiles)
-	}
 	if err := fileTransaction.ModifiedFiles(result.ModifiedFiles...); err != nil {
 		return nil, "", nil, errors.Wrap(err, "failed to apply modified files")
 	}
