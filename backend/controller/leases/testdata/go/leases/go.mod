@@ -50,7 +50,6 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/block/ftl-golang-tools v0.5.0 // indirect
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250514012428-f17e23827cde // indirect
-	github.com/block/scaffolder v1.5.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
