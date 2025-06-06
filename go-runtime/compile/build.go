@@ -30,7 +30,6 @@ import (
 	"github.com/block/ftl/common/reflect"
 	"github.com/block/ftl/common/schema"
 	islices "github.com/block/ftl/common/slices"
-	"github.com/block/ftl/common/strcase"
 	extract "github.com/block/ftl/go-runtime/schema"
 	"github.com/block/ftl/go-runtime/schema/common"
 	"github.com/block/ftl/go-runtime/schema/finalize"
@@ -91,10 +90,14 @@ func (c *mainDeploymentContext) generateMainImports() []string {
 
 func (c *mainDeploymentContext) generateQueryImports() []string {
 	imports := sets.NewSet[string]()
-	imports.Add(`"context"`)
 	imports.Add(`"github.com/block/ftl/go-runtime/server"`)
-	imports.Add(`"github.com/block/ftl/common/reflection"`)
-	imports.Add(`"github.com/alecthomas/types/tuple"`)
+	if len(c.QueriesCtx.Verbs) > 0 {
+		imports.Add(`"context"`)
+	}
+	if len(c.Databases) > 0 {
+		imports.Add(`"github.com/block/ftl/common/reflection"`)
+		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
+	}
 	for _, d := range c.QueriesCtx.Data {
 		for _, f := range d.Fields {
 			imports.Append(schemaTypeImports(f.Type, true)...)
@@ -122,10 +125,6 @@ func (c *mainDeploymentContext) generateTypesImports(mainModuleImport string) []
 	}
 	if hasVerbs {
 		imports.Add(`"context"`)
-	}
-	if len(c.Databases) > 0 {
-		imports.Add(`"github.com/block/ftl/go-runtime/server"`)
-		imports.Add(`"github.com/block/ftl/go-runtime/ftl"`)
 	}
 	for _, st := range c.TypesCtx.SumTypes {
 		imports.Add(st.importStatement())
@@ -219,6 +218,8 @@ func verbImports(v goVerb, main bool) []string {
 				imports.Append(verbImports(r.goVerb, false)...)
 			case goTopicHandle:
 				imports.Add(r.MapperType.importStatement())
+			case goDBHandle:
+				imports.Add(r.getNativeType().importStatement())
 			}
 		}
 	}
@@ -241,19 +242,9 @@ type typesFileContext struct {
 
 type queriesFileContext struct {
 	Module  *schema.Module
-	Verbs   []queryVerb
+	Verbs   []*schema.Verb
 	Data    []*schema.Data
 	Imports []string
-}
-
-type queryVerb struct {
-	*schema.Verb
-	CommandType    string
-	RawSQL         string
-	ParamFields    string
-	ColToFieldName string
-	DBName         string
-	DBType         string
 }
 
 type goType interface {
@@ -759,7 +750,7 @@ func scaffoldBuildTemplateAndTidy(ctx context.Context, config moduleconfig.AbsMo
 			scaffolder.Functions(funcs)); err != nil {
 			return errors.Wrap(err, "failed to scaffold build template")
 		}
-		if len(mctx.QueriesCtx.Verbs) > 0 {
+		if len(mctx.QueriesCtx.Verbs) > 0 || len(mctx.Databases) > 0 {
 			if err := internal.ScaffoldZip(queriesTemplateFiles(), config.SQLRootDir, mctx, scaffolder.Exclude("^go.mod$"),
 				scaffolder.Functions(funcs)); err != nil {
 				return errors.Wrap(err, "failed to scaffold queries template")
@@ -902,7 +893,7 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 		},
 		QueriesCtx: queriesFileContext{
 			Module: b.mainModule,
-			Verbs:  []queryVerb{},
+			Verbs:  []*schema.Verb{},
 			Data:   []*schema.Data{},
 		},
 	}
@@ -923,8 +914,8 @@ func (b *mainDeploymentContextBuilder) build(goModVersion, ftlVersion, projectNa
 		ctx.TypesCtx.MainModulePkg = alias
 	}
 
-	slices.SortFunc(ctx.QueriesCtx.Verbs, func(a, b queryVerb) int {
-		return strings.Compare(a.Verb.Name, b.Verb.Name)
+	slices.SortFunc(ctx.QueriesCtx.Verbs, func(a, b *schema.Verb) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 	slices.SortFunc(ctx.QueriesCtx.Data, func(a, b *schema.Data) int {
 		return strings.Compare(a.Name, b.Name)
@@ -1037,17 +1028,13 @@ func (b *mainDeploymentContextBuilder) visit(
 	return nil
 }
 
-func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryVerb, []*schema.Data, error) {
-	var verbs []queryVerb
+func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]*schema.Verb, []*schema.Data, error) {
+	var verbs []*schema.Verb
 	var data []*schema.Data
 	err := schema.Visit(node, func(node schema.Node, next func() error) error {
 		switch n := node.(type) {
 		case *schema.Verb:
-			verb, err := b.toQueryVerb(n)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			verbs = append(verbs, verb)
+			verbs = append(verbs, n)
 		case *schema.Data:
 			refName := b.mainModule.Name + "." + n.Name
 			if b.visited.Contains(refName) {
@@ -1076,76 +1063,6 @@ func (b *mainDeploymentContextBuilder) getQueryDecls(node schema.Node) ([]queryV
 		return nil, nil, errors.Wrap(err, "failed to get query decls")
 	}
 	return verbs, data, nil
-}
-
-func (b *mainDeploymentContextBuilder) toQueryVerb(verb *schema.Verb) (queryVerb, error) {
-	request := b.getQueryRequestResponseData(verb.Request)
-	response := b.getQueryRequestResponseData(verb.Response)
-
-	var dbRef *schema.Ref
-	for _, md := range verb.Metadata {
-		if db, ok := md.(*schema.MetadataDatabases); ok {
-			dbRef = db.Uses[0]
-		}
-	}
-	if dbRef == nil || dbRef.Name == "" {
-		return queryVerb{}, errors.Errorf("missing database call for query verb %s", verb.Name)
-	}
-
-	decl, ok := b.sch.Resolve(dbRef).Get()
-	if !ok {
-		return queryVerb{}, errors.Errorf("could not resolve database %s used by query verb %s", dbRef.String(), verb.Name)
-	}
-	db, ok := decl.(*schema.Database)
-	if !ok {
-		return queryVerb{}, errors.Errorf("declaration %s referenced by query verb %s is not a database", dbRef.String(), verb.Name)
-	}
-
-	var params []string
-	if request != nil {
-		for _, field := range request.Fields {
-			if _, ok := islices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
-				// casing field name with the same mechanism as the generated code
-				params = append(params, strings.Title(field.Name))
-			}
-		}
-	}
-
-	var pairs []string
-	if response != nil {
-		for _, field := range response.Fields {
-			if md, ok := islices.FindVariant[*schema.MetadataSQLColumn](field.Metadata); ok {
-				// casing field name with the same mechanism as the generated code
-				pairs = append(pairs, fmt.Sprintf("tuple.PairOf(%q, %q)", md.Name, strings.Title(field.Name)))
-			}
-		}
-	}
-
-	sqlQuery, _ := verb.GetQuery()
-	return queryVerb{
-		Verb:           verb,
-		CommandType:    strcase.ToUpperCamel(strings.TrimPrefix(sqlQuery.Command, ":")),
-		RawSQL:         sqlQuery.Query,
-		ParamFields:    fmt.Sprintf("[]string{%s}", strings.Join(islices.Map(params, strconv.Quote), ",")),
-		ColToFieldName: fmt.Sprintf("[]tuple.Pair[string,string]{%s}", strings.Join(pairs, ",")),
-		DBName:         db.Name,
-		DBType:         db.Type,
-	}, nil
-}
-
-func (b *mainDeploymentContextBuilder) getQueryRequestResponseData(reqResp schema.Type) *schema.Data {
-	switch r := reqResp.(type) {
-	case *schema.Ref:
-		resolved, ok := b.sch.Resolve(r).Get()
-		if !ok {
-			return nil
-		}
-		return resolved.(*schema.Data) //nolint:forcetypeassert
-	case *schema.Array:
-		return b.getQueryRequestResponseData(r.Element)
-	default:
-		return nil
-	}
 }
 
 func (b *mainDeploymentContextBuilder) getGoType(module *schema.Module, node schema.Node) (gotype optional.Option[goType], isLocal bool, err error) {
@@ -1393,7 +1310,7 @@ func (b *mainDeploymentContextBuilder) processSecret(moduleName string, ref *sch
 }
 
 func (b *mainDeploymentContextBuilder) processDatabase(moduleName string, db *schema.Database) (goDBHandle, error) {
-	nt, err := b.getNativeType(fmt.Sprintf("ftl/%s.%s", b.mainModule.Name, fmt.Sprintf("%sConfig", strings.Title(db.Name))))
+	nt, err := b.getNativeType(fmt.Sprintf("ftl/%s/db.%s", b.mainModule.Name, fmt.Sprintf("%sConfig", strings.Title(db.Name))))
 	if err != nil {
 		return goDBHandle{}, errors.WithStack(err)
 	}

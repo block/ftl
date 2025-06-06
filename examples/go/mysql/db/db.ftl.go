@@ -3,11 +3,15 @@ package db
 
 import (
 	"context"
-	"github.com/alecthomas/types/tuple"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 )
+
+//ftl:database mysql testdb
+type TestdbConfig struct{}
+
+type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
 
 type AuthorRow struct {
 	Id        int
@@ -44,12 +48,6 @@ type UpdateAuthorBioClient func(context.Context, UpdateAuthorBioQuery) error
 
 func init() {
 	reflection.Register(
-		server.QuerySink[ftl.Option[string]]("mysql", "createRequest", reflection.CommandTypeExec, "testdb", "mysql", "INSERT INTO requests (data) VALUES (/*PARAM:data*/?)", []string{}, []tuple.Pair[string, string]{}),
-		server.QuerySource[AuthorRow]("mysql", "getAllAuthors", reflection.CommandTypeMany, "testdb", "mysql", "SELECT id, bio, birth_year, hometown FROM authors", []string{}, []tuple.Pair[string, string]{tuple.PairOf("id", "Id"), tuple.PairOf("bio", "Bio"), tuple.PairOf("birth_year", "BirthYear"), tuple.PairOf("hometown", "Hometown")}),
-		server.Query[int, AuthorRow]("mysql", "getAuthorById", reflection.CommandTypeOne, "testdb", "mysql", "SELECT id, bio, birth_year, hometown FROM authors WHERE id = ?", []string{}, []tuple.Pair[string, string]{tuple.PairOf("id", "Id"), tuple.PairOf("bio", "Bio"), tuple.PairOf("birth_year", "BirthYear"), tuple.PairOf("hometown", "Hometown")}),
-		server.Query[int, GetAuthorInfoRow]("mysql", "getAuthorInfo", reflection.CommandTypeOne, "testdb", "mysql", "SELECT bio, hometown FROM authors WHERE id = ?", []string{}, []tuple.Pair[string, string]{tuple.PairOf("bio", "Bio"), tuple.PairOf("hometown", "Hometown")}),
-		server.Query[int, GetManyAuthorsInfoRow]("mysql", "getManyAuthorsInfo", reflection.CommandTypeMany, "testdb", "mysql", "SELECT bio, hometown FROM authors WHERE id IN (/*PARAM:data*/?)", []string{}, []tuple.Pair[string, string]{tuple.PairOf("bio", "Bio"), tuple.PairOf("hometown", "Hometown")}),
-		server.QuerySource[ftl.Option[string]]("mysql", "getRequestData", reflection.CommandTypeMany, "testdb", "mysql", "SELECT data FROM requests", []string{}, []tuple.Pair[string, string]{}),
-		server.QuerySink[UpdateAuthorBioQuery]("mysql", "updateAuthorBio", reflection.CommandTypeExecresult, "testdb", "mysql", "UPDATE authors SET bio = ? WHERE id = ?", []string{"Bio", "Id"}, []tuple.Pair[string, string]{}),
+		reflection.Database[TestdbConfig]("testdb", server.InitMySQL),
 	)
 }
