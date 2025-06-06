@@ -95,7 +95,7 @@ func Start(
 		return errors.WithStack(err)
 	}
 
-	for event := range channels.IterContext(ctx, svc.eventSource.Subscribe(ctx)) {
+	for event := range channels.IterSubscribable[schema.Notification](ctx, svc.eventSource) {
 		go func() {
 			switch e := event.(type) {
 			case *schema.ChangesetCreatedNotification:
