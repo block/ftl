@@ -15,18 +15,12 @@ type TransactionInsertClient func(context.Context, TransactionRequest) (Transact
 
 type TransactionRollbackClient func(context.Context, TransactionRequest) (TransactionResponse, error)
 
-//ftl:database postgres testdb
-type TestdbConfig struct{}
-
-type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
-
 func init() {
 	reflection.Register(
-		reflection.Database[TestdbConfig]("testdb", server.InitPostgres),
 
 		reflection.ProvideResourcesForVerb(
 			Insert,
-			server.DatabaseHandle[TestdbConfig]("testdb", "postgres"),
+			server.DatabaseHandle[ftldb.TestdbConfig]("testdb", "postgres"),
 		),
 
 		reflection.Transaction(TransactionInsert, "testdb"),

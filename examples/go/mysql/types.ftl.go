@@ -15,14 +15,8 @@ type InsertClient func(context.Context, InsertRequest) (InsertResponse, error)
 
 type QueryClient func(context.Context) ([]string, error)
 
-//ftl:database mysql testdb
-type TestdbConfig struct{}
-
-type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
-
 func init() {
 	reflection.Register(
-		reflection.Database[TestdbConfig]("testdb", server.InitMySQL),
 
 		reflection.ProvideResourcesForVerb(
 			Fixture,

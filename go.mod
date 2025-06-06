@@ -27,7 +27,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.35.4
 	github.com/aws/smithy-go v1.22.3
 	github.com/beevik/etree v1.5.1
-	github.com/block/ftl-golang-tools v0.5.0
+	github.com/block/ftl-golang-tools v0.6.0
 	github.com/block/ftl-mysql-auth-proxy v0.0.0-20250514012428-f17e23827cde
 	github.com/block/scaffolder v1.5.1
 	github.com/bmatcuk/doublestar/v4 v4.8.1
@@ -75,9 +75,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.36.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
-	golang.org/x/mod v0.24.0
-	golang.org/x/net v0.40.0
-	golang.org/x/sync v0.14.0
+	golang.org/x/mod v0.25.0
+	golang.org/x/net v0.41.0
+	golang.org/x/sync v0.15.0
 	golang.org/x/term v0.32.0
 	golang.org/x/tools v0.33.0
 	google.golang.org/protobuf v1.36.6
@@ -247,9 +247,9 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/swaggest/refl v1.4.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.36.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/sys v0.33.0
-	golang.org/x/text v0.25.0
+	golang.org/x/text v0.26.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250519155744-55703ea1f237 // indirect
 	google.golang.org/grpc v1.72.1 // indirect
