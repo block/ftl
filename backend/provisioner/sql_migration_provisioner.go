@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
-	"github.com/google/go-containerregistry/pkg/name"
 	"io"
 	"net/url"
 	"os"
@@ -16,6 +15,7 @@ import (
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	_ "github.com/go-sql-driver/mysql" // SQL driver
+	"github.com/google/go-containerregistry/pkg/name"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	"github.com/block/ftl/common/key"
