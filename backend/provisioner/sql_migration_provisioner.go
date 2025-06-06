@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
+	"github.com/google/go-containerregistry/pkg/name"
 	"io"
 	"net/url"
 	"os"
@@ -39,6 +40,25 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 
+		var repo oci.Repository
+		if module.GetRuntime().Image != nil && module.GetRuntime().Image.Image != "" {
+			ref, err := name.ParseReference(module.GetRuntime().Image.Image)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse image reference %s", module.GetRuntime().Image.Image)
+			}
+			repo = oci.Repository(ref.Context().String())
+		} else {
+			images := slices.FilterVariants[*schema.MetadataImage](module.Metadata)
+			for img := range images {
+				ref, err := name.ParseReference(img.Image)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse image reference %s", module.GetRuntime().Image.Image)
+				}
+				repo = oci.Repository(ref.Context().String())
+				break
+			}
+		}
+
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, errors.Errorf("expected database, got %T", resource)
@@ -48,7 +68,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to parse diges")
 			}
-			download, err := storage.Download(ctx, parseSHA256)
+			download, err := storage.DownloadFromRepository(ctx, repo, parseSHA256)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to download migration")
 			}

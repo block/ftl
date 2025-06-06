@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/block/ftl/common/sha256"
 	"os"
 	"path/filepath"
 
@@ -84,7 +85,12 @@ func (b *imageBuildCmd) Run(
 				return errors.Wrapf(err, "failed to resolve file")
 			}
 			executable := s.Mode().Perm()&0111 != 0
-			artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable})
+			bytes, err := os.ReadFile(i)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read file %s", path)
+			}
+
+			artifacts = append(artifacts, &schema.MetadataArtefact{Path: path, Executable: executable, Digest: sha256.Sum(bytes)})
 		}
 		var baseImage string
 		if b.RunnerImage != "" {
