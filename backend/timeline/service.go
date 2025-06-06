@@ -2,7 +2,6 @@ package timeline
 
 import (
 	"context"
-	"iter"
 	"sort"
 	"sync"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/types/optional"
-	"github.com/alecthomas/types/result"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	timelinepb "github.com/block/ftl/backend/protos/xyz/block/ftl/timeline/v1"
@@ -42,8 +40,16 @@ type Service struct {
 	notifier *channels.Notifier
 }
 
-var _ timelineconnect.TimelineServiceHandler = (*Service)(nil)
 var _ rpc.Service = (*Service)(nil)
+var _ timelineconnect.TimelineServiceHandler = (*grpcService)(nil)
+
+type grpcService struct {
+	*Service
+}
+
+func (g *grpcService) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
+	return g.Service.StreamTimeline(ctx, req, stream)
+}
 
 func New(ctx context.Context, config Config) (*Service, error) {
 	config.SetDefaults()
@@ -59,7 +65,7 @@ func New(ctx context.Context, config Config) (*Service, error) {
 }
 func (s *Service) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	go s.reapCallEvents(ctx)
-	return []rpc.Option{rpc.GRPC(timelineconnect.NewTimelineServiceHandler, s)}, nil
+	return []rpc.Option{rpc.GRPC(timelineconnect.NewTimelineServiceHandler, &grpcService{s})}, nil
 }
 
 func newService(ctx context.Context, config Config) (*Service, error) {
@@ -203,10 +209,20 @@ func (s *Service) findIndexWithLargerID(id int64) int {
 // We want to throttle the number of updates we send to the client via the stream.
 const minUpdateInterval = 50 * time.Millisecond
 
-func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.StreamTimelineRequest) (iter.Seq[result.Result[*timelinepb.StreamTimelineResponse]], error) {
+func updatedMaxEventID(events []*timelinepb.Event, prevMaxEventID optional.Option[int64]) optional.Option[int64] {
+	if len(events) == 0 {
+		return prevMaxEventID
+	}
+	if events[len(events)-1].Id > events[0].Id {
+		return optional.Some(events[len(events)-1].Id)
+	}
+	return optional.Some(events[0].Id)
+}
+
+func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream rpc.ServerStream[timelinepb.StreamTimelineResponse]) error {
 	sub := s.notifier.Subscribe(ctx)
 	lastUpdate := time.Now()
-	query := req.Query
+	query := req.Msg.Query
 
 	reverseOrder := timelinepb.TimelineQuery_ORDER_DESC
 	if query.Order == reverseOrder {
@@ -214,19 +230,19 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 	}
 
 	updateInterval := minUpdateInterval
-	if req.UpdateInterval != nil && req.UpdateInterval.AsDuration() > minUpdateInterval {
-		updateInterval = req.UpdateInterval.AsDuration()
+	if req.Msg.UpdateInterval != nil && req.Msg.UpdateInterval.AsDuration() > minUpdateInterval {
+		updateInterval = req.Msg.UpdateInterval.AsDuration()
 	}
 
 	if query.Limit == 0 {
-		return nil, errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0")))
+		return errors.WithStack(connect.NewError(connect.CodeInvalidArgument, errors.New("limit must be > 0")))
 	}
 
 	first := true
 	var events []*timelinepb.Event
 	var lastEventID optional.Option[int64]
 
-	return func(yield func(result.Result[*timelinepb.StreamTimelineResponse]) bool) {
+	for {
 		if first {
 			// we are returning the first batch
 			first = false
@@ -237,15 +253,14 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 				Filters: query.Filters,
 			}}))
 			if err != nil {
-				yield(result.Err[*timelinepb.StreamTimelineResponse](errors.Wrap(err, "failed to get timeline")))
-				return
+				return errors.Wrap(err, "failed to get timeline")
 			}
 			events = resp.Msg.Events
 			slices.Reverse(events)
 			lastEventID = updatedMaxEventID(events, optional.None[int64]())
 
-			if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
-				return
+			if err := stream.Send(&timelinepb.StreamTimelineResponse{Events: events}); err != nil {
+				return errors.WithStack(err)
 			}
 		}
 
@@ -264,8 +279,7 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 
 			resp, err := s.GetTimeline(ctx, connect.NewRequest(&timelinepb.GetTimelineRequest{Query: newQuery}))
 			if err != nil {
-				yield(result.Err[*timelinepb.StreamTimelineResponse](errors.Wrap(err, "failed to get timeline")))
-				return
+				return errors.Wrap(err, "failed to get timeline")
 			}
 
 			events = resp.Msg.Events
@@ -275,44 +289,22 @@ func (s *Service) streamTimelineIter(ctx context.Context, req *timelinepb.Stream
 
 			if len(events) > 0 {
 				lastEventID = updatedMaxEventID(events, lastEventID)
-				if !yield(result.Ok(&timelinepb.StreamTimelineResponse{Events: events})) {
-					return
+				if err := stream.Send(&timelinepb.StreamTimelineResponse{Events: events}); err != nil {
+					return errors.WithStack(err)
 				}
 			} else {
 				// no more events to send, wait for a new events or the context to be done
 				select {
 				case <-sub:
 				case <-ctx.Done():
-					return
+					return nil
 				}
 			}
 			// throttle the updates to the client
 			time.Sleep(time.Until(lastUpdate.Add(updateInterval)))
 			lastUpdate = time.Now()
 		}
-	}, nil
-}
-
-func updatedMaxEventID(events []*timelinepb.Event, prevMaxEventID optional.Option[int64]) optional.Option[int64] {
-	if len(events) == 0 {
-		return prevMaxEventID
 	}
-	if events[len(events)-1].Id > events[0].Id {
-		return optional.Some(events[len(events)-1].Id)
-	}
-	return optional.Some(events[0].Id)
-}
-
-func (s *Service) StreamTimeline(ctx context.Context, req *connect.Request[timelinepb.StreamTimelineRequest], stream *connect.ServerStream[timelinepb.StreamTimelineResponse]) error {
-	iter, err := s.streamTimelineIter(ctx, req.Msg)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err := rpc.IterAsGrpc(iter, stream); err != nil {
-		return errors.Wrap(err, "failed to stream timeline")
-	}
-	return nil
 }
 
 func (s *Service) DeleteOldEvents(ctx context.Context, req *connect.Request[timelinepb.DeleteOldEventsRequest]) (*connect.Response[timelinepb.DeleteOldEventsResponse], error) {
