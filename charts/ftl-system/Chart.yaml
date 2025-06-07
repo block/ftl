@@ -1,7 +1,7 @@
 apiVersion: v2
 name: ftl
 description: |
-  A Helm chart for Kubernetes that deploys FTL
+  The FTL control plane services.
 home: https://github.com/block/ftl
 version: 0.0.1
 appVersion: 0.0.1

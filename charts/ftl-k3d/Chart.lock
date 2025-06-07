@@ -1,6 +1,9 @@
 dependencies:
-- name: ftl
-  repository: file://../ftl
+- name: ftl-system
+  repository: file://../ftl-system
   version: 0.0.1
-digest: sha256:c1db1cd9b05146c2404cae0a8cabe17ceb8f91a852948fe8f7a0312ea24d82dd
-generated: "2025-03-25T13:06:47.441475+11:00"
+- name: ftl-services
+  repository: file://../ftl-services
+  version: 0.0.1
+digest: sha256:c2f9914dbf1194f65aa6b4889efc05e7bd8a32c626e6872ce5ab92f4c1bf480d
+generated: "2025-06-05T17:24:08.750695+10:00"

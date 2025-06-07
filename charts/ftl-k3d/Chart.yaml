@@ -6,6 +6,9 @@ home: https://github.com/block/ftl
 version: 0.0.1
 appVersion: 0.0.1
 dependencies:
-  - name: ftl
+  - name: ftl-system
     version: 0.0.1
-    repository: file://../ftl
+    repository: file://../ftl-system
+  - name: ftl-services
+    version: 0.0.1
+    repository: file://../ftl-services

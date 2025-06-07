@@ -2,7 +2,9 @@ _help:
   @just -l
 
 dep-update:
-    helm dep update ftl
+    helm dep update ftl-system
+    helm dep update ftl-services
+    helm dep update ftl-k3d
 
 set-version version:
     @echo "Setting version to {{version}}"
