@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	errors "github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
 
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/admin/v1/adminpbconnect"
+	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
@@ -24,40 +26,46 @@ func (d *deployCmd) Run(
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
 ) error {
-	// TODO: reimplement this
-
 	// logger := log.FromContext(ctx)
+	if len(d.Build.Dirs) == 0 {
+		d.Build.Dirs = projConfig.AbsModuleDirs()
+	}
+	if len(d.Build.Dirs) == 0 {
+		return errors.WithStack(errors.New("no directories specified"))
+	}
 
-	// if !schemaSource.WaitForInitialSync(ctx) {
-	// 	return errors.Errorf("timed out waiting for schema sync from server")
-	// }
-	// // Cancel build engine context to ensure all language plugins are killed.
-	// if d.Timeout > 0 {
-	// 	var cancel context.CancelFunc //nolint: forbidigo
-	// 	ctx, cancel = context.WithTimeoutCause(ctx, d.Timeout, errors.Errorf("terminating deploy due to timeout of %s", d.Timeout))
-	// 	defer cancel()
-	// } else {
-	// 	var cancel context.CancelCauseFunc
-	// 	ctx, cancel = context.WithCancelCause(ctx)
-	// 	defer cancel(errors.Wrap(context.Canceled, "stopping deploy"))
-	// }
-	// engine, err := buildengine.New(
-	// 	ctx, adminClient, projConfig, d.Build.Dirs, true,
-	// 	buildengine.BuildEnv(d.Build.BuildEnv),
-	// 	buildengine.Parallelism(d.Build.Parallelism),
-	// )
-	// if err != nil {
-	// 	return errors.WithStack(err)
-	// }
+	if !schemaSource.WaitForInitialSync(ctx) {
+		return errors.Errorf("timed out waiting for schema sync from server")
+	}
+
+	if d.Timeout > 0 {
+		var cancel context.CancelFunc //nolint: forbidigo
+		ctx, cancel = context.WithTimeoutCause(ctx, d.Timeout, errors.Errorf("terminating deploy due to timeout of %s", d.Timeout))
+		defer cancel()
+	} else {
+		var cancel context.CancelCauseFunc
+		ctx, cancel = context.WithCancelCause(ctx)
+		defer cancel(errors.Wrap(context.Canceled, "stopping deploy"))
+	}
+
+	engine, err := buildengine.New(
+		ctx,
+		adminClient,
+		projConfig,
+		d.Build.Dirs,
+		false,
+		buildengine.BuildEnv(d.Build.BuildEnv),
+		buildengine.Parallelism(d.Build.Parallelism),
+	)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 	// if len(engine.Modules()) == 0 {
-	// 	logger.Warnf("No modules were found to deploy")
+	// 	logger.Warnf("No modules were found to build")
 	// 	return nil
 	// }
-	// err = engine.BuildAndDeploy(ctx, d.Replicas, !d.NoWait, true)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to deploy")
-	// }
-	// logger.Infof("Deployed modules %v", engine.Modules()) //nolint
-	// terminal.FromContext(ctx).Close()
+	if err := engine.BuildAndDeploy(ctx, schemaSource, d.Replicas); err != nil {
+		return errors.Wrap(err, "build failed")
+	}
 	return nil
 }

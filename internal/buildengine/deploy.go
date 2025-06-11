@@ -134,24 +134,20 @@ func NewDeployCoordinator(
 	return c
 }
 
-type deployFunc func(ctx context.Context, module *pendingModule) (willDeploy bool)
-
-func (c *DeployCoordinator) deploy(ctx context.Context, module *pendingModule, replicas optional.Option[int32]) error {
+func (c *DeployCoordinator) deploy(ctx context.Context, modules map[string]*pendingModule, replicas optional.Option[int32]) error {
 	logger := log.FromContext(ctx)
 
-	pendingModules := map[string]*pendingModule{
-		module.moduleName(): module,
-	}
-
 	defer func() {
-		if err := os.RemoveAll(module.tmpDeployDir); err != nil {
-			logger.Errorf(err, "failed to remove tmp deploy dir %s", module.tmpDeployDir)
+		for _, module := range modules {
+			if err := os.RemoveAll(module.tmpDeployDir); err != nil {
+				logger.Errorf(err, "failed to remove tmp deploy dir %s", module.tmpDeployDir)
+			}
 		}
 	}()
 
 	errChan := make(chan error, 1)
 	c.deploymentQueue <- pendingDeploy{
-		modules:  pendingModules,
+		modules:  modules,
 		replicas: replicas,
 		err:      errChan}
 	select {
@@ -159,7 +155,9 @@ func (c *DeployCoordinator) deploy(ctx context.Context, module *pendingModule, r
 		return errors.WithStack(ctx.Err()) //nolint:wrapcheck
 	case err := <-errChan:
 		if err != nil {
-			logger.Errorf(err, "Failed to deploy %s", module)
+			for _, module := range modules {
+				logger.Errorf(err, "Failed to deploy %s", module)
+			}
 		}
 		return errors.WithStack(err)
 	}
@@ -258,9 +256,10 @@ func (c *DeployCoordinator) processEvents(ctx context.Context) {
 				modulesToValidate = append(modulesToValidate, module)
 			}
 			deployment.waitingForModules = c.invalidModulesForDeployment(c.schemaSource.CanonicalView(), deployment, modulesToValidate)
-			if len(deployment.waitingForModules) > 0 {
-				deployment.publishInSchema = true
-			}
+			// For now let's always publish queued deployments in the schema
+			// This helps speed up the engine as dependencies can start building
+			// Originally this was only turned on if (deployment.waitingForModules > 0)
+			deployment.publishInSchema = true
 
 			if c.tryDeployFromQueue(ctx, deployment, toDeploy, graph) {
 				if deployment.changeset.Ok() {

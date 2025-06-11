@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -33,7 +32,15 @@ import (
 	"github.com/block/ftl/internal/watch"
 )
 
-var _ rpc.Service = (*Engine)(nil)
+// moduleWatcherFunc is a function that watches a module for changes
+//
+// It returns a way to create file transactions and a cancel function to stop watching the module
+type moduleWatcherFunc func(ctx context.Context, config moduleconfig.ModuleConfig, internalEvents chan internalEvent) (transactionProviderFunc, context.CancelCauseFunc, error)
+
+// deployFunc is a function that might deploy a module.
+//
+// It returns true if the module is queued for deployment, or false otherwise.
+type deployFunc func(ctx context.Context, module *pendingModule) (willDeploy bool)
 
 // moduleMeta is a wrapper around a module that includes the last build's start time.
 type moduleMeta struct {
@@ -113,25 +120,14 @@ func (moduleDeployEndedEvent) internalEvent() {}
 
 // Engine for building a set of modules.
 type Engine struct {
-	adminClient AdminClient
-	// deployCoordinator *DeployCoordinator
-	// moduleMetas       *xsync.MapOf[string, moduleMeta]
-	// externalRealms    *xsync.MapOf[string, *schema.Realm]
+	adminClient   AdminClient
 	projectConfig projectconfig.Config
 	moduleDirs    []string
-	// watcher           *watch.Watcher // only watches for module toml changes
-	// targetSchema      atomic.Value[*schema.Schema]
-	// cancel      context.CancelCauseFunc
-	parallelism int
-	// modulesToBuild    *xsync.MapOf[string, bool]
-	buildEnv  []string
-	startTime optional.Option[time.Time]
+	parallelism   int
+	buildEnv      []string
+	startTime     optional.Option[time.Time]
 
 	internalEvents chan internalEvent
-
-	// internal channel for raw engine updates (does not include all state changes)
-	// rawEngineUpdates chan *buildenginepb.EngineEvent
-
 	// topic to subscribe to engine events
 	engineUpdates *pubsub.Topic[*buildenginepb.EngineEvent]
 
@@ -142,6 +138,8 @@ type Engine struct {
 	arch           string
 	updatesService rpc.Service
 }
+
+var _ rpc.Service = (*Engine)(nil)
 
 func (e *Engine) StartServices(ctx context.Context) ([]rpc.Option, error) {
 	services, err := e.updatesService.StartServices(ctx)
@@ -247,16 +245,41 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration, schemaSource *sc
 	go watchSchemaUpdates(ctx, initialSchemaEvent.schema, deployCoordinator.SchemaUpdates, e.internalEvents)
 
 	// watch for module additions and revovals
-	err := errors.WithStack(e.processEvents(ctx, initialSchemaEvent.schema, false, moduleWatcherWithPeriod(period), buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
-		go deployCoordinator.deploy(ctx, module, optional.None[int32]())
+	_, err := e.processEvents(ctx, initialSchemaEvent.schema, false, moduleWatcherWithPeriod(period), buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
+		go deployCoordinator.deploy(ctx, map[string]*pendingModule{module.schema.Name: module}, optional.None[int32]())
 		return true
-	}))
-	fmt.Printf("process events returned: %v\n", err)
-	time.Sleep(time.Second * 2)
-	return err
+	})
+	return errors.WithStack(err)
 }
 
 func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.EventSource) error {
+	_, _, err := e.buildAndCollect(ctx, schemaSource)
+	return err
+}
+
+func (e *Engine) BuildAndDeploy(ctx context.Context, schemaSource *schemaeventsource.EventSource, replicas optional.Option[int32]) error {
+	moduleStates, pendingModules, err := e.buildAndCollect(ctx, schemaSource)
+	// TODO: need a way to get module states...
+	if err != nil {
+		return err
+	}
+	for _, module := range pendingModules {
+		e.engineUpdates.Publish(newModuleDeployStartedEvent(module.schema.Name))
+	}
+	deployCoordinator := NewDeployCoordinator(ctx, e.adminClient, schemaSource, e.internalEvents, true, e.projectConfig, nil)
+	if err := deployCoordinator.deploy(ctx, pendingModules, replicas); err != nil {
+		// TODO: handle
+	}
+	for _, module := range pendingModules {
+		e.engineUpdates.Publish(newModuleDeploySuccessEvent(module.schema.Name))
+	}
+	// TODO: pass in module states
+	e.engineUpdates.Publish(newEngineEndedEvent(moduleStates))
+	return nil
+}
+
+// buildAndCollect builds all modules and returns the module states and pending modules for deployment.
+func (e *Engine) buildAndCollect(ctx context.Context, schemaSource *schemaeventsource.EventSource) (map[string]*moduleState, map[string]*pendingModule, error) {
 	sch := schemaSource.CanonicalView()
 	if _, ok := sch.FirstInternalRealm().Get(); !ok {
 		sch.Realms = append(sch.Realms, &schema.Realm{
@@ -269,7 +292,7 @@ func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.Even
 
 	configs, err := watch.DiscoverModules(ctx, e.moduleDirs)
 	if err != nil {
-		return errors.Wrap(err, "could not find modules")
+		return nil, nil, errors.Wrap(err, "could not find modules")
 	}
 	metaMap := newModuleMetasForConfigs(ctx, configs, e.projectConfig)
 	if len(metaMap) > 0 {
@@ -278,8 +301,9 @@ func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.Even
 
 	go watchSchemaUpdates(ctx, reflect.DeepCopy(sch), schemaUpdates, e.internalEvents)
 
+	pendingModules := map[string]*pendingModule{}
 	// watch for module additions and revovals
-	return errors.WithStack(e.processEvents(ctx, reflect.DeepCopy(sch), true, nil, buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
+	moduleStates, err := e.processEvents(ctx, reflect.DeepCopy(sch), true, nil, buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
 		realm := sch.FirstInternalRealm().MustGet()
 		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
 			return module.moduleName() != m.Name
@@ -291,10 +315,18 @@ func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.Even
 				{Realm: realm.Name, Module: module.moduleName()},
 			},
 		}
+		pendingModules[module.moduleName()] = module
 		return false
-	}))
+	})
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	return moduleStates, pendingModules, nil
 }
 
+// watchForNewOrRemovedModules watches for new or removed modules in the project directory.
+//
+// It uses a watcher to monitor the module directories and sends events to the internalEvents channel when modules are added or removed.
 func watchForNewOrRemovedModules(ctx context.Context, projectConfig projectconfig.Config, moduleDirs []string, period time.Duration, internalEvents chan internalEvent) {
 	logger := log.FromContext(ctx)
 	watcher := watch.NewWatcher(optional.Some(projectConfig.WatchModulesLockPath()))
@@ -328,6 +360,7 @@ func newModuleMetasForConfigs(ctx context.Context, configs []moduleconfig.Unvali
 	group := errgroup.Group{}
 
 	for _, config := range configs {
+		// Creating a plugin takes a while, so we do this in parallel.
 		group.Go(func() error {
 			plugin, err := languageplugin.New(ctx, config.Dir, config.Language, config.Module)
 			if err != nil {
@@ -370,8 +403,6 @@ collectMetas:
 	}
 	return metaMap
 }
-
-type moduleWatcherFunc func(ctx context.Context, config moduleconfig.ModuleConfig, internalEvents chan internalEvent) (transactionProviderFunc, context.CancelCauseFunc, error)
 
 func moduleWatcherWithPeriod(period time.Duration) moduleWatcherFunc {
 	return func(ctx context.Context, config moduleconfig.ModuleConfig, internalEvents chan internalEvent) (transactionProviderFunc, context.CancelCauseFunc, error) {
@@ -477,7 +508,7 @@ type moduleState struct {
 	transactionProvider optional.Option[transactionProviderFunc]
 }
 
-func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema, endWhenIdle bool, moduleWatcher moduleWatcherFunc, builder buildFunc, deployer deployFunc) error {
+func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema, endWhenIdle bool, moduleWatcher moduleWatcherFunc, builder buildFunc, deployer deployFunc) (map[string]*moduleState, error) {
 	logger := log.FromContext(ctx)
 	sch := initialSchema
 	moduleStates := map[string]*moduleState{}
@@ -499,13 +530,13 @@ func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema
 			e.engineUpdates.Publish(newEngineEndedEvent(moduleStates))
 
 			if endWhenIdle {
-				return nil
+				return moduleStates, nil
 			}
 			continue
 		case event := <-e.internalEvents:
 			events = append(events, event)
 		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "context cancelled while waiting for events")
+			return nil, errors.Wrap(ctx.Err(), "context cancelled while waiting for events")
 		}
 
 	drainEvents:
@@ -514,7 +545,7 @@ func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema
 			case event := <-e.internalEvents:
 				events = append(events, event)
 			case <-ctx.Done():
-				return errors.Wrap(ctx.Err(), "context cancelled while waiting for events")
+				return nil, errors.Wrap(ctx.Err(), "context cancelled while waiting for events")
 			default:
 				break drainEvents
 			}
