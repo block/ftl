@@ -12,7 +12,7 @@ import (
 type customDependencyProvider func() []string
 
 func GraphFromMetas(metas map[string]moduleMeta, sch *schema.Schema, moduleNames ...string) (map[string][]string, error) {
-	return Graph(imaps.MapValues(metas, func(_ string, meta moduleMeta) customDependencyProvider {
+	return Graph(imaps.MapValues(metas, func(name string, meta moduleMeta) customDependencyProvider {
 		return func() []string { return meta.module.Dependencies(AlwaysIncludeBuiltin) }
 	}), sch, moduleNames...)
 }
@@ -36,6 +36,10 @@ func Graph(customProviders map[string]customDependencyProvider, sch *schema.Sche
 }
 
 func buildGraph(customProviders map[string]customDependencyProvider, sch *schema.Schema, moduleName string, out map[string][]string) error {
+	if moduleName == "builtin" {
+		out["builtin"] = []string{}
+		return nil
+	}
 	var deps []string
 	// Short-circuit previously explored nodes
 	if _, ok := out[moduleName]; ok {

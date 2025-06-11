@@ -123,6 +123,15 @@ func newModuleDeploySuccessEvent(module string) *buildenginepb.EngineEvent {
 	}
 }
 
+func newEngineStartedEvent() *buildenginepb.EngineEvent {
+	return &buildenginepb.EngineEvent{
+		Timestamp: timestamppb.Now(),
+		Event: &buildenginepb.EngineEvent_EngineStarted{
+			EngineStarted: &buildenginepb.EngineStarted{},
+		},
+	}
+}
+
 func newEngineEndedEvent(moduleStates map[string]*moduleState) *buildenginepb.EngineEvent {
 	modulesOutput := []*buildenginepb.EngineEnded_Module{}
 	for name, state := range moduleStates {

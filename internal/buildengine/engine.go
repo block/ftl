@@ -247,7 +247,7 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration, schemaSource *sc
 	go watchSchemaUpdates(ctx, initialSchemaEvent.schema, deployCoordinator.SchemaUpdates, e.internalEvents)
 
 	// watch for module additions and revovals
-	err := errors.WithStack(e.processEvents(ctx, initialSchemaEvent.schema, moduleWatcherWithPeriod(period), buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
+	err := errors.WithStack(e.processEvents(ctx, initialSchemaEvent.schema, false, moduleWatcherWithPeriod(period), buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
 		go deployCoordinator.deploy(ctx, module, optional.None[int32]())
 		return true
 	}))
@@ -258,6 +258,13 @@ func (e *Engine) Dev(ctx context.Context, period time.Duration, schemaSource *sc
 
 func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.EventSource) error {
 	sch := schemaSource.CanonicalView()
+	if _, ok := sch.FirstInternalRealm().Get(); !ok {
+		sch.Realms = append(sch.Realms, &schema.Realm{
+			Name: e.projectConfig.Name,
+		})
+	}
+	sch = sch.WithBuiltins()
+
 	schemaUpdates := make(chan SchemaUpdatedEvent, 32)
 
 	configs, err := watch.DiscoverModules(ctx, e.moduleDirs)
@@ -272,14 +279,14 @@ func (e *Engine) Build(ctx context.Context, schemaSource *schemaeventsource.Even
 	go watchSchemaUpdates(ctx, reflect.DeepCopy(sch), schemaUpdates, e.internalEvents)
 
 	// watch for module additions and revovals
-	return errors.WithStack(e.processEvents(ctx, reflect.DeepCopy(sch), nil, buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
+	return errors.WithStack(e.processEvents(ctx, reflect.DeepCopy(sch), true, nil, buildModuleAndPublish, func(ctx context.Context, module *pendingModule) bool {
 		realm := sch.FirstInternalRealm().MustGet()
 		realm.Modules = slices.Filter(realm.Modules, func(m *schema.Module) bool {
 			return module.moduleName() != m.Name
 		})
 		realm.Modules = append(realm.Modules, module.schema)
 		schemaUpdates <- SchemaUpdatedEvent{
-			schema: sch,
+			schema: reflect.DeepCopy(sch),
 			updatedModules: []schema.ModuleRefKey{
 				{Realm: realm.Name, Module: module.moduleName()},
 			},
@@ -470,7 +477,7 @@ type moduleState struct {
 	transactionProvider optional.Option[transactionProviderFunc]
 }
 
-func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema, moduleWatcher moduleWatcherFunc, builder buildFunc, deployer deployFunc) error {
+func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema, endWhenIdle bool, moduleWatcher moduleWatcherFunc, builder buildFunc, deployer deployFunc) error {
 	logger := log.FromContext(ctx)
 	sch := initialSchema
 	moduleStates := map[string]*moduleState{}
@@ -488,9 +495,12 @@ func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema
 				continue
 			}
 			idle = true
-
 			// TODO: pass in module errors
 			e.engineUpdates.Publish(newEngineEndedEvent(moduleStates))
+
+			if endWhenIdle {
+				return nil
+			}
 			continue
 		case event := <-e.internalEvents:
 			events = append(events, event)
@@ -579,7 +589,16 @@ func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema
 		//
 		// Kick off any builds that we can
 		//
-		if err := e.handleAnyModulesReadyToBuild(ctx, sch, moduleStates, builder); err != nil {
+		modulesReadyToBuild, deps, err := modulesReadyToBuild(ctx, sch, moduleStates)
+		if err != nil {
+			logger.Errorf(err, "failed to get modules ready to build")
+			continue
+		}
+		if idle && len(modulesReadyToBuild) > 0 {
+			e.engineUpdates.Publish(newEngineStartedEvent())
+			idle = false
+		}
+		if err := e.handleAnyModulesReadyToBuild(ctx, sch, moduleStates, modulesReadyToBuild, deps, builder); err != nil {
 			logger.Errorf(err, "failed to handle any modules ready to build")
 		}
 
@@ -708,10 +727,10 @@ func (e *Engine) handleBuildEndedEvent(ctx context.Context, event moduleBuildEnd
 	return nil
 }
 
-func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates map[string]*moduleState, builder buildFunc) error {
-	deps, err := GraphFromMetas(imaps.MapValues(moduleStates, func(_ string, m *moduleState) moduleMeta { return m.meta }), sch, maps.Keys(moduleStates)...)
+func modulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates map[string]*moduleState) (readyToBuild []string, deps map[string][]string, err error) {
+	deps, err = GraphFromMetas(imaps.MapValues(moduleStates, func(_ string, m *moduleState) moduleMeta { return m.meta }), sch, maps.Keys(moduleStates)...)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get dependencies for modules")
+		return nil, nil, errors.Wrapf(err, "failed to get dependencies for modules")
 	}
 	modulesToBuild := slices.Filter(maps.Values(moduleStates), func(state *moduleState) bool {
 		if !state.needsToBuild {
@@ -741,12 +760,22 @@ func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.S
 		}
 		return true
 	})
+	return slices.Map(modulesToBuild, func(s *moduleState) string {
+		return s.meta.module.Config.Module
+	}), deps, nil
+}
+
+func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates map[string]*moduleState, modulesToBuild []string, deps map[string][]string, builder buildFunc) error {
 	buildCount := len(slices.Filter(maps.Values(moduleStates), func(state *moduleState) bool {
 		return state.lastEvent.Event != nil && state.lastEvent.GetModuleBuildStarted() != nil
 	}))
-	for _, state := range modulesToBuild {
+	for _, name := range modulesToBuild {
 		if buildCount >= e.parallelism {
 			return nil
+		}
+		state, ok := moduleStates[name]
+		if !ok {
+			return errors.Errorf("module %s not found in module states", name)
 		}
 		engineEvent, err := newModuleBuildStartedEvent(state.meta.module.Config)
 		if err != nil {
