@@ -11,9 +11,9 @@ import (
 
 type customDependencyProvider func() []string
 
-func GraphFromMetas(metas map[string]moduleMeta, sch *schema.Schema, moduleNames ...string) (map[string][]string, error) {
-	return Graph(imaps.MapValues(metas, func(name string, meta moduleMeta) customDependencyProvider {
-		return func() []string { return meta.module.Dependencies(AlwaysIncludeBuiltin) }
+func GraphFromStates(states map[string]*moduleState, sch *schema.Schema, moduleNames ...string) (map[string][]string, error) {
+	return Graph(imaps.MapValues(states, func(name string, state *moduleState) customDependencyProvider {
+		return func() []string { return state.module.Dependencies(AlwaysIncludeBuiltin) }
 	}), sch, moduleNames...)
 }
 

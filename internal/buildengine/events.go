@@ -137,7 +137,7 @@ func newEngineEndedEvent(moduleStates map[string]*moduleState) *buildenginepb.En
 	for name, state := range moduleStates {
 		modulesOutput = append(modulesOutput, &buildenginepb.EngineEnded_Module{
 			Module: name,
-			Path:   state.meta.module.Config.Dir,
+			Path:   state.module.Config.Dir,
 			Errors: state.lastEvent.GetModuleBuildFailed().GetErrors(),
 		})
 	}

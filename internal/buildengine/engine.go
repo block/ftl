@@ -23,7 +23,6 @@ import (
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/channels"
 	"github.com/block/ftl/internal/dev"
-	imaps "github.com/block/ftl/internal/maps"
 	"github.com/block/ftl/internal/moduleconfig"
 	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/realm"
@@ -42,35 +41,13 @@ type moduleWatcherFunc func(ctx context.Context, config moduleconfig.ModuleConfi
 // It returns true if the module is queued for deployment, or false otherwise.
 type deployFunc func(ctx context.Context, module *pendingModule) (willDeploy bool)
 
-// moduleMeta is a wrapper around a module that includes the last build's start time.
-type moduleMeta struct {
-	module         Module
-	plugin         *languageplugin.LanguagePlugin
-	configDefaults moduleconfig.CustomDefaults
-}
-
-// copyMetaWithUpdatedDependencies finds the dependencies for a module and returns a
-// copy with those dependencies populated.
-func copyMetaWithUpdatedDependencies(ctx context.Context, m moduleMeta) (moduleMeta, error) {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Extracting dependencies for %q", m.module.Config.Module)
-
-	dependencies, err := m.plugin.GetDependencies(ctx, m.module.Config)
-	if err != nil {
-		return moduleMeta{}, errors.Wrapf(err, "could not get dependencies for %v", m.module.Config.Module)
-	}
-
-	m.module = m.module.CopyWithDependencies(dependencies)
-	return m, nil
-}
-
 //sumtype:decl
 type internalEvent interface {
 	internalEvent()
 }
 
 type addMetasEvent struct {
-	metas map[string]moduleMeta
+	preparedModules map[string]preparedModule
 }
 
 func (addMetasEvent) internalEvent() {}
@@ -294,9 +271,9 @@ func (e *Engine) buildAndCollect(ctx context.Context, schemaSource *schemaevents
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "could not find modules")
 	}
-	metaMap := newModuleMetasForConfigs(ctx, configs, e.projectConfig)
-	if len(metaMap) > 0 {
-		e.internalEvents <- addMetasEvent{metas: metaMap}
+	preparedModuleMap := newPreparedModulesForConfigs(ctx, configs, e.projectConfig)
+	if len(preparedModuleMap) > 0 {
+		e.internalEvents <- addMetasEvent{preparedModules: preparedModuleMap}
 	}
 
 	go watchSchemaUpdates(ctx, reflect.DeepCopy(sch), schemaUpdates, e.internalEvents)
@@ -341,9 +318,9 @@ func watchForNewOrRemovedModules(ctx context.Context, projectConfig projectconfi
 	for event := range channels.IterContext(ctx, moduleListChanges) {
 		switch event := event.(type) {
 		case watch.WatchEventModulesAdded:
-			metaMap := newModuleMetasForConfigs(ctx, event.Configs, projectConfig)
-			if len(metaMap) > 0 {
-				internalEvents <- addMetasEvent{metas: metaMap}
+			preparedModuleMap := newPreparedModulesForConfigs(ctx, event.Configs, projectConfig)
+			if len(preparedModuleMap) > 0 {
+				internalEvents <- addMetasEvent{preparedModules: preparedModuleMap}
 			}
 		case watch.WatchEventModuleRemoved:
 			internalEvents <- removeMetaEvent{config: event.Config}
@@ -354,9 +331,15 @@ func watchForNewOrRemovedModules(ctx context.Context, projectConfig projectconfi
 	}
 }
 
-func newModuleMetasForConfigs(ctx context.Context, configs []moduleconfig.UnvalidatedModuleConfig, projectConfig projectconfig.Config) map[string]moduleMeta {
+type preparedModule struct {
+	module         Module
+	plugin         *languageplugin.LanguagePlugin
+	configDefaults moduleconfig.CustomDefaults
+}
+
+func newPreparedModulesForConfigs(ctx context.Context, configs []moduleconfig.UnvalidatedModuleConfig, projectConfig projectconfig.Config) map[string]preparedModule {
 	logger := log.FromContext(ctx)
-	newMetas := make(chan moduleMeta, len(configs))
+	preparedModules := make(chan preparedModule, len(configs))
 	group := errgroup.Group{}
 
 	for _, config := range configs {
@@ -375,33 +358,36 @@ func newModuleMetasForConfigs(ctx context.Context, configs []moduleconfig.Unvali
 			if err != nil {
 				return errors.Wrapf(err, "could not apply defaults for %s", config.Module)
 			}
-			meta := moduleMeta{
+			prep := preparedModule{
 				module:         newModule(validConfig),
 				plugin:         plugin,
 				configDefaults: customDefaults,
 			}
-			meta, err = copyMetaWithUpdatedDependencies(ctx, meta)
+			logger.Debugf("Extracting dependencies for %q", prep.module.Config.Module)
+
+			dependencies, err := prep.plugin.GetDependencies(ctx, prep.module.Config)
 			if err != nil {
-				return errors.Wrapf(err, "could not copy meta with updated dependencies for %s", config.Module)
+				return errors.Wrapf(err, "could not get dependencies for %v", prep.module.Config.Module)
 			}
-			newMetas <- meta
+			prep.module = prep.module.CopyWithDependencies(dependencies)
+			preparedModules <- prep
 			return nil
 		})
 	}
 	if err := group.Wait(); err != nil {
 		logger.Errorf(err, "failed to create module metas for new modules")
 	}
-	metaMap := map[string]moduleMeta{}
+	preparedModuleMap := map[string]preparedModule{}
 collectMetas:
 	for {
 		select {
-		case m := <-newMetas:
-			metaMap[m.module.Config.Module] = m
+		case m := <-preparedModules:
+			preparedModuleMap[m.module.Config.Module] = m
 		default:
 			break collectMetas
 		}
 	}
-	return metaMap
+	return preparedModuleMap
 }
 
 func moduleWatcherWithPeriod(period time.Duration) moduleWatcherFunc {
@@ -501,7 +487,10 @@ func computeModuleHash(module *schema.Module) ([]byte, error) {
 
 // TODO: combine with moduleMeta? Make sure moduleState does not escape...
 type moduleState struct {
-	meta                moduleMeta
+	module         Module
+	plugin         *languageplugin.LanguagePlugin
+	configDefaults moduleconfig.CustomDefaults
+
 	needsToBuild        bool
 	lastEvent           *buildenginepb.EngineEvent
 	cancelModuleWatch   context.CancelCauseFunc
@@ -642,12 +631,12 @@ func (e *Engine) processEvents(ctx context.Context, initialSchema *schema.Schema
 
 func (e *Engine) handleAddMetasEvent(ctx context.Context, event addMetasEvent, sch *schema.Schema, moduleStates map[string]*moduleState, moduleWatcher moduleWatcherFunc) error {
 	newLanguages := map[string]bool{}
-	for _, meta := range event.metas {
-		newLanguage := !newLanguages[meta.module.Config.Language] && len(slices.Filter(maps.Values(moduleStates), func(m *moduleState) bool {
-			return m.meta.module.Config.Language == meta.module.Config.Language
+	for _, preparedModule := range event.preparedModules {
+		newLanguage := !newLanguages[preparedModule.module.Config.Language] && len(slices.Filter(maps.Values(moduleStates), func(m *moduleState) bool {
+			return m.module.Config.Language == preparedModule.module.Config.Language
 		})) == 0
 		if newLanguage {
-			newLanguages[meta.module.Config.Language] = true
+			newLanguages[preparedModule.module.Config.Language] = true
 		}
 	}
 	if len(newLanguages) > 0 {
@@ -655,17 +644,13 @@ func (e *Engine) handleAddMetasEvent(ctx context.Context, event addMetasEvent, s
 		// TODO: does this clean more than language specific stuff?
 		CleanStubs(ctx, e.projectConfig.Root(), maps.Keys(newLanguages)...)
 	}
-	for _, meta := range event.metas {
-		name := meta.module.Config.Module
+	newStates := map[string]*moduleState{}
+	for _, preparedModule := range event.preparedModules {
+		name := preparedModule.module.Config.Module
 		newLanguage := len(slices.Filter(maps.Values(moduleStates), func(m *moduleState) bool {
-			return m.meta.module.Config.Language == meta.module.Config.Language
+			return m.module.Config.Language == preparedModule.module.Config.Language
 		})) == 0
-		if newLanguage {
-			// clean stubs for the language if no modules are present
-			// TODO: does this clean more than language specific stuff?
-			CleanStubs(ctx, e.projectConfig.Root(), meta.module.Config.Language)
-		}
-		extEvent, err := newModuleBuildWaitingEvent(meta.module.Config)
+		extEvent, err := newModuleBuildWaitingEvent(preparedModule.module.Config)
 		if err != nil {
 			return errors.Wrapf(err, "failed to watch module %s", name)
 		}
@@ -673,41 +658,43 @@ func (e *Engine) handleAddMetasEvent(ctx context.Context, event addMetasEvent, s
 		var cancelModuleWatch context.CancelCauseFunc
 		var transactionProvider optional.Option[transactionProviderFunc]
 		if moduleWatcher != nil {
-			txProvider, cancel, err := moduleWatcher(ctx, meta.module.Config, e.internalEvents)
+			txProvider, cancel, err := moduleWatcher(ctx, preparedModule.module.Config, e.internalEvents)
 			if err != nil {
 				return errors.Wrapf(err, "failed to watch module %s", name)
 			}
 			cancelModuleWatch = cancel
 			transactionProvider = optional.Some(txProvider)
 		}
-		moduleStates[name] = &moduleState{
-			meta:                meta,
+		state := &moduleState{
+			module:              preparedModule.module,
+			plugin:              preparedModule.plugin,
+			configDefaults:      preparedModule.configDefaults,
 			needsToBuild:        true,
 			lastEvent:           extEvent,
 			cancelModuleWatch:   cancelModuleWatch,
 			transactionProvider: transactionProvider,
 		}
+		moduleStates[name] = state
+		newStates[name] = state
 		e.engineUpdates.Publish(extEvent)
 
 		if newLanguage {
-			if err := GenerateStubs(ctx, e.projectConfig.Root(), sch.InternalModules(), imaps.MapValues(moduleStates, func(_ string, m *moduleState) moduleMeta { return m.meta })); err != nil {
+			if err := GenerateStubs(ctx, e.projectConfig.Root(), sch.InternalModules(), moduleStates); err != nil {
 				return errors.WithStack(err)
 			}
 		}
 	}
-
 	// New modules need to know which stubs have already been generated
-	return errors.Wrapf(SyncStubReferences(ctx, e.projectConfig.Root(), slices.Map(sch.InternalModules(), func(m *schema.Module) string { return m.Name }), event.metas, sch), "could not sync stub references after adding new modules")
+	return errors.Wrapf(SyncStubReferences(ctx, e.projectConfig.Root(), slices.Map(sch.InternalModules(), func(m *schema.Module) string { return m.Name }), newStates, sch), "could not sync stub references after adding new modules")
 }
 
 func (e *Engine) handleSchemaUpdateEvent(ctx context.Context, event schemaUpdateEvent, sch *schema.Schema, moduleStates map[string]*moduleState) error {
-	metas := imaps.MapValues(moduleStates, func(_ string, m *moduleState) moduleMeta { return m.meta })
-	deps, err := GraphFromMetas(metas, sch, slices.Map(event.modulesWithBreakingChanges, func(moduleRef schema.ModuleRefKey) string { return moduleRef.Module })...)
+	deps, err := GraphFromStates(moduleStates, sch, slices.Map(event.modulesWithBreakingChanges, func(moduleRef schema.ModuleRefKey) string { return moduleRef.Module })...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get dependencies")
 	}
 	for _, state := range moduleStates {
-		deps := deps[state.meta.module.Config.Module]
+		deps := deps[state.module.Config.Module]
 		if _, foundBreakingChange := slices.Find(deps, func(dep string) bool {
 			return slices.Contains(event.modulesWithBreakingChanges, schema.ModuleRefKey{Realm: sch.FirstInternalRealm().MustGet().Name, Module: dep})
 		}); foundBreakingChange {
@@ -720,11 +707,11 @@ func (e *Engine) handleSchemaUpdateEvent(ctx context.Context, event schemaUpdate
 	if err := GenerateStubs(ctx, e.projectConfig.Root(), slices.Map(event.modulesWithInterfaceChanges, func(moduleRef schema.ModuleRefKey) *schema.Module {
 		// TODO: remove MustGet() usage
 		return sch.Module(moduleRef.Realm, moduleRef.Module).MustGet()
-	}), metas); err != nil {
+	}), moduleStates); err != nil {
 		return errors.Wrapf(err, "failed to generate stubs for updated modules")
 	}
 	// All modules need to know which stubs have been generated
-	return SyncStubReferences(ctx, e.projectConfig.Root(), slices.Map(sch.InternalModules(), func(m *schema.Module) string { return m.Name }), metas, sch)
+	return SyncStubReferences(ctx, e.projectConfig.Root(), slices.Map(sch.InternalModules(), func(m *schema.Module) string { return m.Name }), moduleStates, sch)
 }
 
 func (e *Engine) handleBuildEndedEvent(ctx context.Context, event moduleBuildEndedEvent, moduleStates map[string]*moduleState, deployer deployFunc) error {
@@ -750,7 +737,7 @@ func (e *Engine) handleBuildEndedEvent(ctx context.Context, event moduleBuildEnd
 	state.lastEvent = extEvent
 	e.engineUpdates.Publish(extEvent)
 
-	if deployer(ctx, newPendingModule(state.meta.module, event.tmpDeployDir, event.deployPaths, event.moduleSchema)) {
+	if deployer(ctx, newPendingModule(state.module, event.tmpDeployDir, event.deployPaths, event.moduleSchema)) {
 		extEvent := newModuleDeployWaitingEvent(event.config.Module)
 		state.lastEvent = extEvent
 		e.engineUpdates.Publish(extEvent)
@@ -759,7 +746,7 @@ func (e *Engine) handleBuildEndedEvent(ctx context.Context, event moduleBuildEnd
 }
 
 func modulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates map[string]*moduleState) (readyToBuild []string, deps map[string][]string, err error) {
-	deps, err = GraphFromMetas(imaps.MapValues(moduleStates, func(_ string, m *moduleState) moduleMeta { return m.meta }), sch, maps.Keys(moduleStates)...)
+	deps, err = GraphFromStates(moduleStates, sch, maps.Keys(moduleStates)...)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to get dependencies for modules")
 	}
@@ -767,7 +754,7 @@ func modulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates m
 		if !state.needsToBuild {
 			return false
 		}
-		name := state.meta.module.Config.Module
+		name := state.module.Config.Module
 
 		switch state.lastEvent.Event.(type) {
 		case *buildenginepb.EngineEvent_ModuleBuildStarted,
@@ -792,7 +779,7 @@ func modulesReadyToBuild(ctx context.Context, sch *schema.Schema, moduleStates m
 		return true
 	})
 	return slices.Map(modulesToBuild, func(s *moduleState) string {
-		return s.meta.module.Config.Module
+		return s.module.Config.Module
 	}), deps, nil
 }
 
@@ -808,9 +795,9 @@ func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.S
 		if !ok {
 			return errors.Errorf("module %s not found in module states", name)
 		}
-		engineEvent, err := newModuleBuildStartedEvent(state.meta.module.Config)
+		engineEvent, err := newModuleBuildStartedEvent(state.module.Config)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create build started event for module %s", state.meta.module.Config.Module)
+			return errors.Wrapf(err, "failed to create build started event for module %s", state.module.Config.Module)
 		}
 		transactionProvider, ok := state.transactionProvider.Get()
 		var fileTransaction watch.ModifyFilesTransaction
@@ -825,7 +812,7 @@ func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.S
 
 		strippedSch := reflect.DeepCopy(sch)
 		modulesToKeep := map[string]bool{}
-		visitModuleDependencies(state.meta.module.Config.Module, modulesToKeep, deps)
+		visitModuleDependencies(state.module.Config.Module, modulesToKeep, deps)
 		for _, module := range strippedSch.InternalModules() {
 			if !modulesToKeep[module.Name] {
 				// remove module from schema
@@ -833,10 +820,10 @@ func (e *Engine) handleAnyModulesReadyToBuild(ctx context.Context, sch *schema.S
 			}
 		}
 
-		go builder(ctx, e.projectConfig, state.meta.module, state.meta.plugin, languageplugin.BuildContext{
-			Config:       state.meta.module.Config,
+		go builder(ctx, e.projectConfig, state.module, state.plugin, languageplugin.BuildContext{
+			Config:       state.module.Config,
 			Schema:       strippedSch,
-			Dependencies: state.meta.module.Dependencies(Raw),
+			Dependencies: state.module.Dependencies(Raw),
 			BuildEnv:     e.buildEnv,
 			Os:           e.os,
 			Arch:         e.arch,
