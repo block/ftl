@@ -78,10 +78,6 @@ type Registry string
 // For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests"
 type Repository string
 
-// Image is a string that represents an OCI image.
-// For example, "123456789012.dkr.ecr.us-west-2.amazonaws.com/ftl-tests/ftl-tests:latest"
-type Image string
-
 type ArtefactConfig struct {
 	Repository    Repository `help:"OCI container repository, in the form host[:port]/repository" env:"FTL_ARTEFACT_REPOSITORY"`
 	Username      string     `help:"OCI container repository username" env:"FTL_ARTEFACT_REPOSITORY_USERNAME"`
@@ -228,6 +224,13 @@ func (s *ArtefactService) Upload(ctx context.Context, artefact ArtefactUpload) e
 }
 
 func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.ReadCloser, error) {
+	return s.DownloadFromRepository(ctx, s.targetConfig.Repository, dg)
+}
+
+func (s *ArtefactService) DownloadFromRepository(ctx context.Context, repo Repository, dg sha256.SHA256) (io.ReadCloser, error) {
+	if repo == "" {
+		repo = s.targetConfig.Repository
+	}
 	// ORAS is really annoying, and needs you to know the size of the blob you're downloading
 	// So we are using google's go-containerregistry to do the actual download
 	// This is not great, we should remove oras at some point
@@ -235,7 +238,7 @@ func (s *ArtefactService) Download(ctx context.Context, dg sha256.SHA256) (io.Re
 	if s.targetConfig.AllowInsecure {
 		opts = append(opts, name.Insecure)
 	}
-	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", s.targetConfig.Repository, dg.String()), opts...)
+	newDigest, err := name.NewDigest(fmt.Sprintf("%s@sha256:%s", repo, dg.String()), opts...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create digest '%s'", dg)
 	}
@@ -360,7 +363,7 @@ func (s *ArtefactService) DownloadArtifacts(ctx context.Context, dest string, ar
 	return nil
 }
 
-// createLayer returns a v1.Layer with a single text file.
+// createLayer returns a v1.Layer containing the files specified in the artifacts.
 func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -374,6 +377,15 @@ func createLayer(path string, artifacts []*schema.MetadataArtefact) (v1.Layer, e
 	}
 	// TODO: use a file
 	return tarball.LayerFromReader(&buf) //nolint
+}
+
+// createMigrationsLayer returns a v1.Layer of the migrations tarball.
+func createMigrationsLayer(path string, artifact *schema.MetadataArtefact) (v1.Layer, error) {
+	layer, err := tarball.LayerFromFile(filepath.Join(path, artifact.Path))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create layer from file %s", artifact.Path)
+	}
+	return layer, nil
 }
 
 // addFileToTar adds a single file to the tar writer.

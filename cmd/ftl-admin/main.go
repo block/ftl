@@ -72,10 +72,12 @@ func main() {
 	schemaClient := rpc.Dial(ftlv1connect.NewSchemaServiceClient, cli.SchemaEndpoint.String(), log.Error)
 	eventSource := schemaeventsource.New(ctx, "admin", schemaClient)
 
+	imageService, err := oci.NewImageService(ctx)
+	kctx.FatalIfErrorf(err, "failed to create Image registry storage")
 	storage, err := oci.NewArtefactService(ctx, cli.RegistryConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 	client := timelineclient.NewClient(ctx, cli.TimelineConfig)
-	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, []string{})
+	svc := admin.NewAdminService(cli.AdminConfig, cm, sm, schemaClient, eventSource, storage, routing.NewVerbRouter(ctx, eventSource, client), client, imageService, []string{})
 
 	kctx.FatalIfErrorf(err, "failed to start admin service handlers")
 	logger.Debugf("Admin service listening on: %s", cli.Bind)

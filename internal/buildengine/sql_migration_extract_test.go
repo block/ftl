@@ -33,7 +33,7 @@ func TestExtractMigrations(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Validate results
-		targetFile := filepath.Join(targetDir, "testdb.tar")
+		targetFile := filepath.Join(targetDir, "testdb.tar.gz")
 		assert.Equal(t, targetFile, filepath.Join(targetDir, files[0]))
 
 		// Validate the database metadata
