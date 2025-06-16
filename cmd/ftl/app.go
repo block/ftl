@@ -25,6 +25,7 @@ import (
 	"github.com/block/ftl/backend/protos/xyz/block/ftl/v1/ftlv1connect"
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/internal"
+	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/buildengine/languageplugin"
 	"github.com/block/ftl/internal/config"
 	"github.com/block/ftl/internal/editor"
@@ -278,6 +279,12 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 			return schemaeventsource.New(ctx, "cli", adminClient), nil
 		})
 		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(func(adminClient adminpbconnect.AdminServiceClient) (buildengine.AdminClient, error) {
+			return adminClient, nil
+		})
+		kctx.FatalIfErrorf(err)
+
 		kongcompletion.Register(kctx.Kong, kongcompletion.WithPredictors(terminal.Predictors(func() schemaeventsource.View {
 			ac := rpc.Dial(adminpbconnect.NewAdminServiceClient, cli.AdminEndpoint.String(), log.Error)
 			return schemaeventsource.New(ctx, "terminal-predicators", ac).ViewOnly()
