@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/block/ftl/go-runtime/ftl"
 	"ftl/postgres/db"
+
+	"github.com/block/ftl/go-runtime/ftl"
 )
 
 type InsertRequest struct {
@@ -15,7 +16,7 @@ type InsertRequest struct {
 type InsertResponse struct{}
 
 //ftl:verb
-func Insert(ctx context.Context, req InsertRequest, db TestdbHandle) (InsertResponse, error) {
+func Insert(ctx context.Context, req InsertRequest, db db.TestdbHandle) (InsertResponse, error) {
 	err := persistRequest(ctx, req, db)
 	if err != nil {
 		return InsertResponse{}, err
@@ -58,7 +59,7 @@ func TransactionRollback(ctx context.Context, req TransactionRequest, createRequ
 	return TransactionResponse{}, errors.New("deliberate error to test rollback")
 }
 
-func persistRequest(ctx context.Context, req InsertRequest, db TestdbHandle) error {
+func persistRequest(ctx context.Context, req InsertRequest, db db.TestdbHandle) error {
 	_, err := db.Get(ctx).Exec("INSERT INTO requests (data) VALUES ($1);", req.Data)
 	if err != nil {
 		return err
