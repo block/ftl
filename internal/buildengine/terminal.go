@@ -47,3 +47,41 @@ func updateTerminalWithEngineEvents(ctx context.Context, topic *pubsub.Topic[*bu
 		}
 	}()
 }
+
+func updateTerminalWithEngineEventsV2(ctx context.Context, topic *pubsub.Topic[StateChange]) {
+	events := make(chan StateChange, 64)
+	topic.Subscribe(events)
+
+	go func() {
+		defer topic.Unsubscribe(events)
+		for event := range channels.IterContext(ctx, events) {
+			switch evt := event.Event.Event.(type) {
+			case *buildenginepb.EngineEvent_EngineStarted:
+			case *buildenginepb.EngineEvent_EngineEnded:
+
+			case *buildenginepb.EngineEvent_ModuleAdded:
+				terminal.UpdateModuleState(ctx, evt.ModuleAdded.Module, terminal.BuildStateWaiting)
+			case *buildenginepb.EngineEvent_ModuleRemoved:
+				terminal.UpdateModuleState(ctx, evt.ModuleRemoved.Module, terminal.BuildStateTerminated)
+
+			case *buildenginepb.EngineEvent_ModuleBuildWaiting:
+				terminal.UpdateModuleState(ctx, evt.ModuleBuildWaiting.Config.Name, terminal.BuildStateWaiting)
+			case *buildenginepb.EngineEvent_ModuleBuildStarted:
+				terminal.UpdateModuleState(ctx, evt.ModuleBuildStarted.Config.Name, terminal.BuildStateBuilding)
+			case *buildenginepb.EngineEvent_ModuleBuildSuccess:
+				terminal.UpdateModuleState(ctx, evt.ModuleBuildSuccess.Config.Name, terminal.BuildStateBuilt)
+			case *buildenginepb.EngineEvent_ModuleBuildFailed:
+				terminal.UpdateModuleState(ctx, evt.ModuleBuildFailed.Config.Name, terminal.BuildStateFailed)
+
+			case *buildenginepb.EngineEvent_ModuleDeployWaiting:
+				terminal.UpdateModuleState(ctx, evt.ModuleDeployWaiting.Module, terminal.BuildStateDeployWaiting)
+			case *buildenginepb.EngineEvent_ModuleDeployStarted:
+				terminal.UpdateModuleState(ctx, evt.ModuleDeployStarted.Module, terminal.BuildStateDeploying)
+			case *buildenginepb.EngineEvent_ModuleDeploySuccess:
+				terminal.UpdateModuleState(ctx, evt.ModuleDeploySuccess.Module, terminal.BuildStateDeployed)
+			case *buildenginepb.EngineEvent_ModuleDeployFailed:
+				terminal.UpdateModuleState(ctx, evt.ModuleDeployFailed.Module, terminal.BuildStateFailed)
+			}
+		}
+	}()
+}
