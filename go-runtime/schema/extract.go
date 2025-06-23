@@ -136,7 +136,7 @@ func Extract(projectRoot string, moduleDir string, sch *schema.Schema) (Result, 
 		}
 	}
 	graph, err := checker.Analyze(orderedAnalyzers, pkgs, &checker.Options{
-		ReverseImportExecutionOrder: true,
+		OnlyAnalyzeProvidedPackages: true,
 	})
 	if err != nil {
 		return Result{}, errors.Wrap(err, "failed to analyze module packages")
