@@ -2,6 +2,7 @@ package buildengine
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"io"
 	"os"
@@ -34,11 +35,11 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 			logger.Debugf("No schema content for %s", db.Name)
 			continue
 		}
-		fileName := db.Name + ".tar"
+		fileName := db.Name + ".tar.gz"
 		target := filepath.Join(targetDir, fileName)
 		schemaDir = filepath.Join(cfg.Dir, schemaDir)
 		logger.Debugf("Reading migrations from %s", schemaDir)
-		err := createMigrationTarball(schemaDir, target)
+		err := createMigrationTarball(schemaDir, target, db.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create migration tar %s", schemaDir)
 		}
@@ -52,16 +53,20 @@ func extractSQLMigrations(ctx context.Context, cfg moduleconfig.AbsModuleConfig,
 	return ret, nil
 }
 
-func createMigrationTarball(migrationDir string, target string) error {
-	// Create the tar file
+func createMigrationTarball(migrationDir string, target string, db string) error {
+	// Create the tar.gz file
 	tarFile, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "failed to create tar file")
+		return errors.Wrap(err, "failed to create tar.gz file")
 	}
 	defer tarFile.Close()
 
+	// Create a gzip writer
+	gw := gzip.NewWriter(tarFile)
+	defer gw.Close()
+
 	// Create a new tar writer
-	tw := tar.NewWriter(tarFile)
+	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
 	// Read the directory
@@ -92,7 +97,7 @@ func createMigrationTarball(migrationDir string, target string) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to create tar header")
 		}
-		header.Name = file.Name()
+		header.Name = filepath.Join("migrations", db, file.Name())
 		header.ModTime = epoch
 		header.AccessTime = epoch
 		header.ChangeTime = epoch

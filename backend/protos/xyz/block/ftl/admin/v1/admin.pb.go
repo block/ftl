@@ -1416,6 +1416,103 @@ func (x *ApplyChangesetResponse) GetChangeset() *v1.Changeset {
 	return nil
 }
 
+type DeployImagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Image         []string               `protobuf:"bytes,1,rep,name=image,proto3" json:"image,omitempty"`
+	AllowInsecure bool                   `protobuf:"varint,2,opt,name=allow_insecure,json=allowInsecure,proto3" json:"allow_insecure,omitempty"` // Allow insecure images, e.g. from localhost. This does not propagate to the underlying cluster, if the cluster does not allow insecure images this will fail.
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployImagesRequest) Reset() {
+	*x = DeployImagesRequest{}
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployImagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployImagesRequest) ProtoMessage() {}
+
+func (x *DeployImagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployImagesRequest.ProtoReflect.Descriptor instead.
+func (*DeployImagesRequest) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *DeployImagesRequest) GetImage() []string {
+	if x != nil {
+		return x.Image
+	}
+	return nil
+}
+
+func (x *DeployImagesRequest) GetAllowInsecure() bool {
+	if x != nil {
+		return x.AllowInsecure
+	}
+	return false
+}
+
+type DeployImagesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The changeset, the result can be determined by checking the state
+	Changeset     *v1.Changeset `protobuf:"bytes,1,opt,name=changeset,proto3" json:"changeset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployImagesResponse) Reset() {
+	*x = DeployImagesResponse{}
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployImagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployImagesResponse) ProtoMessage() {}
+
+func (x *DeployImagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployImagesResponse.ProtoReflect.Descriptor instead.
+func (*DeployImagesResponse) Descriptor() ([]byte, []int) {
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *DeployImagesResponse) GetChangeset() *v1.Changeset {
+	if x != nil {
+		return x.Changeset
+	}
+	return nil
+}
+
 type UpdateDeploymentRuntimeRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The modules to add or update.
@@ -1426,7 +1523,7 @@ type UpdateDeploymentRuntimeRequest struct {
 
 func (x *UpdateDeploymentRuntimeRequest) Reset() {
 	*x = UpdateDeploymentRuntimeRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[26]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1438,7 +1535,7 @@ func (x *UpdateDeploymentRuntimeRequest) String() string {
 func (*UpdateDeploymentRuntimeRequest) ProtoMessage() {}
 
 func (x *UpdateDeploymentRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[26]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1451,7 +1548,7 @@ func (x *UpdateDeploymentRuntimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDeploymentRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDeploymentRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{26}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *UpdateDeploymentRuntimeRequest) GetElement() *v1.RuntimeElement {
@@ -1469,7 +1566,7 @@ type UpdateDeploymentRuntimeResponse struct {
 
 func (x *UpdateDeploymentRuntimeResponse) Reset() {
 	*x = UpdateDeploymentRuntimeResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[27]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1481,7 +1578,7 @@ func (x *UpdateDeploymentRuntimeResponse) String() string {
 func (*UpdateDeploymentRuntimeResponse) ProtoMessage() {}
 
 func (x *UpdateDeploymentRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[27]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1494,7 +1591,7 @@ func (x *UpdateDeploymentRuntimeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDeploymentRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDeploymentRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{27}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{29}
 }
 
 type GetArtefactDiffsRequest struct {
@@ -1506,7 +1603,7 @@ type GetArtefactDiffsRequest struct {
 
 func (x *GetArtefactDiffsRequest) Reset() {
 	*x = GetArtefactDiffsRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[28]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1518,7 +1615,7 @@ func (x *GetArtefactDiffsRequest) String() string {
 func (*GetArtefactDiffsRequest) ProtoMessage() {}
 
 func (x *GetArtefactDiffsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[28]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1531,7 +1628,7 @@ func (x *GetArtefactDiffsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtefactDiffsRequest.ProtoReflect.Descriptor instead.
 func (*GetArtefactDiffsRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{28}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetArtefactDiffsRequest) GetClientDigests() []string {
@@ -1552,7 +1649,7 @@ type GetArtefactDiffsResponse struct {
 
 func (x *GetArtefactDiffsResponse) Reset() {
 	*x = GetArtefactDiffsResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[29]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1564,7 +1661,7 @@ func (x *GetArtefactDiffsResponse) String() string {
 func (*GetArtefactDiffsResponse) ProtoMessage() {}
 
 func (x *GetArtefactDiffsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[29]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1577,7 +1674,7 @@ func (x *GetArtefactDiffsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtefactDiffsResponse.ProtoReflect.Descriptor instead.
 func (*GetArtefactDiffsResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{29}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetArtefactDiffsResponse) GetMissingDigests() []string {
@@ -1604,7 +1701,7 @@ type GetDeploymentArtefactsRequest struct {
 
 func (x *GetDeploymentArtefactsRequest) Reset() {
 	*x = GetDeploymentArtefactsRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[30]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1616,7 +1713,7 @@ func (x *GetDeploymentArtefactsRequest) String() string {
 func (*GetDeploymentArtefactsRequest) ProtoMessage() {}
 
 func (x *GetDeploymentArtefactsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[30]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1629,7 +1726,7 @@ func (x *GetDeploymentArtefactsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentArtefactsRequest.ProtoReflect.Descriptor instead.
 func (*GetDeploymentArtefactsRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{30}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetDeploymentArtefactsRequest) GetDeploymentKey() string {
@@ -1656,7 +1753,7 @@ type GetDeploymentArtefactsResponse struct {
 
 func (x *GetDeploymentArtefactsResponse) Reset() {
 	*x = GetDeploymentArtefactsResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[31]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1668,7 +1765,7 @@ func (x *GetDeploymentArtefactsResponse) String() string {
 func (*GetDeploymentArtefactsResponse) ProtoMessage() {}
 
 func (x *GetDeploymentArtefactsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[31]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1681,7 +1778,7 @@ func (x *GetDeploymentArtefactsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeploymentArtefactsResponse.ProtoReflect.Descriptor instead.
 func (*GetDeploymentArtefactsResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{31}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetDeploymentArtefactsResponse) GetArtefact() *DeploymentArtefact {
@@ -1709,7 +1806,7 @@ type DeploymentArtefact struct {
 
 func (x *DeploymentArtefact) Reset() {
 	*x = DeploymentArtefact{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[32]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1721,7 +1818,7 @@ func (x *DeploymentArtefact) String() string {
 func (*DeploymentArtefact) ProtoMessage() {}
 
 func (x *DeploymentArtefact) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[32]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1734,7 +1831,7 @@ func (x *DeploymentArtefact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentArtefact.ProtoReflect.Descriptor instead.
 func (*DeploymentArtefact) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{32}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *DeploymentArtefact) GetDigest() []byte {
@@ -1772,7 +1869,7 @@ type UploadArtefactRequest struct {
 
 func (x *UploadArtefactRequest) Reset() {
 	*x = UploadArtefactRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[33]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1784,7 +1881,7 @@ func (x *UploadArtefactRequest) String() string {
 func (*UploadArtefactRequest) ProtoMessage() {}
 
 func (x *UploadArtefactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[33]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1797,7 +1894,7 @@ func (x *UploadArtefactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadArtefactRequest.ProtoReflect.Descriptor instead.
 func (*UploadArtefactRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{33}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UploadArtefactRequest) GetDigest() []byte {
@@ -1829,7 +1926,7 @@ type UploadArtefactResponse struct {
 
 func (x *UploadArtefactResponse) Reset() {
 	*x = UploadArtefactResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[34]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1841,7 +1938,7 @@ func (x *UploadArtefactResponse) String() string {
 func (*UploadArtefactResponse) ProtoMessage() {}
 
 func (x *UploadArtefactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[34]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1854,7 +1951,7 @@ func (x *UploadArtefactResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadArtefactResponse.ProtoReflect.Descriptor instead.
 func (*UploadArtefactResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{34}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{36}
 }
 
 type ClusterInfoRequest struct {
@@ -1865,7 +1962,7 @@ type ClusterInfoRequest struct {
 
 func (x *ClusterInfoRequest) Reset() {
 	*x = ClusterInfoRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[35]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +1974,7 @@ func (x *ClusterInfoRequest) String() string {
 func (*ClusterInfoRequest) ProtoMessage() {}
 
 func (x *ClusterInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[35]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1890,7 +1987,7 @@ func (x *ClusterInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClusterInfoRequest.ProtoReflect.Descriptor instead.
 func (*ClusterInfoRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{35}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{37}
 }
 
 type ClusterInfoResponse struct {
@@ -1903,7 +2000,7 @@ type ClusterInfoResponse struct {
 
 func (x *ClusterInfoResponse) Reset() {
 	*x = ClusterInfoResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[36]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1915,7 +2012,7 @@ func (x *ClusterInfoResponse) String() string {
 func (*ClusterInfoResponse) ProtoMessage() {}
 
 func (x *ClusterInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[36]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1928,7 +2025,7 @@ func (x *ClusterInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClusterInfoResponse.ProtoReflect.Descriptor instead.
 func (*ClusterInfoResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{36}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ClusterInfoResponse) GetOs() string {
@@ -1954,7 +2051,7 @@ type StreamLogsRequest struct {
 
 func (x *StreamLogsRequest) Reset() {
 	*x = StreamLogsRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[37]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1966,7 +2063,7 @@ func (x *StreamLogsRequest) String() string {
 func (*StreamLogsRequest) ProtoMessage() {}
 
 func (x *StreamLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[37]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1979,7 +2076,7 @@ func (x *StreamLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamLogsRequest.ProtoReflect.Descriptor instead.
 func (*StreamLogsRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{37}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *StreamLogsRequest) GetQuery() *v11.TimelineQuery {
@@ -1998,7 +2095,7 @@ type StreamLogsResponse struct {
 
 func (x *StreamLogsResponse) Reset() {
 	*x = StreamLogsResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[38]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2010,7 +2107,7 @@ func (x *StreamLogsResponse) String() string {
 func (*StreamLogsResponse) ProtoMessage() {}
 
 func (x *StreamLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[38]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2023,7 +2120,7 @@ func (x *StreamLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamLogsResponse.ProtoReflect.Descriptor instead.
 func (*StreamLogsResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{38}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StreamLogsResponse) GetLogs() []*v11.LogEvent {
@@ -2042,7 +2139,7 @@ type GetTopicInfoRequest struct {
 
 func (x *GetTopicInfoRequest) Reset() {
 	*x = GetTopicInfoRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[39]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2054,7 +2151,7 @@ func (x *GetTopicInfoRequest) String() string {
 func (*GetTopicInfoRequest) ProtoMessage() {}
 
 func (x *GetTopicInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[39]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2067,7 +2164,7 @@ func (x *GetTopicInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTopicInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetTopicInfoRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{39}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetTopicInfoRequest) GetTopic() *v1.Ref {
@@ -2088,7 +2185,7 @@ type PubSubEventMetadata struct {
 
 func (x *PubSubEventMetadata) Reset() {
 	*x = PubSubEventMetadata{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[40]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2100,7 +2197,7 @@ func (x *PubSubEventMetadata) String() string {
 func (*PubSubEventMetadata) ProtoMessage() {}
 
 func (x *PubSubEventMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[40]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2113,7 +2210,7 @@ func (x *PubSubEventMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PubSubEventMetadata.ProtoReflect.Descriptor instead.
 func (*PubSubEventMetadata) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{40}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *PubSubEventMetadata) GetTimestamp() *timestamppb.Timestamp {
@@ -2146,7 +2243,7 @@ type GetTopicInfoResponse struct {
 
 func (x *GetTopicInfoResponse) Reset() {
 	*x = GetTopicInfoResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[41]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2158,7 +2255,7 @@ func (x *GetTopicInfoResponse) String() string {
 func (*GetTopicInfoResponse) ProtoMessage() {}
 
 func (x *GetTopicInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[41]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2171,7 +2268,7 @@ func (x *GetTopicInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTopicInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetTopicInfoResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{41}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetTopicInfoResponse) GetPartitions() []*GetTopicInfoResponse_PartitionInfo {
@@ -2190,7 +2287,7 @@ type GetSubscriptionInfoRequest struct {
 
 func (x *GetSubscriptionInfoRequest) Reset() {
 	*x = GetSubscriptionInfoRequest{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[42]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2202,7 +2299,7 @@ func (x *GetSubscriptionInfoRequest) String() string {
 func (*GetSubscriptionInfoRequest) ProtoMessage() {}
 
 func (x *GetSubscriptionInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[42]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2215,7 +2312,7 @@ func (x *GetSubscriptionInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubscriptionInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetSubscriptionInfoRequest) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{42}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetSubscriptionInfoRequest) GetSubscription() *v1.Ref {
@@ -2234,7 +2331,7 @@ type GetSubscriptionInfoResponse struct {
 
 func (x *GetSubscriptionInfoResponse) Reset() {
 	*x = GetSubscriptionInfoResponse{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[43]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2246,7 +2343,7 @@ func (x *GetSubscriptionInfoResponse) String() string {
 func (*GetSubscriptionInfoResponse) ProtoMessage() {}
 
 func (x *GetSubscriptionInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[43]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2259,7 +2356,7 @@ func (x *GetSubscriptionInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubscriptionInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetSubscriptionInfoResponse) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{43}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetSubscriptionInfoResponse) GetPartitions() []*GetSubscriptionInfoResponse_PartitionInfo {
@@ -2279,7 +2376,7 @@ type ConfigListResponse_Config struct {
 
 func (x *ConfigListResponse_Config) Reset() {
 	*x = ConfigListResponse_Config{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[44]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2291,7 +2388,7 @@ func (x *ConfigListResponse_Config) String() string {
 func (*ConfigListResponse_Config) ProtoMessage() {}
 
 func (x *ConfigListResponse_Config) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[44]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2331,7 +2428,7 @@ type SecretsListResponse_Secret struct {
 
 func (x *SecretsListResponse_Secret) Reset() {
 	*x = SecretsListResponse_Secret{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[45]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2343,7 +2440,7 @@ func (x *SecretsListResponse_Secret) String() string {
 func (*SecretsListResponse_Secret) ProtoMessage() {}
 
 func (x *SecretsListResponse_Secret) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[45]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2383,7 +2480,7 @@ type GetTopicInfoResponse_PartitionInfo struct {
 
 func (x *GetTopicInfoResponse_PartitionInfo) Reset() {
 	*x = GetTopicInfoResponse_PartitionInfo{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[48]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2395,7 +2492,7 @@ func (x *GetTopicInfoResponse_PartitionInfo) String() string {
 func (*GetTopicInfoResponse_PartitionInfo) ProtoMessage() {}
 
 func (x *GetTopicInfoResponse_PartitionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[48]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2408,7 +2505,7 @@ func (x *GetTopicInfoResponse_PartitionInfo) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetTopicInfoResponse_PartitionInfo.ProtoReflect.Descriptor instead.
 func (*GetTopicInfoResponse_PartitionInfo) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{41, 0}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{43, 0}
 }
 
 func (x *GetTopicInfoResponse_PartitionInfo) GetPartition() int32 {
@@ -2437,7 +2534,7 @@ type GetSubscriptionInfoResponse_PartitionInfo struct {
 
 func (x *GetSubscriptionInfoResponse_PartitionInfo) Reset() {
 	*x = GetSubscriptionInfoResponse_PartitionInfo{}
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[49]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2449,7 +2546,7 @@ func (x *GetSubscriptionInfoResponse_PartitionInfo) String() string {
 func (*GetSubscriptionInfoResponse_PartitionInfo) ProtoMessage() {}
 
 func (x *GetSubscriptionInfoResponse_PartitionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[49]
+	mi := &file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2462,7 +2559,7 @@ func (x *GetSubscriptionInfoResponse_PartitionInfo) ProtoReflect() protoreflect.
 
 // Deprecated: Use GetSubscriptionInfoResponse_PartitionInfo.ProtoReflect.Descriptor instead.
 func (*GetSubscriptionInfoResponse_PartitionInfo) Descriptor() ([]byte, []int) {
-	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{43, 0}
+	return file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP(), []int{45, 0}
 }
 
 func (x *GetSubscriptionInfoResponse_PartitionInfo) GetPartition() int32 {
@@ -2584,7 +2681,12 @@ const file_xyz_block_ftl_admin_v1_admin_proto_rawDesc = "" +
 	"\x15ApplyChangesetRequest\x12H\n" +
 	"\rrealm_changes\x18\x01 \x03(\v2#.xyz.block.ftl.admin.v1.RealmChangeR\frealmChanges\"Z\n" +
 	"\x16ApplyChangesetResponse\x12@\n" +
-	"\tchangeset\x18\x02 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"c\n" +
+	"\tchangeset\x18\x02 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"R\n" +
+	"\x13DeployImagesRequest\x12\x14\n" +
+	"\x05image\x18\x01 \x03(\tR\x05image\x12%\n" +
+	"\x0eallow_insecure\x18\x02 \x01(\bR\rallowInsecure\"X\n" +
+	"\x14DeployImagesResponse\x12@\n" +
+	"\tchangeset\x18\x01 \x01(\v2\".xyz.block.ftl.schema.v1.ChangesetR\tchangeset\"c\n" +
 	"\x1eUpdateDeploymentRuntimeRequest\x12A\n" +
 	"\aelement\x18\x01 \x01(\v2'.xyz.block.ftl.schema.v1.RuntimeElementR\aelement\"!\n" +
 	"\x1fUpdateDeploymentRuntimeResponse\"@\n" +
@@ -2661,7 +2763,7 @@ const file_xyz_block_ftl_admin_v1_admin_proto_rawDesc = "" +
 	"\x12SubscriptionOffset\x12#\n" +
 	"\x1fSUBSCRIPTION_OFFSET_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cSUBSCRIPTION_OFFSET_EARLIEST\x10\x01\x12\x1e\n" +
-	"\x1aSUBSCRIPTION_OFFSET_LATEST\x10\x022\xb4\x15\n" +
+	"\x1aSUBSCRIPTION_OFFSET_LATEST\x10\x022\xa1\x16\n" +
 	"\fAdminService\x12J\n" +
 	"\x04Ping\x12\x1d.xyz.block.ftl.v1.PingRequest\x1a\x1e.xyz.block.ftl.v1.PingResponse\"\x03\x90\x02\x01\x12c\n" +
 	"\n" +
@@ -2676,7 +2778,8 @@ const file_xyz_block_ftl_admin_v1_admin_proto_rawDesc = "" +
 	"\x13MapConfigsForModule\x122.xyz.block.ftl.admin.v1.MapConfigsForModuleRequest\x1a3.xyz.block.ftl.admin.v1.MapConfigsForModuleResponse\x12~\n" +
 	"\x13MapSecretsForModule\x122.xyz.block.ftl.admin.v1.MapSecretsForModuleRequest\x1a3.xyz.block.ftl.admin.v1.MapSecretsForModuleResponse\x12x\n" +
 	"\x11ResetSubscription\x120.xyz.block.ftl.admin.v1.ResetSubscriptionRequest\x1a1.xyz.block.ftl.admin.v1.ResetSubscriptionResponse\x12q\n" +
-	"\x0eApplyChangeset\x12-.xyz.block.ftl.admin.v1.ApplyChangesetRequest\x1a..xyz.block.ftl.admin.v1.ApplyChangesetResponse0\x01\x12\x8a\x01\n" +
+	"\x0eApplyChangeset\x12-.xyz.block.ftl.admin.v1.ApplyChangesetRequest\x1a..xyz.block.ftl.admin.v1.ApplyChangesetResponse0\x01\x12k\n" +
+	"\fDeployImages\x12+.xyz.block.ftl.admin.v1.DeployImagesRequest\x1a,.xyz.block.ftl.admin.v1.DeployImagesResponse0\x01\x12\x8a\x01\n" +
 	"\x17UpdateDeploymentRuntime\x126.xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest\x1a7.xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse\x12Y\n" +
 	"\tGetSchema\x12\".xyz.block.ftl.v1.GetSchemaRequest\x1a#.xyz.block.ftl.v1.GetSchemaResponse\"\x03\x90\x02\x01\x12^\n" +
 	"\n" +
@@ -2705,7 +2808,7 @@ func file_xyz_block_ftl_admin_v1_admin_proto_rawDescGZIP() []byte {
 }
 
 var file_xyz_block_ftl_admin_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_xyz_block_ftl_admin_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_xyz_block_ftl_admin_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_xyz_block_ftl_admin_v1_admin_proto_goTypes = []any{
 	(ConfigProvider)(0),                               // 0: xyz.block.ftl.admin.v1.ConfigProvider
 	(SecretProvider)(0),                               // 1: xyz.block.ftl.admin.v1.SecretProvider
@@ -2736,140 +2839,145 @@ var file_xyz_block_ftl_admin_v1_admin_proto_goTypes = []any{
 	(*RealmChange)(nil),                               // 26: xyz.block.ftl.admin.v1.RealmChange
 	(*ApplyChangesetRequest)(nil),                     // 27: xyz.block.ftl.admin.v1.ApplyChangesetRequest
 	(*ApplyChangesetResponse)(nil),                    // 28: xyz.block.ftl.admin.v1.ApplyChangesetResponse
-	(*UpdateDeploymentRuntimeRequest)(nil),            // 29: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
-	(*UpdateDeploymentRuntimeResponse)(nil),           // 30: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse
-	(*GetArtefactDiffsRequest)(nil),                   // 31: xyz.block.ftl.admin.v1.GetArtefactDiffsRequest
-	(*GetArtefactDiffsResponse)(nil),                  // 32: xyz.block.ftl.admin.v1.GetArtefactDiffsResponse
-	(*GetDeploymentArtefactsRequest)(nil),             // 33: xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest
-	(*GetDeploymentArtefactsResponse)(nil),            // 34: xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse
-	(*DeploymentArtefact)(nil),                        // 35: xyz.block.ftl.admin.v1.DeploymentArtefact
-	(*UploadArtefactRequest)(nil),                     // 36: xyz.block.ftl.admin.v1.UploadArtefactRequest
-	(*UploadArtefactResponse)(nil),                    // 37: xyz.block.ftl.admin.v1.UploadArtefactResponse
-	(*ClusterInfoRequest)(nil),                        // 38: xyz.block.ftl.admin.v1.ClusterInfoRequest
-	(*ClusterInfoResponse)(nil),                       // 39: xyz.block.ftl.admin.v1.ClusterInfoResponse
-	(*StreamLogsRequest)(nil),                         // 40: xyz.block.ftl.admin.v1.StreamLogsRequest
-	(*StreamLogsResponse)(nil),                        // 41: xyz.block.ftl.admin.v1.StreamLogsResponse
-	(*GetTopicInfoRequest)(nil),                       // 42: xyz.block.ftl.admin.v1.GetTopicInfoRequest
-	(*PubSubEventMetadata)(nil),                       // 43: xyz.block.ftl.admin.v1.PubSubEventMetadata
-	(*GetTopicInfoResponse)(nil),                      // 44: xyz.block.ftl.admin.v1.GetTopicInfoResponse
-	(*GetSubscriptionInfoRequest)(nil),                // 45: xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest
-	(*GetSubscriptionInfoResponse)(nil),               // 46: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse
-	(*ConfigListResponse_Config)(nil),                 // 47: xyz.block.ftl.admin.v1.ConfigListResponse.Config
-	(*SecretsListResponse_Secret)(nil),                // 48: xyz.block.ftl.admin.v1.SecretsListResponse.Secret
-	nil,                                               // 49: xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.ValuesEntry
-	nil,                                               // 50: xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.ValuesEntry
-	(*GetTopicInfoResponse_PartitionInfo)(nil),        // 51: xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo
-	(*GetSubscriptionInfoResponse_PartitionInfo)(nil), // 52: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo
-	(*v1.Ref)(nil),                                    // 53: xyz.block.ftl.schema.v1.Ref
-	(*v1.Module)(nil),                                 // 54: xyz.block.ftl.schema.v1.Module
-	(*v1.Changeset)(nil),                              // 55: xyz.block.ftl.schema.v1.Changeset
-	(*v1.RuntimeElement)(nil),                         // 56: xyz.block.ftl.schema.v1.RuntimeElement
-	(*v11.TimelineQuery)(nil),                         // 57: xyz.block.ftl.timeline.v1.TimelineQuery
-	(*v11.LogEvent)(nil),                              // 58: xyz.block.ftl.timeline.v1.LogEvent
-	(*timestamppb.Timestamp)(nil),                     // 59: google.protobuf.Timestamp
-	(*v12.PingRequest)(nil),                           // 60: xyz.block.ftl.v1.PingRequest
-	(*v12.GetSchemaRequest)(nil),                      // 61: xyz.block.ftl.v1.GetSchemaRequest
-	(*v12.PullSchemaRequest)(nil),                     // 62: xyz.block.ftl.v1.PullSchemaRequest
-	(*v12.RollbackChangesetRequest)(nil),              // 63: xyz.block.ftl.v1.RollbackChangesetRequest
-	(*v12.FailChangesetRequest)(nil),                  // 64: xyz.block.ftl.v1.FailChangesetRequest
-	(*v12.PingResponse)(nil),                          // 65: xyz.block.ftl.v1.PingResponse
-	(*v12.GetSchemaResponse)(nil),                     // 66: xyz.block.ftl.v1.GetSchemaResponse
-	(*v12.PullSchemaResponse)(nil),                    // 67: xyz.block.ftl.v1.PullSchemaResponse
-	(*v12.RollbackChangesetResponse)(nil),             // 68: xyz.block.ftl.v1.RollbackChangesetResponse
-	(*v12.FailChangesetResponse)(nil),                 // 69: xyz.block.ftl.v1.FailChangesetResponse
+	(*DeployImagesRequest)(nil),                       // 29: xyz.block.ftl.admin.v1.DeployImagesRequest
+	(*DeployImagesResponse)(nil),                      // 30: xyz.block.ftl.admin.v1.DeployImagesResponse
+	(*UpdateDeploymentRuntimeRequest)(nil),            // 31: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
+	(*UpdateDeploymentRuntimeResponse)(nil),           // 32: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse
+	(*GetArtefactDiffsRequest)(nil),                   // 33: xyz.block.ftl.admin.v1.GetArtefactDiffsRequest
+	(*GetArtefactDiffsResponse)(nil),                  // 34: xyz.block.ftl.admin.v1.GetArtefactDiffsResponse
+	(*GetDeploymentArtefactsRequest)(nil),             // 35: xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest
+	(*GetDeploymentArtefactsResponse)(nil),            // 36: xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse
+	(*DeploymentArtefact)(nil),                        // 37: xyz.block.ftl.admin.v1.DeploymentArtefact
+	(*UploadArtefactRequest)(nil),                     // 38: xyz.block.ftl.admin.v1.UploadArtefactRequest
+	(*UploadArtefactResponse)(nil),                    // 39: xyz.block.ftl.admin.v1.UploadArtefactResponse
+	(*ClusterInfoRequest)(nil),                        // 40: xyz.block.ftl.admin.v1.ClusterInfoRequest
+	(*ClusterInfoResponse)(nil),                       // 41: xyz.block.ftl.admin.v1.ClusterInfoResponse
+	(*StreamLogsRequest)(nil),                         // 42: xyz.block.ftl.admin.v1.StreamLogsRequest
+	(*StreamLogsResponse)(nil),                        // 43: xyz.block.ftl.admin.v1.StreamLogsResponse
+	(*GetTopicInfoRequest)(nil),                       // 44: xyz.block.ftl.admin.v1.GetTopicInfoRequest
+	(*PubSubEventMetadata)(nil),                       // 45: xyz.block.ftl.admin.v1.PubSubEventMetadata
+	(*GetTopicInfoResponse)(nil),                      // 46: xyz.block.ftl.admin.v1.GetTopicInfoResponse
+	(*GetSubscriptionInfoRequest)(nil),                // 47: xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest
+	(*GetSubscriptionInfoResponse)(nil),               // 48: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse
+	(*ConfigListResponse_Config)(nil),                 // 49: xyz.block.ftl.admin.v1.ConfigListResponse.Config
+	(*SecretsListResponse_Secret)(nil),                // 50: xyz.block.ftl.admin.v1.SecretsListResponse.Secret
+	nil,                                               // 51: xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.ValuesEntry
+	nil,                                               // 52: xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.ValuesEntry
+	(*GetTopicInfoResponse_PartitionInfo)(nil),        // 53: xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo
+	(*GetSubscriptionInfoResponse_PartitionInfo)(nil), // 54: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo
+	(*v1.Ref)(nil),                                    // 55: xyz.block.ftl.schema.v1.Ref
+	(*v1.Module)(nil),                                 // 56: xyz.block.ftl.schema.v1.Module
+	(*v1.Changeset)(nil),                              // 57: xyz.block.ftl.schema.v1.Changeset
+	(*v1.RuntimeElement)(nil),                         // 58: xyz.block.ftl.schema.v1.RuntimeElement
+	(*v11.TimelineQuery)(nil),                         // 59: xyz.block.ftl.timeline.v1.TimelineQuery
+	(*v11.LogEvent)(nil),                              // 60: xyz.block.ftl.timeline.v1.LogEvent
+	(*timestamppb.Timestamp)(nil),                     // 61: google.protobuf.Timestamp
+	(*v12.PingRequest)(nil),                           // 62: xyz.block.ftl.v1.PingRequest
+	(*v12.GetSchemaRequest)(nil),                      // 63: xyz.block.ftl.v1.GetSchemaRequest
+	(*v12.PullSchemaRequest)(nil),                     // 64: xyz.block.ftl.v1.PullSchemaRequest
+	(*v12.RollbackChangesetRequest)(nil),              // 65: xyz.block.ftl.v1.RollbackChangesetRequest
+	(*v12.FailChangesetRequest)(nil),                  // 66: xyz.block.ftl.v1.FailChangesetRequest
+	(*v12.PingResponse)(nil),                          // 67: xyz.block.ftl.v1.PingResponse
+	(*v12.GetSchemaResponse)(nil),                     // 68: xyz.block.ftl.v1.GetSchemaResponse
+	(*v12.PullSchemaResponse)(nil),                    // 69: xyz.block.ftl.v1.PullSchemaResponse
+	(*v12.RollbackChangesetResponse)(nil),             // 70: xyz.block.ftl.v1.RollbackChangesetResponse
+	(*v12.FailChangesetResponse)(nil),                 // 71: xyz.block.ftl.v1.FailChangesetResponse
 }
 var file_xyz_block_ftl_admin_v1_admin_proto_depIdxs = []int32{
 	0,  // 0: xyz.block.ftl.admin.v1.ConfigListRequest.provider:type_name -> xyz.block.ftl.admin.v1.ConfigProvider
-	47, // 1: xyz.block.ftl.admin.v1.ConfigListResponse.configs:type_name -> xyz.block.ftl.admin.v1.ConfigListResponse.Config
+	49, // 1: xyz.block.ftl.admin.v1.ConfigListResponse.configs:type_name -> xyz.block.ftl.admin.v1.ConfigListResponse.Config
 	3,  // 2: xyz.block.ftl.admin.v1.ConfigGetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
 	0,  // 3: xyz.block.ftl.admin.v1.ConfigSetRequest.provider:type_name -> xyz.block.ftl.admin.v1.ConfigProvider
 	3,  // 4: xyz.block.ftl.admin.v1.ConfigSetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
 	0,  // 5: xyz.block.ftl.admin.v1.ConfigUnsetRequest.provider:type_name -> xyz.block.ftl.admin.v1.ConfigProvider
 	3,  // 6: xyz.block.ftl.admin.v1.ConfigUnsetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
 	1,  // 7: xyz.block.ftl.admin.v1.SecretsListRequest.provider:type_name -> xyz.block.ftl.admin.v1.SecretProvider
-	48, // 8: xyz.block.ftl.admin.v1.SecretsListResponse.secrets:type_name -> xyz.block.ftl.admin.v1.SecretsListResponse.Secret
+	50, // 8: xyz.block.ftl.admin.v1.SecretsListResponse.secrets:type_name -> xyz.block.ftl.admin.v1.SecretsListResponse.Secret
 	3,  // 9: xyz.block.ftl.admin.v1.SecretGetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
 	1,  // 10: xyz.block.ftl.admin.v1.SecretSetRequest.provider:type_name -> xyz.block.ftl.admin.v1.SecretProvider
 	3,  // 11: xyz.block.ftl.admin.v1.SecretSetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
 	1,  // 12: xyz.block.ftl.admin.v1.SecretUnsetRequest.provider:type_name -> xyz.block.ftl.admin.v1.SecretProvider
 	3,  // 13: xyz.block.ftl.admin.v1.SecretUnsetRequest.ref:type_name -> xyz.block.ftl.admin.v1.ConfigRef
-	49, // 14: xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.values:type_name -> xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.ValuesEntry
-	50, // 15: xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.values:type_name -> xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.ValuesEntry
-	53, // 16: xyz.block.ftl.admin.v1.ResetSubscriptionRequest.subscription:type_name -> xyz.block.ftl.schema.v1.Ref
+	51, // 14: xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.values:type_name -> xyz.block.ftl.admin.v1.MapConfigsForModuleResponse.ValuesEntry
+	52, // 15: xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.values:type_name -> xyz.block.ftl.admin.v1.MapSecretsForModuleResponse.ValuesEntry
+	55, // 16: xyz.block.ftl.admin.v1.ResetSubscriptionRequest.subscription:type_name -> xyz.block.ftl.schema.v1.Ref
 	2,  // 17: xyz.block.ftl.admin.v1.ResetSubscriptionRequest.offset:type_name -> xyz.block.ftl.admin.v1.SubscriptionOffset
-	54, // 18: xyz.block.ftl.admin.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
+	56, // 18: xyz.block.ftl.admin.v1.RealmChange.modules:type_name -> xyz.block.ftl.schema.v1.Module
 	26, // 19: xyz.block.ftl.admin.v1.ApplyChangesetRequest.realm_changes:type_name -> xyz.block.ftl.admin.v1.RealmChange
-	55, // 20: xyz.block.ftl.admin.v1.ApplyChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
-	56, // 21: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest.element:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
-	35, // 22: xyz.block.ftl.admin.v1.GetArtefactDiffsResponse.client_artefacts:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
-	35, // 23: xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest.have_artefacts:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
-	35, // 24: xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse.artefact:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
-	57, // 25: xyz.block.ftl.admin.v1.StreamLogsRequest.query:type_name -> xyz.block.ftl.timeline.v1.TimelineQuery
-	58, // 26: xyz.block.ftl.admin.v1.StreamLogsResponse.logs:type_name -> xyz.block.ftl.timeline.v1.LogEvent
-	53, // 27: xyz.block.ftl.admin.v1.GetTopicInfoRequest.topic:type_name -> xyz.block.ftl.schema.v1.Ref
-	59, // 28: xyz.block.ftl.admin.v1.PubSubEventMetadata.timestamp:type_name -> google.protobuf.Timestamp
-	51, // 29: xyz.block.ftl.admin.v1.GetTopicInfoResponse.partitions:type_name -> xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo
-	53, // 30: xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest.subscription:type_name -> xyz.block.ftl.schema.v1.Ref
-	52, // 31: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.partitions:type_name -> xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo
-	43, // 32: xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo.head:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
-	43, // 33: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.consumed:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
-	43, // 34: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.next:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
-	43, // 35: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.head:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
-	60, // 36: xyz.block.ftl.admin.v1.AdminService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
-	4,  // 37: xyz.block.ftl.admin.v1.AdminService.ConfigList:input_type -> xyz.block.ftl.admin.v1.ConfigListRequest
-	6,  // 38: xyz.block.ftl.admin.v1.AdminService.ConfigGet:input_type -> xyz.block.ftl.admin.v1.ConfigGetRequest
-	8,  // 39: xyz.block.ftl.admin.v1.AdminService.ConfigSet:input_type -> xyz.block.ftl.admin.v1.ConfigSetRequest
-	10, // 40: xyz.block.ftl.admin.v1.AdminService.ConfigUnset:input_type -> xyz.block.ftl.admin.v1.ConfigUnsetRequest
-	12, // 41: xyz.block.ftl.admin.v1.AdminService.SecretsList:input_type -> xyz.block.ftl.admin.v1.SecretsListRequest
-	14, // 42: xyz.block.ftl.admin.v1.AdminService.SecretGet:input_type -> xyz.block.ftl.admin.v1.SecretGetRequest
-	16, // 43: xyz.block.ftl.admin.v1.AdminService.SecretSet:input_type -> xyz.block.ftl.admin.v1.SecretSetRequest
-	18, // 44: xyz.block.ftl.admin.v1.AdminService.SecretUnset:input_type -> xyz.block.ftl.admin.v1.SecretUnsetRequest
-	20, // 45: xyz.block.ftl.admin.v1.AdminService.MapConfigsForModule:input_type -> xyz.block.ftl.admin.v1.MapConfigsForModuleRequest
-	22, // 46: xyz.block.ftl.admin.v1.AdminService.MapSecretsForModule:input_type -> xyz.block.ftl.admin.v1.MapSecretsForModuleRequest
-	24, // 47: xyz.block.ftl.admin.v1.AdminService.ResetSubscription:input_type -> xyz.block.ftl.admin.v1.ResetSubscriptionRequest
-	27, // 48: xyz.block.ftl.admin.v1.AdminService.ApplyChangeset:input_type -> xyz.block.ftl.admin.v1.ApplyChangesetRequest
-	29, // 49: xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
-	61, // 50: xyz.block.ftl.admin.v1.AdminService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
-	62, // 51: xyz.block.ftl.admin.v1.AdminService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
-	63, // 52: xyz.block.ftl.admin.v1.AdminService.RollbackChangeset:input_type -> xyz.block.ftl.v1.RollbackChangesetRequest
-	64, // 53: xyz.block.ftl.admin.v1.AdminService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
-	38, // 54: xyz.block.ftl.admin.v1.AdminService.ClusterInfo:input_type -> xyz.block.ftl.admin.v1.ClusterInfoRequest
-	31, // 55: xyz.block.ftl.admin.v1.AdminService.GetArtefactDiffs:input_type -> xyz.block.ftl.admin.v1.GetArtefactDiffsRequest
-	33, // 56: xyz.block.ftl.admin.v1.AdminService.GetDeploymentArtefacts:input_type -> xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest
-	36, // 57: xyz.block.ftl.admin.v1.AdminService.UploadArtefact:input_type -> xyz.block.ftl.admin.v1.UploadArtefactRequest
-	40, // 58: xyz.block.ftl.admin.v1.AdminService.StreamLogs:input_type -> xyz.block.ftl.admin.v1.StreamLogsRequest
-	42, // 59: xyz.block.ftl.admin.v1.AdminService.GetTopicInfo:input_type -> xyz.block.ftl.admin.v1.GetTopicInfoRequest
-	45, // 60: xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo:input_type -> xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest
-	65, // 61: xyz.block.ftl.admin.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
-	5,  // 62: xyz.block.ftl.admin.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.admin.v1.ConfigListResponse
-	7,  // 63: xyz.block.ftl.admin.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.admin.v1.ConfigGetResponse
-	9,  // 64: xyz.block.ftl.admin.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.admin.v1.ConfigSetResponse
-	11, // 65: xyz.block.ftl.admin.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.admin.v1.ConfigUnsetResponse
-	13, // 66: xyz.block.ftl.admin.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.admin.v1.SecretsListResponse
-	15, // 67: xyz.block.ftl.admin.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.admin.v1.SecretGetResponse
-	17, // 68: xyz.block.ftl.admin.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.admin.v1.SecretSetResponse
-	19, // 69: xyz.block.ftl.admin.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.admin.v1.SecretUnsetResponse
-	21, // 70: xyz.block.ftl.admin.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.admin.v1.MapConfigsForModuleResponse
-	23, // 71: xyz.block.ftl.admin.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.admin.v1.MapSecretsForModuleResponse
-	25, // 72: xyz.block.ftl.admin.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.admin.v1.ResetSubscriptionResponse
-	28, // 73: xyz.block.ftl.admin.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.admin.v1.ApplyChangesetResponse
-	30, // 74: xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse
-	66, // 75: xyz.block.ftl.admin.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
-	67, // 76: xyz.block.ftl.admin.v1.AdminService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
-	68, // 77: xyz.block.ftl.admin.v1.AdminService.RollbackChangeset:output_type -> xyz.block.ftl.v1.RollbackChangesetResponse
-	69, // 78: xyz.block.ftl.admin.v1.AdminService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
-	39, // 79: xyz.block.ftl.admin.v1.AdminService.ClusterInfo:output_type -> xyz.block.ftl.admin.v1.ClusterInfoResponse
-	32, // 80: xyz.block.ftl.admin.v1.AdminService.GetArtefactDiffs:output_type -> xyz.block.ftl.admin.v1.GetArtefactDiffsResponse
-	34, // 81: xyz.block.ftl.admin.v1.AdminService.GetDeploymentArtefacts:output_type -> xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse
-	37, // 82: xyz.block.ftl.admin.v1.AdminService.UploadArtefact:output_type -> xyz.block.ftl.admin.v1.UploadArtefactResponse
-	41, // 83: xyz.block.ftl.admin.v1.AdminService.StreamLogs:output_type -> xyz.block.ftl.admin.v1.StreamLogsResponse
-	44, // 84: xyz.block.ftl.admin.v1.AdminService.GetTopicInfo:output_type -> xyz.block.ftl.admin.v1.GetTopicInfoResponse
-	46, // 85: xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo:output_type -> xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse
-	61, // [61:86] is the sub-list for method output_type
-	36, // [36:61] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	57, // 20: xyz.block.ftl.admin.v1.ApplyChangesetResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
+	57, // 21: xyz.block.ftl.admin.v1.DeployImagesResponse.changeset:type_name -> xyz.block.ftl.schema.v1.Changeset
+	58, // 22: xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest.element:type_name -> xyz.block.ftl.schema.v1.RuntimeElement
+	37, // 23: xyz.block.ftl.admin.v1.GetArtefactDiffsResponse.client_artefacts:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
+	37, // 24: xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest.have_artefacts:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
+	37, // 25: xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse.artefact:type_name -> xyz.block.ftl.admin.v1.DeploymentArtefact
+	59, // 26: xyz.block.ftl.admin.v1.StreamLogsRequest.query:type_name -> xyz.block.ftl.timeline.v1.TimelineQuery
+	60, // 27: xyz.block.ftl.admin.v1.StreamLogsResponse.logs:type_name -> xyz.block.ftl.timeline.v1.LogEvent
+	55, // 28: xyz.block.ftl.admin.v1.GetTopicInfoRequest.topic:type_name -> xyz.block.ftl.schema.v1.Ref
+	61, // 29: xyz.block.ftl.admin.v1.PubSubEventMetadata.timestamp:type_name -> google.protobuf.Timestamp
+	53, // 30: xyz.block.ftl.admin.v1.GetTopicInfoResponse.partitions:type_name -> xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo
+	55, // 31: xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest.subscription:type_name -> xyz.block.ftl.schema.v1.Ref
+	54, // 32: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.partitions:type_name -> xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo
+	45, // 33: xyz.block.ftl.admin.v1.GetTopicInfoResponse.PartitionInfo.head:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
+	45, // 34: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.consumed:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
+	45, // 35: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.next:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
+	45, // 36: xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse.PartitionInfo.head:type_name -> xyz.block.ftl.admin.v1.PubSubEventMetadata
+	62, // 37: xyz.block.ftl.admin.v1.AdminService.Ping:input_type -> xyz.block.ftl.v1.PingRequest
+	4,  // 38: xyz.block.ftl.admin.v1.AdminService.ConfigList:input_type -> xyz.block.ftl.admin.v1.ConfigListRequest
+	6,  // 39: xyz.block.ftl.admin.v1.AdminService.ConfigGet:input_type -> xyz.block.ftl.admin.v1.ConfigGetRequest
+	8,  // 40: xyz.block.ftl.admin.v1.AdminService.ConfigSet:input_type -> xyz.block.ftl.admin.v1.ConfigSetRequest
+	10, // 41: xyz.block.ftl.admin.v1.AdminService.ConfigUnset:input_type -> xyz.block.ftl.admin.v1.ConfigUnsetRequest
+	12, // 42: xyz.block.ftl.admin.v1.AdminService.SecretsList:input_type -> xyz.block.ftl.admin.v1.SecretsListRequest
+	14, // 43: xyz.block.ftl.admin.v1.AdminService.SecretGet:input_type -> xyz.block.ftl.admin.v1.SecretGetRequest
+	16, // 44: xyz.block.ftl.admin.v1.AdminService.SecretSet:input_type -> xyz.block.ftl.admin.v1.SecretSetRequest
+	18, // 45: xyz.block.ftl.admin.v1.AdminService.SecretUnset:input_type -> xyz.block.ftl.admin.v1.SecretUnsetRequest
+	20, // 46: xyz.block.ftl.admin.v1.AdminService.MapConfigsForModule:input_type -> xyz.block.ftl.admin.v1.MapConfigsForModuleRequest
+	22, // 47: xyz.block.ftl.admin.v1.AdminService.MapSecretsForModule:input_type -> xyz.block.ftl.admin.v1.MapSecretsForModuleRequest
+	24, // 48: xyz.block.ftl.admin.v1.AdminService.ResetSubscription:input_type -> xyz.block.ftl.admin.v1.ResetSubscriptionRequest
+	27, // 49: xyz.block.ftl.admin.v1.AdminService.ApplyChangeset:input_type -> xyz.block.ftl.admin.v1.ApplyChangesetRequest
+	29, // 50: xyz.block.ftl.admin.v1.AdminService.DeployImages:input_type -> xyz.block.ftl.admin.v1.DeployImagesRequest
+	31, // 51: xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime:input_type -> xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
+	63, // 52: xyz.block.ftl.admin.v1.AdminService.GetSchema:input_type -> xyz.block.ftl.v1.GetSchemaRequest
+	64, // 53: xyz.block.ftl.admin.v1.AdminService.PullSchema:input_type -> xyz.block.ftl.v1.PullSchemaRequest
+	65, // 54: xyz.block.ftl.admin.v1.AdminService.RollbackChangeset:input_type -> xyz.block.ftl.v1.RollbackChangesetRequest
+	66, // 55: xyz.block.ftl.admin.v1.AdminService.FailChangeset:input_type -> xyz.block.ftl.v1.FailChangesetRequest
+	40, // 56: xyz.block.ftl.admin.v1.AdminService.ClusterInfo:input_type -> xyz.block.ftl.admin.v1.ClusterInfoRequest
+	33, // 57: xyz.block.ftl.admin.v1.AdminService.GetArtefactDiffs:input_type -> xyz.block.ftl.admin.v1.GetArtefactDiffsRequest
+	35, // 58: xyz.block.ftl.admin.v1.AdminService.GetDeploymentArtefacts:input_type -> xyz.block.ftl.admin.v1.GetDeploymentArtefactsRequest
+	38, // 59: xyz.block.ftl.admin.v1.AdminService.UploadArtefact:input_type -> xyz.block.ftl.admin.v1.UploadArtefactRequest
+	42, // 60: xyz.block.ftl.admin.v1.AdminService.StreamLogs:input_type -> xyz.block.ftl.admin.v1.StreamLogsRequest
+	44, // 61: xyz.block.ftl.admin.v1.AdminService.GetTopicInfo:input_type -> xyz.block.ftl.admin.v1.GetTopicInfoRequest
+	47, // 62: xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo:input_type -> xyz.block.ftl.admin.v1.GetSubscriptionInfoRequest
+	67, // 63: xyz.block.ftl.admin.v1.AdminService.Ping:output_type -> xyz.block.ftl.v1.PingResponse
+	5,  // 64: xyz.block.ftl.admin.v1.AdminService.ConfigList:output_type -> xyz.block.ftl.admin.v1.ConfigListResponse
+	7,  // 65: xyz.block.ftl.admin.v1.AdminService.ConfigGet:output_type -> xyz.block.ftl.admin.v1.ConfigGetResponse
+	9,  // 66: xyz.block.ftl.admin.v1.AdminService.ConfigSet:output_type -> xyz.block.ftl.admin.v1.ConfigSetResponse
+	11, // 67: xyz.block.ftl.admin.v1.AdminService.ConfigUnset:output_type -> xyz.block.ftl.admin.v1.ConfigUnsetResponse
+	13, // 68: xyz.block.ftl.admin.v1.AdminService.SecretsList:output_type -> xyz.block.ftl.admin.v1.SecretsListResponse
+	15, // 69: xyz.block.ftl.admin.v1.AdminService.SecretGet:output_type -> xyz.block.ftl.admin.v1.SecretGetResponse
+	17, // 70: xyz.block.ftl.admin.v1.AdminService.SecretSet:output_type -> xyz.block.ftl.admin.v1.SecretSetResponse
+	19, // 71: xyz.block.ftl.admin.v1.AdminService.SecretUnset:output_type -> xyz.block.ftl.admin.v1.SecretUnsetResponse
+	21, // 72: xyz.block.ftl.admin.v1.AdminService.MapConfigsForModule:output_type -> xyz.block.ftl.admin.v1.MapConfigsForModuleResponse
+	23, // 73: xyz.block.ftl.admin.v1.AdminService.MapSecretsForModule:output_type -> xyz.block.ftl.admin.v1.MapSecretsForModuleResponse
+	25, // 74: xyz.block.ftl.admin.v1.AdminService.ResetSubscription:output_type -> xyz.block.ftl.admin.v1.ResetSubscriptionResponse
+	28, // 75: xyz.block.ftl.admin.v1.AdminService.ApplyChangeset:output_type -> xyz.block.ftl.admin.v1.ApplyChangesetResponse
+	30, // 76: xyz.block.ftl.admin.v1.AdminService.DeployImages:output_type -> xyz.block.ftl.admin.v1.DeployImagesResponse
+	32, // 77: xyz.block.ftl.admin.v1.AdminService.UpdateDeploymentRuntime:output_type -> xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeResponse
+	68, // 78: xyz.block.ftl.admin.v1.AdminService.GetSchema:output_type -> xyz.block.ftl.v1.GetSchemaResponse
+	69, // 79: xyz.block.ftl.admin.v1.AdminService.PullSchema:output_type -> xyz.block.ftl.v1.PullSchemaResponse
+	70, // 80: xyz.block.ftl.admin.v1.AdminService.RollbackChangeset:output_type -> xyz.block.ftl.v1.RollbackChangesetResponse
+	71, // 81: xyz.block.ftl.admin.v1.AdminService.FailChangeset:output_type -> xyz.block.ftl.v1.FailChangesetResponse
+	41, // 82: xyz.block.ftl.admin.v1.AdminService.ClusterInfo:output_type -> xyz.block.ftl.admin.v1.ClusterInfoResponse
+	34, // 83: xyz.block.ftl.admin.v1.AdminService.GetArtefactDiffs:output_type -> xyz.block.ftl.admin.v1.GetArtefactDiffsResponse
+	36, // 84: xyz.block.ftl.admin.v1.AdminService.GetDeploymentArtefacts:output_type -> xyz.block.ftl.admin.v1.GetDeploymentArtefactsResponse
+	39, // 85: xyz.block.ftl.admin.v1.AdminService.UploadArtefact:output_type -> xyz.block.ftl.admin.v1.UploadArtefactResponse
+	43, // 86: xyz.block.ftl.admin.v1.AdminService.StreamLogs:output_type -> xyz.block.ftl.admin.v1.StreamLogsResponse
+	46, // 87: xyz.block.ftl.admin.v1.AdminService.GetTopicInfo:output_type -> xyz.block.ftl.admin.v1.GetTopicInfoResponse
+	48, // 88: xyz.block.ftl.admin.v1.AdminService.GetSubscriptionInfo:output_type -> xyz.block.ftl.admin.v1.GetSubscriptionInfoResponse
+	63, // [63:89] is the sub-list for method output_type
+	37, // [37:63] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_xyz_block_ftl_admin_v1_admin_proto_init() }
@@ -2884,17 +2992,17 @@ func file_xyz_block_ftl_admin_v1_admin_proto_init() {
 	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[9].OneofWrappers = []any{}
 	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[13].OneofWrappers = []any{}
 	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[15].OneofWrappers = []any{}
-	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[44].OneofWrappers = []any{}
-	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[45].OneofWrappers = []any{}
-	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[48].OneofWrappers = []any{}
-	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[49].OneofWrappers = []any{}
+	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[46].OneofWrappers = []any{}
+	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[47].OneofWrappers = []any{}
+	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[50].OneofWrappers = []any{}
+	file_xyz_block_ftl_admin_v1_admin_proto_msgTypes[51].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_xyz_block_ftl_admin_v1_admin_proto_rawDesc), len(file_xyz_block_ftl_admin_v1_admin_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   50,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

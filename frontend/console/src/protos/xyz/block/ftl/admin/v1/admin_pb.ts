@@ -1236,6 +1236,90 @@ export class ApplyChangesetResponse extends Message<ApplyChangesetResponse> {
 }
 
 /**
+ * @generated from message xyz.block.ftl.admin.v1.DeployImagesRequest
+ */
+export class DeployImagesRequest extends Message<DeployImagesRequest> {
+  /**
+   * @generated from field: repeated string image = 1;
+   */
+  image: string[] = [];
+
+  /**
+   * Allow insecure images, e.g. from localhost. This does not propagate to the underlying cluster, if the cluster does not allow insecure images this will fail.
+   *
+   * @generated from field: bool allow_insecure = 2;
+   */
+  allowInsecure = false;
+
+  constructor(data?: PartialMessage<DeployImagesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.DeployImagesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 2, name: "allow_insecure", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeployImagesRequest {
+    return new DeployImagesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeployImagesRequest {
+    return new DeployImagesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeployImagesRequest {
+    return new DeployImagesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeployImagesRequest | PlainMessage<DeployImagesRequest> | undefined, b: DeployImagesRequest | PlainMessage<DeployImagesRequest> | undefined): boolean {
+    return proto3.util.equals(DeployImagesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message xyz.block.ftl.admin.v1.DeployImagesResponse
+ */
+export class DeployImagesResponse extends Message<DeployImagesResponse> {
+  /**
+   * The changeset, the result can be determined by checking the state
+   *
+   * @generated from field: xyz.block.ftl.schema.v1.Changeset changeset = 1;
+   */
+  changeset?: Changeset;
+
+  constructor(data?: PartialMessage<DeployImagesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "xyz.block.ftl.admin.v1.DeployImagesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changeset", kind: "message", T: Changeset },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeployImagesResponse {
+    return new DeployImagesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeployImagesResponse {
+    return new DeployImagesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeployImagesResponse {
+    return new DeployImagesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeployImagesResponse | PlainMessage<DeployImagesResponse> | undefined, b: DeployImagesResponse | PlainMessage<DeployImagesResponse> | undefined): boolean {
+    return proto3.util.equals(DeployImagesResponse, a, b);
+  }
+}
+
+/**
  * @generated from message xyz.block.ftl.admin.v1.UpdateDeploymentRuntimeRequest
  */
 export class UpdateDeploymentRuntimeRequest extends Message<UpdateDeploymentRuntimeRequest> {

@@ -230,13 +230,19 @@ func ExpectError(action Action, expectedErrorMsg ...string) Action {
 func Deploy(modules ...string) Action {
 	return Chain(
 		func(t testing.TB, ic TestContext) {
-			args := []string{"deploy", "-t", "4m"}
-			if ic.kubeClient.Ok() {
-				args = append(args, "--build-env", "GOOS=linux", "--build-env", "GOARCH=amd64", "--build-env", "CGO_ENABLED=0")
-			}
-			args = append(args, modules...)
+			if !ic.kubeClient.Ok() {
+				args := []string{"deploy", "-t", "4m"}
+				if ic.kubeClient.Ok() {
+					args = append(args, "--build-env", "GOOS=linux", "--build-env", "GOARCH=amd64", "--build-env", "CGO_ENABLED=0")
+				}
+				args = append(args, modules...)
 
-			Exec("ftl", args...)(t, ic)
+				Exec("ftl", args...)(t, ic)
+			} else {
+				// use image based deployment for Kubernetes
+				args := []string{"image", "build", "--registry", "k3d-ftl-registry.localhost:5000", "--allow-insecure-images", "--deploy", "--build-env", "GOOS=linux", "--build-env", "GOARCH=amd64", "--build-env", "CGO_ENABLED=0"}
+				Exec("ftl", args...)(t, ic)
+			}
 		},
 		func(t testing.TB, ic TestContext) {
 			// Wait for all modules to deploy
