@@ -2,10 +2,7 @@ module ftl/mysql
 
 go 1.24.2
 
-require (
-	github.com/alecthomas/types v0.19.0
-	github.com/block/ftl v0.477.0
-)
+require github.com/block/ftl v0.477.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
@@ -19,6 +16,7 @@ require (
 	github.com/alecthomas/errors v0.7.0 // indirect
 	github.com/alecthomas/kong v1.10.0 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
+	github.com/alecthomas/types v0.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.14 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.67 // indirect
