@@ -1,5 +1,4 @@
 {{- $verbs := .Verbs -}}
-{{- $dbs := .Databases -}}
 {{- $name := .Name -}}
 {{- with .TypesCtx -}}
 {{- $moduleName := .MainModulePkg -}}
@@ -32,13 +31,6 @@ type {{.Name|title}}Client func(context.Context, {{$req}}) ({{$resp}}, error)
 	{{ end }}
 {{ end -}}
 
-{{- range $dbs -}}
-//ftl:database {{.Type}} {{.Name}}
-type {{.Name|title}}Config struct {}
-
-type {{.Name|title}}Handle = ftl.DatabaseHandle[{{.Name|title}}Config]
-{{ end -}}
-
 {{- if or .SumTypes .ExternalTypes $verbs }}
 func init() {
 	reflection.Register(
@@ -51,13 +43,6 @@ func init() {
 {{- end}}
 {{- range .ExternalTypes}}
 		reflection.ExternalType(*new({{.TypeName}})),
-{{- end}}
-{{- range $dbs}}
-		{{- if eq .Type "postgres" }}
-		reflection.Database[{{.Name|title}}Config]("{{.Name}}", server.InitPostgres),
-		{{- else if eq .Type "mysql" }}
-		reflection.Database[{{.Name|title}}Config]("{{.Name}}", server.InitMySQL),
-		{{- end }}
 {{- end}}
 {{- range $verbs}}
 	{{ if .IsTransaction }}
