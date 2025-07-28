@@ -12,8 +12,10 @@ import (
 	"connectrpc.com/connect"
 	"github.com/alecthomas/errors"
 	"github.com/alecthomas/types/optional"
+	name2 "github.com/google/go-containerregistry/pkg/name"
 	"github.com/puzpuzpuz/xsync/v3"
 	"golang.org/x/exp/maps"
+	"google.golang.org/protobuf/proto"
 	istiosecmodel "istio.io/api/security/v1"
 	"istio.io/api/type/v1beta1"
 	istiosec "istio.io/client-go/pkg/apis/security/v1"
@@ -35,15 +37,18 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/slices"
 	"github.com/block/ftl/internal/kube"
+	"github.com/block/ftl/internal/oci"
 	"github.com/block/ftl/internal/rpc"
 )
 
 const provisionerDeploymentName = "ftl-provisioner"
 const configMapName = "ftl-provisioner-deployment-config"
+const schemaConfigMapSuffix = "-ftl-schema"
 const deploymentTemplate = "deploymentTemplate"
 const serviceTemplate = "serviceTemplate"
 const serviceAccountTemplate = "serviceAccountTemplate"
 const deploymentLabel = "ftl.dev/deployment"
+const schemaPb = "schema.pb"
 const deployTimeout = time.Minute * 5
 
 var _ scaling.RunnerScaling = &k8sScaling{}
@@ -51,6 +56,7 @@ var _ scaling.RunnerScaling = &k8sScaling{}
 type k8sScaling struct {
 	disableIstio bool
 
+	imageService    *oci.ImageService
 	client          *kubernetes.Clientset
 	systemNamespace string
 	// Map of known deployments
@@ -66,8 +72,8 @@ type k8sScaling struct {
 	routeTemplate             string
 }
 
-func NewK8sScaling(disableIstio bool, realm string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string) scaling.RunnerScaling {
-	return &k8sScaling{disableIstio: disableIstio, realm: realm, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate}
+func NewK8sScaling(disableIstio bool, realm string, mapper kube.NamespaceMapper, routeTemplate string, cronServiceAccount string, adminServiceAccount string, consoleServiceAccount string, httpServiceAccount string, imageService *oci.ImageService) scaling.RunnerScaling {
+	return &k8sScaling{disableIstio: disableIstio, realm: realm, namespaceMapper: mapper, consoleServiceAccount: consoleServiceAccount, cronServiceAccount: cronServiceAccount, adminServiceAccount: adminServiceAccount, httpIngressServiceAccount: httpServiceAccount, routeTemplate: routeTemplate, imageService: imageService}
 }
 
 func (r *k8sScaling) Start(ctx context.Context) error {
@@ -307,6 +313,7 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 	userSecretClient := r.client.CoreV1().Secrets(userNamespace)
 	secretsSecretName := kube.SecretName(module)
 	configsConfigMapName := kube.ConfigMapName(module)
+	schemaConfigMapName := module + schemaConfigMapSuffix
 
 	_, err = userSecretClient.Get(ctx, secretsSecretName, v1.GetOptions{})
 	if err != nil {
@@ -340,7 +347,46 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 		if err != nil {
 			return errors.Wrapf(err, "failed to create configs ConfigMap %s", configsConfigMapName)
 		}
-		logger.Debugf("Created/Ensured ConfigMap %s in namespace %s", configsConfigMapName, userNamespace)
+		logger.Debugf("Created ConfigMap %s in namespace %s", configsConfigMapName, userNamespace)
+	}
+
+	img, err := name2.ParseReference(sch.Runtime.Image.Image)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse image reference %s for module %s in realm %s", sch.Runtime.Image.Image, module, realm)
+	}
+	full, _, err := r.imageService.PullSchema(ctx, img)
+	if err != nil {
+		return errors.Wrapf(err, "failed to pull schema for module %s in realm %s", module, realm)
+	}
+	if ir, ok := full.FirstInternalRealm().Get(); ok {
+		ir.UpsertModule(sch)
+	}
+
+	bytes, err := proto.Marshal(full.ToProto())
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal schema for module %s in realm %s", module, realm)
+	}
+	schemaMap, err := userConfigMapClient.Get(ctx, schemaConfigMapName, v1.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to check for existing schema ConfigMap %s", schemaConfigMapName)
+		}
+		schemaMap = &kubecore.ConfigMap{
+			ObjectMeta: v1.ObjectMeta{Name: schemaConfigMapName},
+			BinaryData: map[string][]byte{schemaPb: bytes},
+		}
+		addLabels(&schemaMap.ObjectMeta, realm, module, name)
+		_, err = userConfigMapClient.Create(ctx, schemaMap, v1.CreateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to create configs ConfigMap %s", schemaConfigMapName)
+		}
+		logger.Debugf("Created ConfigMap %s in namespace %s", schemaConfigMapName, userNamespace)
+	} else {
+		schemaMap.BinaryData = map[string][]byte{schemaPb: bytes}
+		_, err = userConfigMapClient.Update(ctx, schemaMap, v1.UpdateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to update schema ConfigMap %s", schemaConfigMapName)
+		}
 	}
 
 	// Now create the deployment
@@ -361,8 +407,10 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 
 	secretsVolumeName := "ftl-secrets-volume" //nolint:gosec
 	configsVolumeName := "ftl-configs-volume"
+	schemaVolumeName := "ftl-schema-volume"
 	secretsMountPath := "/etc/ftl/secrets" //nolint:gosec
 	configsMountPath := "/etc/ftl/configs"
+	schemaMountPath := "/etc/ftl/schema"
 
 	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, []kubecore.Volume{
 		{
@@ -381,6 +429,14 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 				},
 			},
 		},
+		{
+			Name: schemaVolumeName,
+			VolumeSource: kubecore.VolumeSource{
+				ConfigMap: &kubecore.ConfigMapVolumeSource{
+					LocalObjectReference: kubecore.LocalObjectReference{Name: schemaConfigMapName},
+				},
+			},
+		},
 	}...)
 
 	deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, []kubecore.VolumeMount{
@@ -394,10 +450,15 @@ func (r *k8sScaling) handleNewDeployment(ctx context.Context, realm string, modu
 			MountPath: configsMountPath,
 			ReadOnly:  true,
 		},
+		{
+			Name:      schemaVolumeName,
+			MountPath: schemaMountPath,
+			ReadOnly:  true,
+		},
 	}...)
 
 	deployment.Spec.Template.Spec.ServiceAccountName = module
-	changes, err := r.syncDeployment(deployment, sch.Runtime.Scaling.MinReplicas, secretsMountPath, configsMountPath)
+	changes, err := r.syncDeployment(deployment, sch.Runtime.Scaling.MinReplicas, secretsMountPath, configsMountPath, schemaMountPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -457,7 +518,7 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 		}
 	}
 
-	changes, err := r.syncDeployment(deployment, replicas, secretsMountPath, configsMountPath)
+	changes, err := r.syncDeployment(deployment, replicas, secretsMountPath, configsMountPath, "")
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -475,7 +536,7 @@ func (r *k8sScaling) handleExistingDeployment(ctx context.Context, deployment *k
 	return nil
 }
 
-func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas int32, secretsMountPath string, configsMountPath string) ([]func(*kubeapps.Deployment), error) {
+func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas int32, secretsMountPath string, configsMountPath string, schemaMountPath string) ([]func(*kubeapps.Deployment), error) {
 	changes := []func(*kubeapps.Deployment){}
 
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != replicas {
@@ -487,6 +548,9 @@ func (r *k8sScaling) syncDeployment(deployment *kubeapps.Deployment, replicas in
 	changes = r.updateEnvVar(deployment, "FTL_ROUTE_TEMPLATE", r.routeTemplate, changes)
 	changes = r.updateEnvVar(deployment, "FTL_SECRETS_PATH", secretsMountPath, changes)
 	changes = r.updateEnvVar(deployment, "FTL_CONFIGS_PATH", configsMountPath, changes)
+	if schemaMountPath != "" {
+		changes = r.updateEnvVar(deployment, "FTL_SCHEMA_LOCATION", schemaMountPath+"/"+schemaPb, changes)
+	}
 	return changes, nil
 }
 
