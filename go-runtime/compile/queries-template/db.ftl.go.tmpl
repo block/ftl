@@ -1,3 +1,4 @@
+{{- $dbs := .Databases -}}
 {{- with .QueriesCtx -}}
 {{- $module := .Module -}}
 
@@ -11,6 +12,13 @@ import (
 {{- end }}
 )
 {{ end }}
+
+{{- range $dbs -}}
+//ftl:database {{.Type}} {{.Name}}
+type {{.Name|title}}Config struct {}
+
+type {{.Name|title}}Handle = ftl.DatabaseHandle[{{.Name|title}}Config]
+{{ end -}}
 
 {{- range .Data }}
 type {{.Name|title}}
@@ -39,16 +47,12 @@ type {{.Name|title}}Client func(context.Context, {{type $module .Request}}) ({{t
 
 func init() {
 	reflection.Register(
-{{- range .Verbs }}
-	{{- if and (eq (type $module .Request) "ftl.Unit") (eq (type $module .Response) "ftl.Unit")}}
-		server.QueryEmpty("{{$module.Name}}", "{{.Name}}", reflection.CommandType{{.CommandType}}, "{{.DBName}}", "{{.DBType}}", "{{.RawSQL}}", {{.ParamFields}}, {{.ColToFieldName}}),
-	{{- else if eq (type $module .Request) "ftl.Unit"}}
-		server.QuerySource[{{queryResponseType $module .Response}}]("{{$module.Name}}", "{{.Name}}", reflection.CommandType{{.CommandType}}, "{{.DBName}}", "{{.DBType}}", "{{.RawSQL}}", {{.ParamFields}}, {{.ColToFieldName}}),
-	{{- else if eq (type $module .Response) "ftl.Unit"}}
-		server.QuerySink[{{type $module .Request}}]("{{$module.Name}}", "{{.Name}}", reflection.CommandType{{.CommandType}}, "{{.DBName}}", "{{.DBType}}", "{{.RawSQL}}", {{.ParamFields}}, {{.ColToFieldName}}),
-	{{- else}}
-		server.Query[{{type $module .Request}}, {{queryResponseType $module .Response}}]("{{$module.Name}}", "{{.Name}}", reflection.CommandType{{.CommandType}}, "{{.DBName}}", "{{.DBType}}", "{{.RawSQL}}", {{.ParamFields}}, {{.ColToFieldName}}),
-	{{- end}}
+{{- range $dbs}}
+		{{- if eq .Type "postgres" }}
+		reflection.Database[{{.Name|title}}Config]("{{.Name}}", server.InitPostgres),
+		{{- else if eq .Type "mysql" }}
+		reflection.Database[{{.Name|title}}Config]("{{.Name}}", server.InitMySQL),
+		{{- end }}
 {{- end}}
 	)
 }

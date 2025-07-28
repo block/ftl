@@ -3,24 +3,19 @@ package missingqueries
 
 import (
 	"context"
+	ftldb "ftl/missingqueries/db"
 	"github.com/block/ftl/common/reflection"
-	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 )
 
 type SavePriceClient func(context.Context, Price) error
 
-//ftl:database mysql prices
-type PricesConfig struct{}
-
-type PricesHandle = ftl.DatabaseHandle[PricesConfig]
-
 func init() {
 	reflection.Register(
-		reflection.Database[PricesConfig]("prices", server.InitMySQL),
 
 		reflection.ProvideResourcesForVerb(
 			SavePrice,
+			server.SinkClient[ftldb.InsertPriceClient, ftldb.InsertPriceQuery](),
 		),
 	)
 }

@@ -2,24 +2,29 @@
 package db
 
 import (
-    "context"
-    "github.com/alecthomas/types/tuple"
-    "github.com/block/ftl/common/reflection"
-    "github.com/block/ftl/go-runtime/server"
-    stdtime "time"
+	"context"
+	"github.com/block/ftl/common/reflection"
+	"github.com/block/ftl/go-runtime/ftl"
+	"github.com/block/ftl/go-runtime/server"
+	stdtime "time"
 )
 
+//ftl:database mysql prices
+type PricesConfig struct{}
+
+type PricesHandle = ftl.DatabaseHandle[PricesConfig]
+
 type InsertPriceQuery struct {
-  	Code string
-  	Price string
-  	Time stdtime.Time
-  	Currency string
+	Code     string
+	Price    string
+	Time     stdtime.Time
+	Currency string
 }
-	
+
 type InsertPriceClient func(context.Context, InsertPriceQuery) error
 
 func init() {
 	reflection.Register(
-		server.QuerySink[InsertPriceQuery]("missingqueries", "insertPrice", reflection.CommandTypeExec, "prices", "mysql", "INSERT INTO prices (code, price, time, currency) VALUES (?, ?, ?, ?)", []string{"Code","Price","Time","Currency"}, []tuple.Pair[string,string]{}),
+		reflection.Database[PricesConfig]("prices", server.InitMySQL),
 	)
 }
