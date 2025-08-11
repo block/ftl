@@ -3,12 +3,16 @@ package db
 
 import (
 	"context"
-	"github.com/alecthomas/types/tuple"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 	stdtime "time"
 )
+
+//ftl:database mysql db
+type DbConfig struct{}
+
+type DbHandle = ftl.DatabaseHandle[DbConfig]
 
 type CreateDemoRowQuery struct {
 	RequiredString string
@@ -32,7 +36,6 @@ type ListDemoRowsClient func(context.Context) ([]DemoRow, error)
 
 func init() {
 	reflection.Register(
-		server.QuerySink[CreateDemoRowQuery]("mysql", "createDemoRow", reflection.CommandTypeExec, "db", "mysql", "INSERT INTO demo ( required_string, optional_string, number_value, timestamp_value, float_value ) VALUES ( ?, ?, ?, ?, ? )", []string{"RequiredString", "OptionalString", "NumberValue", "TimestampValue", "FloatValue"}, []tuple.Pair[string, string]{}),
-		server.QuerySource[DemoRow]("mysql", "listDemoRows", reflection.CommandTypeMany, "db", "mysql", "SELECT id, required_string, optional_string, number_value, timestamp_value, float_value FROM demo ORDER BY id", []string{}, []tuple.Pair[string, string]{tuple.PairOf("id", "Id"), tuple.PairOf("required_string", "RequiredString"), tuple.PairOf("optional_string", "OptionalString"), tuple.PairOf("number_value", "NumberValue"), tuple.PairOf("timestamp_value", "TimestampValue"), tuple.PairOf("float_value", "FloatValue")}),
+		reflection.Database[DbConfig]("db", server.InitMySQL),
 	)
 }

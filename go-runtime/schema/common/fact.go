@@ -342,7 +342,7 @@ func getFactsScoped[T SchemaFactValue](scope []analysis.ObjectFact) map[types.Ob
 		for _, f := range sf.Get() {
 			if t, ok := f.(T); ok {
 				if _, exists := facts[fact.Object]; !exists {
-					facts[fact.Object] = []T{t}
+					facts[fact.Object] = []T{}
 				}
 				facts[fact.Object] = append(facts[fact.Object], t)
 			}

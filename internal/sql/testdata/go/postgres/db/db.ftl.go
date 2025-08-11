@@ -3,12 +3,16 @@ package db
 
 import (
 	"context"
-	"github.com/alecthomas/types/tuple"
 	"github.com/block/ftl/common/reflection"
 	"github.com/block/ftl/go-runtime/ftl"
 	"github.com/block/ftl/go-runtime/server"
 	stdtime "time"
 )
+
+//ftl:database postgres testdb
+type TestdbConfig struct{}
+
+type TestdbHandle = ftl.DatabaseHandle[TestdbConfig]
 
 type FindByDataAndIdsQuery struct {
 	TextFields []string
@@ -30,9 +34,6 @@ type GetRequestDataClient func(context.Context) ([]ftl.Option[string], error)
 
 func init() {
 	reflection.Register(
-		server.QuerySink[ftl.Option[string]]("postgres", "createRequest", reflection.CommandTypeExec, "testdb", "postgres", "INSERT INTO requests (data) VALUES ($1)", []string{}, []tuple.Pair[string, string]{}),
-		server.Query[FindByDataAndIdsQuery, RequestRow]("postgres", "findByDataAndIds", reflection.CommandTypeMany, "testdb", "postgres", "SELECT id, data, created_at FROM requests WHERE data = ANY($1::text[]) AND id = ANY($2::int[])", []string{}, []tuple.Pair[string, string]{tuple.PairOf("id", "Id"), tuple.PairOf("data", "Data"), tuple.PairOf("created_at", "CreatedAt")}),
-		server.Query[[]string, RequestRow]("postgres", "findMultiple", reflection.CommandTypeMany, "testdb", "postgres", "SELECT id, data, created_at FROM requests WHERE data = ANY($1::text[])", []string{}, []tuple.Pair[string, string]{tuple.PairOf("id", "Id"), tuple.PairOf("data", "Data"), tuple.PairOf("created_at", "CreatedAt")}),
-		server.QuerySource[ftl.Option[string]]("postgres", "getRequestData", reflection.CommandTypeMany, "testdb", "postgres", "SELECT data FROM requests", []string{}, []tuple.Pair[string, string]{}),
+		reflection.Database[TestdbConfig]("testdb", server.InitPostgres),
 	)
 }
