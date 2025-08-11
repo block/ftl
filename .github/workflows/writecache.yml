@@ -36,7 +36,7 @@ jobs:
         run: hermit install
       - name: Save Hermit Cache
         if: ${{ steps.hermit-hash.outputs.exists == 0 }}
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         with:
           path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/cache' || '~/.cache/hermit/cache' }}
           key: ${{ steps.hermit-hash.outputs.key }}
@@ -69,7 +69,7 @@ jobs:
         run: pnpm install
       - name: Save pnpm Modules Cache
         if: ${{ steps.pnpm-hash.outputs.exists == 0 }}
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         with:
           path: |
             ~/.pnpm-store
@@ -104,7 +104,7 @@ jobs:
         run: npx playwright install
       - name: Save Playwright Browser Cache
         if: ${{ steps.playwright-hash.outputs.exists == 0 }}
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         with:
           path: ~/.cache/ms-playwright
           key: ${{ steps.playwright-hash.outputs.key }}
@@ -144,7 +144,7 @@ jobs:
         run: echo "cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
       - name: Save Go Cache
         if: ${{ steps.go-hash.outputs.exists == 0 }}
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         with:
           path: |
             ~/go/pkg/mod
@@ -178,7 +178,7 @@ jobs:
         run: |
           find ~/.m2/repository -type d -name "*SNAPSHOT" -exec rm -rf {} +
       - name: Save Maven Modules Cache
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         with:
           path: ~/.m2/repository
           key: ${{ steps.maven-hash.outputs.key }}

@@ -25,7 +25,7 @@ runs:
         hash="$(find ./${{ inputs.working-directory }}/bin ! -type d | sort | xargs openssl sha256 | openssl sha256 -r | cut -d' ' -f1)"
         echo "hash=$hash" >> "$GITHUB_OUTPUT"
     - name: Restore Hermit Cache
-      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
       with:
         path: ${{ runner.os == 'macOS' && '~/Library/Caches/hermit/cache' || '~/.cache/hermit/cache' }}
         key: ${{ runner.os }}-${{ runner.arch }}-hermit-cache-${{ steps.bin-hash.outputs.hash }}
@@ -34,7 +34,7 @@ runs:
           ${{ runner.os }}-${{ runner.arch }}-hermit-cache-
     - name: Restore Go Modules Cache
       id: cache-go-modules
-      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
       with:
         path: |
           ~/go/pkg/mod
@@ -46,7 +46,7 @@ runs:
     - name: Restore Maven Modules Cache
       if: ${{ inputs.enable-maven == 'true' }}
       id: cache-maven
-      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
       with:
         path: |
           ~/.m2/repository
@@ -57,7 +57,7 @@ runs:
     - name: Restore pnpm Cache
       id: cache-pnpm
       if: ${{ inputs.enable-pnpm == 'true' }}
-      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+      uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
       with:
         path: |
           ~/.pnpm-store
