@@ -50,7 +50,7 @@ jobs:
       - name: Load Docker Images
         uses: ./.github/actions/load-docker-images
       - name: Log in to Container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # ratchet:docker/login-action@v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
         with:
           username: ftl0
           password: ${{ secrets.FTL_DOCKER_PUSH_TOKEN }}
