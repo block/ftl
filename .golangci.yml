@@ -95,6 +95,7 @@ linters:
         - 'github\.com/block/ftl/common/schema\.Schema'
         - 'github\.com/block/ftl/common/schema\.Realm'
         - 'github\.com/block/ftl/common/schema\.Module'
+        - 'github\.com/block/ftl/internal/profiles\.ProjectConfig'
     exhaustive:
       default-signifies-exhaustive: true
     forbidigo:

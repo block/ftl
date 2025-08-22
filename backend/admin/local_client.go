@@ -9,20 +9,20 @@ import (
 
 	"github.com/block/ftl/common/schema"
 	configuration "github.com/block/ftl/internal/config"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/watch"
 )
 
 type diskSchemaRetriever struct {
-	projConfig projectconfig.Config
+	projConfig profiles.ProjectConfig
 }
 
-func newDiskSchemaRetriever(projConfig projectconfig.Config) *diskSchemaRetriever {
+func newDiskSchemaRetriever(projConfig profiles.ProjectConfig) *diskSchemaRetriever {
 	return &diskSchemaRetriever{projConfig: projConfig}
 }
 
 // NewLocalClient creates a admin client that reads and writes from the provided config and secret managers
-func NewLocalClient(projConfig projectconfig.Config, cm configuration.Provider[configuration.Configuration], sm configuration.Provider[configuration.Secrets]) EnvironmentClient {
+func NewLocalClient(projConfig profiles.ProjectConfig, cm configuration.Provider[configuration.Configuration], sm configuration.Provider[configuration.Secrets]) EnvironmentClient {
 	return NewEnvironmentClient(cm, sm, newDiskSchemaRetriever(projConfig))
 }
 
@@ -46,7 +46,7 @@ func (s *diskSchemaRetriever) GetSchema(ctx context.Context) (*schema.Schema, er
 		}()
 	}
 	realm := &schema.Realm{
-		Name:    s.projConfig.Name,
+		Name:    s.projConfig.Realm,
 		Modules: []*schema.Module{},
 	}
 	sch := &schema.Schema{Realms: []*schema.Realm{realm}}

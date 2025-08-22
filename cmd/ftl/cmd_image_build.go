@@ -14,7 +14,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine"
 	"github.com/block/ftl/internal/oci"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -34,7 +34,7 @@ func (b *imageBuildCmd) Run(
 	ctx context.Context,
 	adminClient adminpbconnect.AdminServiceClient,
 	schemaSource *schemaeventsource.EventSource,
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 ) error {
 	logger := log.FromContext(ctx)
 	if len(b.Dirs) == 0 {
@@ -100,7 +100,7 @@ func (b *imageBuildCmd) Run(
 				image += "latest"
 			}
 		}
-		tgt := imageService.Image(projConfig.Name, moduleSch.Name, b.Tag)
+		tgt := imageService.Image(projConfig.Realm, moduleSch.Name, b.Tag)
 		moduleSch.Metadata = append(moduleSch.Metadata, &schema.MetadataImage{Image: string(tgt)})
 		targets := []oci.ImageTarget{}
 		if !b.SkipLocalDaemon {
@@ -114,7 +114,7 @@ func (b *imageBuildCmd) Run(
 		}
 		// TODO: we need to properly sync the deployment with the actual deployment key
 		// this is just a hack to get the module and realm to the runner
-		deployment := key.NewDeploymentKey(projConfig.Name, moduleSch.Name)
+		deployment := key.NewDeploymentKey(projConfig.Realm, moduleSch.Name)
 		err := imageService.BuildOCIImage(ctx, image, tgt, tmpDeployDir, deployment, artifacts, nil, targets...)
 		if err != nil {
 			return errors.Wrapf(err, "failed to build image")

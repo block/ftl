@@ -40,7 +40,6 @@ import (
 	"github.com/block/ftl/internal/exec"
 	"github.com/block/ftl/internal/flock"
 	"github.com/block/ftl/internal/moduleconfig"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
 )
 
@@ -139,7 +138,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to write generic schema files")
 	}
-	projectConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+	projectConfig := req.Msg.ProjectConfig
 	running := s.devModeRunning.Load()
 	if running == 1 {
 		return s.reloadDevMode(ctx, buildCtx, changed)
@@ -153,7 +152,7 @@ func (s *Service) Build(ctx context.Context, req *connect.Request[langpb.BuildRe
 	return buildAndSend(ctx, projectConfig, buildCtx)
 }
 
-func (s *Service) runQuarkusDev(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
+func (s *Service) runQuarkusDev(ctx context.Context, projectConfig *langpb.ProjectConfig, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	logger := log.FromContext(ctx)
 
 	output := &errorDetector{
@@ -318,7 +317,7 @@ func (s *Service) handleState(ctx context.Context, state *hotreloadpb.SchemaStat
 	}), nil
 }
 
-func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string, projectConfig projectconfig.Config, buildCtx buildContext, stdout *errorDetector, errChan chan error) {
+func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string, projectConfig *langpb.ProjectConfig, buildCtx buildContext, stdout *errorDetector, errChan chan error) {
 	logger := log.FromContext(ctx)
 	ctx, cancel := context.WithCancelCause(log.ContextWithLogger(context.Background(), logger))
 	s.devModeRunning.Store(1)
@@ -331,7 +330,7 @@ func (s *Service) launchQuarkusProcess(ctx context.Context, devModeBuild string,
 	if os.Getenv("MAVEN_OPTS") == "" { //nolint:forbidigo
 		command.Env = append(command.Env, "MAVEN_OPTS=-Xmx2048m")
 	}
-	command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
+	command.Env = append(command.Env, fmt.Sprintf("FTL_BIND=%s", s.devModeEndpoint), "FTL_MODULE_NAME="+buildCtx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root)
 	command.Stdout = stdout
 	command.Stderr = os.Stderr
 	err := command.Run()
@@ -362,7 +361,7 @@ func (s *Service) connectReloadClient(ctx context.Context, client hotreloadpbcon
 	return nil
 }
 
-func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildContext) (*langpb.BuildResponse, error) {
+func build(ctx context.Context, projectConfig *langpb.ProjectConfig, bctx buildContext) (*langpb.BuildResponse, error) {
 	logger := log.FromContext(ctx)
 
 	deps, err := extractDependencies(bctx.Config.Module, bctx.Config.Dir)
@@ -385,7 +384,7 @@ func build(ctx context.Context, projectConfig projectconfig.Config, bctx buildCo
 	config := bctx.Config
 	logger.Infof("Using build command '%s'", config.Build)
 	command := exec.Command(ctx, log.Debug, config.Dir, "bash", "-c", config.Build)
-	command.Env = append(command.Env, "FTL_MODULE_NAME="+bctx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root())
+	command.Env = append(command.Env, "FTL_MODULE_NAME="+bctx.Config.Module, "FTL_PROJECT_ROOT="+projectConfig.Root)
 	command.Stdout = output
 	command.Stderr = os.Stderr
 	err = command.Run()
@@ -471,7 +470,7 @@ func readSchema(bctx buildContext) (*schemapb.Module, error) {
 //
 // Build errors are sent over the stream as a BuildFailure event.
 // This function only returns an error if events could not be send over the stream.
-func buildAndSend(ctx context.Context, projectConfig projectconfig.Config, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
+func buildAndSend(ctx context.Context, projectConfig *langpb.ProjectConfig, buildCtx buildContext) (*connect.Response[langpb.BuildResponse], error) {
 	buildEvent, err := build(ctx, projectConfig, buildCtx)
 	if err != nil {
 		buildEvent = buildFailure(builderrors.Error{

@@ -1,0 +1,5 @@
+name = "local"
+endpoint = "http://localhost:8892"
+type = "local"
+secrets-provider = "profile:local"
+config-provider = "profile:local"

@@ -2,7 +2,6 @@ package buildengine_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
@@ -11,7 +10,7 @@ import (
 	"github.com/block/ftl/common/log"
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/internal/buildengine"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 )
 
@@ -23,12 +22,10 @@ func TestGraph(t *testing.T) {
 	t.Cleanup(func() {
 		cancel(errors.Wrap(context.Canceled, "test complete"))
 	})
-	projConfig := projectconfig.Config{
-		Path: filepath.Join(t.TempDir(), "ftl-project.toml"),
-		Name: "test",
-	}
+	root := t.TempDir()
+	project := profiles.InitForTesting(t, root)
 
-	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), projConfig, []string{"testdata/alpha", "testdata/other", "testdata/another"}, true)
+	engine, err := buildengine.New(ctx, nil, schemaeventsource.NewUnattached(), project.Config(), []string{"testdata/alpha", "testdata/other", "testdata/another"}, true)
 	assert.NoError(t, err)
 
 	defer engine.Close()

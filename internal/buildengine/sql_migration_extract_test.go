@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/block/ftl/common/log"
-	"github.com/block/ftl/internal/projectconfig"
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/block/scaffolder"
@@ -13,6 +12,7 @@ import (
 	"github.com/block/ftl/common/schema"
 	"github.com/block/ftl/common/sha256"
 	"github.com/block/ftl/internal/moduleconfig"
+	"github.com/block/ftl/internal/profiles"
 )
 
 func TestExtractMigrations(t *testing.T) {
@@ -70,7 +70,7 @@ func getAbsModuleConfig(t *testing.T, moduleDir string, sqlRootDir string) modul
 		Dir:        moduleDir,
 		DeployDir:  ".ftl",
 		SQLRootDir: sqlRootDir,
-	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{}, projectconfig.Config{Name: "test"})
+	}.FillDefaultsAndValidate(moduleconfig.CustomDefaults{}, profiles.ProjectConfig{Realm: "test"})
 	assert.NoError(t, err)
 	return mc.Abs()
 }

@@ -83,7 +83,7 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 	logger = logger.Module(req.Msg.Name)
 	ctx = log.ContextWithLogger(ctx, logger)
 	flags := req.Msg.Flags.AsMap()
-	projConfig := langpb.ProjectConfigFromProto(req.Msg.ProjectConfig)
+	projConfig := req.Msg.ProjectConfig
 
 	opts := []scaffolder.Option{
 		scaffolder.Exclude("^go.mod$"),
@@ -95,7 +95,7 @@ func (CmdService) NewModule(ctx context.Context, req *connect.Request[langpb.New
 
 	sctx := scaffoldingContext{
 		Name:      req.Msg.Name,
-		GoVersion: determineGoVersion(projConfig.Path),
+		GoVersion: determineGoVersion(projConfig.Root),
 		Replace:   map[string]string{},
 	}
 	if replaceValue, ok := flags["replace"]; ok && replaceValue != "" {

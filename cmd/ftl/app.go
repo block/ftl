@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"runtime/trace"
 	"strconv"
@@ -30,7 +29,6 @@ import (
 	"github.com/block/ftl/internal/editor"
 	_ "github.com/block/ftl/internal/prodinit" // Set GOMAXPROCS to match Linux container CPU quota.
 	"github.com/block/ftl/internal/profiles"
-	"github.com/block/ftl/internal/projectconfig"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/schema/schemaeventsource"
 	"github.com/block/ftl/internal/terminal"
@@ -40,7 +38,8 @@ import (
 type SharedCLI struct {
 	Version        kong.VersionFlag      `help:"Show version."`
 	Project        string                `short:"P" name:"project" help:"Path to FTL project root directory. The git root will be used if not found in the current directory." env:"FTL_PROJECT" placeholder:"DIR" default:""`
-	ConfigFlag     string                `name:"config" short:"C" help:"Path to FTL project configuration file." env:"FTL_CONFIG" placeholder:"FILE"`
+	ConfigFlag     string                `name:"config" short:"C" help:"Path to FTL project root." env:"FTL_CONFIG" placeholder:"FILE"`
+	ProfileFlag    string                `name:"profile" help:"Profile to use." env:"FTL_PROFILE" placeholder:"PROFILE"`
 	TimelineConfig timelineclient.Config `embed:""`
 	AdminEndpoint  *url.URL              `help:"Admin endpoint." env:"FTL_ENDPOINT" default:"http://127.0.0.1:8892"`
 	Trace          string                `help:"File to write golang runtime/trace output to." hidden:""`
@@ -130,9 +129,7 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	pluginCtx := log.ContextWithLogger(ctx, log.Configure(os.Stdout, cli.LogConfig))
-	// TODO: don't do this
-	projectConfig, _ := projectconfig.Load(ctx, None[string]()) //nolint:errcheck
-	err = languageplugin.PrepareNewCmd(pluginCtx, projectConfig, app, os.Args[1:])
+	err = languageplugin.PrepareNewCmd(pluginCtx, app, os.Args[1:])
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -172,16 +169,6 @@ func (a *App) Run(ctx context.Context, args []string) error {
 	// Set some envars for child processes.
 	os.Setenv("LOG_LEVEL", cli.LogConfig.Level.String())
 
-	configPath := cli.ConfigFlag
-	if configPath == "" {
-		var ok bool
-		configPath, ok = projectconfig.DefaultConfigPath().Get()
-		if !ok {
-			err = errors.Errorf("could not determine default config path, either place an ftl-project.toml file in the root of your project, use --config=FILE, or set the FTL_CONFIG envar")
-			cancel(err)
-			return err
-		}
-	}
 	if terminal.IsANSITerminal(ctx) {
 		cli.LogConfig.Color = true
 	}
@@ -192,8 +179,6 @@ func (a *App) Run(ctx context.Context, args []string) error {
 	if cli.Insecure {
 		logger.Warnf("--insecure skips TLS certificate verification")
 	}
-
-	os.Setenv("FTL_CONFIG", configPath)
 
 	bindContext := makeBindContext(logger, cancel, a.csm)
 	ctx = bindContext(ctx, kctx)
@@ -248,14 +233,31 @@ func createKongApplication(cli any, csm *currentStatusManager) *kong.Kong {
 func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *currentStatusManager) KongContextBinder {
 	var bindContext KongContextBinder
 	bindContext = func(ctx context.Context, kctx *kong.Context) context.Context {
-		err := kctx.BindToProvider(func(cli *SharedCLI) (projectconfig.Config, error) {
-			config, err := projectconfig.Load(ctx, Zero(cli.ConfigFlag))
+		// Bind the project object.
+		err := kctx.BindToProvider(func(cli *SharedCLI, cm *config.Registry[config.Configuration], sm *config.Registry[config.Secrets]) (*profiles.Project, error) {
+			project, err := profiles.Open(cli.ConfigFlag, sm, cm)
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return config, errors.WithStack(err)
+				return nil, errors.WithStack(err)
 			}
-			return config, nil
+			if cli.ProfileFlag != "" {
+				if err := project.Switch(cli.ProfileFlag, true); err != nil {
+					return nil, errors.Errorf("failed to set active profile to %q: %w", cli.ProfileFlag, err)
+				}
+			}
+			return project, nil
 		})
 		kctx.FatalIfErrorf(err)
+		// Also bind the active profile.
+		err = kctx.BindToProvider(func(ctx context.Context, project *profiles.Project) (*profiles.Profile, error) {
+			return errors.WithStack2(project.ActiveProfile(ctx))
+		})
+		kctx.FatalIfErrorf(err)
+
+		err = kctx.BindToProvider(func(project *profiles.Project) (profiles.ProjectConfig, error) {
+			return project.Config(), nil
+		})
+		kctx.FatalIfErrorf(err)
+
 		kctx.Bind(logger)
 		kctx.Bind(csm)
 		kctx.Bind(&cli.SharedCLI)
@@ -296,18 +298,13 @@ func makeBindContext(logger *log.Logger, cancel context.CancelCauseFunc, csm *cu
 		})
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(func(ctx context.Context, config projectconfig.Config, registry *config.Registry[config.Configuration]) (config.Provider[config.Configuration], error) {
-			return errors.WithStack2(registry.Get(ctx, config.Root(), config.ConfigProvider))
+		err = kctx.BindToProvider(func(profile *profiles.Profile) (config.Provider[config.Configuration], error) {
+			return profile.ConfigurationManager(), nil
 		})
 		kctx.FatalIfErrorf(err)
 
-		err = kctx.BindToProvider(func(ctx context.Context, config projectconfig.Config, registry *config.Registry[config.Secrets]) (config.Provider[config.Secrets], error) {
-			return errors.WithStack2(registry.Get(ctx, config.Root(), config.SecretsProvider))
-		})
-		kctx.FatalIfErrorf(err)
-
-		err = kctx.BindToProvider(func(projectConfig projectconfig.Config, secretsRegistry *config.Registry[config.Secrets], configRegistry *config.Registry[config.Configuration]) (*profiles.Project, error) {
-			return errors.WithStack2(profiles.Open(filepath.Dir(projectConfig.Path), secretsRegistry, configRegistry))
+		err = kctx.BindToProvider(func(profile *profiles.Profile) (config.Provider[config.Secrets], error) {
+			return profile.SecretsManager(), nil
 		})
 		kctx.FatalIfErrorf(err)
 
@@ -332,7 +329,7 @@ func provideAdminClient(
 	cli *SharedCLI,
 	cm config.Provider[config.Configuration],
 	sm config.Provider[config.Secrets],
-	projectConfig projectconfig.Config,
+	projectConfig profiles.ProjectConfig,
 	adminClient adminpbconnect.AdminServiceClient,
 ) (client admin.EnvironmentClient, err error) {
 	shouldUseLocalClient, err := admin.ShouldUseLocalClient(ctx, adminClient, cli.AdminEndpoint)

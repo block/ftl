@@ -22,7 +22,7 @@ import (
 	"github.com/block/ftl/common/log"
 	schemapb "github.com/block/ftl/common/protos/xyz/block/ftl/schema/v1"
 	"github.com/block/ftl/common/schema"
-	"github.com/block/ftl/internal/projectconfig"
+	"github.com/block/ftl/internal/profiles"
 	"github.com/block/ftl/internal/rpc"
 	"github.com/block/ftl/internal/terminal"
 )
@@ -36,7 +36,7 @@ type schemaDiffCmd struct {
 func (d *schemaDiffCmd) Run(
 	ctx context.Context,
 	endpoint *url.URL,
-	projConfig projectconfig.Config,
+	projConfig profiles.ProjectConfig,
 ) error {
 	from := d.From
 	if from == "" {
