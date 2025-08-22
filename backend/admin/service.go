@@ -547,7 +547,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 	}); err != nil {
 		return errors.Wrap(err, "failed to send changeset")
 	}
-	for e := range channels.IterContext(ctx, s.source.Subscribe(ctx)) {
+	for e := range channels.IterSubscribable[schema.Notification](ctx, s.source) {
 		switch event := e.(type) {
 		case *schema.ChangesetFinalizedNotification:
 			if event.Key != key {
@@ -589,8 +589,7 @@ func (s *Service) ApplyChangeset(ctx context.Context, req *connect.Request[admin
 }
 
 func (s *Service) PullSchema(ctx context.Context, req *connect.Request[ftlv1.PullSchemaRequest], resp *connect.ServerStream[ftlv1.PullSchemaResponse]) error {
-	events := s.source.Subscribe(ctx)
-	for event := range channels.IterContext(ctx, events) {
+	for event := range channels.IterSubscribable[schema.Notification](ctx, s.source) {
 		switch e := event.(type) {
 		case *schema.FullSchemaNotification:
 			proto := e.ToProto()

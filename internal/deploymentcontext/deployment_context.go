@@ -31,8 +31,7 @@ type SecretsProvider func(ctx context.Context) (map[string][]byte, error)
 type ConfigProvider func(ctx context.Context) (map[string][]byte, error)
 
 type RouteProvider interface {
-	Subscribe() chan string
-	Unsubscribe(c chan string)
+	Subscribe(ctx context.Context) <-chan string
 	Route(module string) string
 }
 

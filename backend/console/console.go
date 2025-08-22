@@ -404,8 +404,7 @@ func (s *Service) StreamModules(ctx context.Context, req *connect.Request[consol
 		return errors.WithStack(err)
 	}
 
-	events := s.schemaEventSource.Subscribe(ctx)
-	for range channels.IterContext(ctx, events) {
+	for range channels.IterSubscribable[schema.Notification](ctx, s.schemaEventSource) {
 		err = s.sendStreamModulesResp(stream)
 		if err != nil {
 			return errors.WithStack(err)

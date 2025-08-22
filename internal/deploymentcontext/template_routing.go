@@ -1,6 +1,7 @@
 package deploymentcontext
 
 import (
+	"context"
 	"os"
 )
 
@@ -29,11 +30,11 @@ func (t *templateRouteTable) Route(module string) string {
 }
 
 // Subscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Subscribe() chan string {
-	return make(chan string)
-}
-
-// Unsubscribe implements deploymentcontext.RouteProvider.
-func (t *templateRouteTable) Unsubscribe(c chan string) {
-	close(c)
+func (t *templateRouteTable) Subscribe(ctx context.Context) <-chan string {
+	ret := make(chan string)
+	go func() {
+		<-ctx.Done()
+		close(ret)
+	}()
+	return ret
 }

@@ -52,7 +52,6 @@ func (s *SchemaService) PullSchema(ctx context.Context, req *connect.Request[ftl
 	if !s.mirror.receiving.Load() {
 		return connect.NewError(connect.CodeUnavailable, errors.New("mirror is not receiving schema updates"))
 	}
-	updates := s.mirror.eventSource.Subscribe(ctx)
 	if err := stream.Send(&ftlv1.PullSchemaResponse{
 		Event: &schemapb.Notification{
 			Value: &schemapb.Notification_FullSchemaNotification{
@@ -67,7 +66,7 @@ func (s *SchemaService) PullSchema(ctx context.Context, req *connect.Request[ftl
 	}); err != nil {
 		return errors.Wrap(err, "failed to send initial schema")
 	}
-	for event := range channels.IterContext(ctx, updates) {
+	for event := range channels.IterSubscribable[schema.Notification](ctx, s.mirror.eventSource) {
 		if err := stream.Send(&ftlv1.PullSchemaResponse{
 			Event: schema.NotificationToProto(event),
 		}); err != nil {
