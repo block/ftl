@@ -11,7 +11,7 @@ import (
 
 type imageInspectCmd struct {
 	ImageConfig oci.ImageConfig `embed:""`
-	Image       string          `arg:"" help:"The image to inspect" default:"latest"`
+	Image       string          `arg:"" help:"The image to inspect"`
 }
 
 func (b *imageInspectCmd) Run(
@@ -19,12 +19,17 @@ func (b *imageInspectCmd) Run(
 ) error {
 	logger := log.FromContext(ctx)
 
-	imageService, err := oci.NewImageService(ctx, &b.ImageConfig)
+	imageService, err := oci.NewImageService(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "failed to init OCI")
 	}
 
-	sch, err := imageService.PullSchema(ctx, b.Image)
+	ref, err := imageService.ParseName(b.Image, b.ImageConfig.AllowInsecureImages)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse image name %s", b.Image)
+	}
+
+	sch, _, err := imageService.PullSchema(ctx, ref)
 	if err != nil {
 		return errors.Wrapf(err, "failed to pull image schema %s", b.Image)
 	}

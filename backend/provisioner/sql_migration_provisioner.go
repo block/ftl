@@ -15,6 +15,7 @@ import (
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	_ "github.com/go-sql-driver/mysql" // SQL driver
+	"github.com/google/go-containerregistry/pkg/name"
 	_ "github.com/jackc/pgx/v5/stdlib" // SQL driver
 
 	"github.com/block/ftl/common/key"
@@ -39,6 +40,25 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 	return func(ctx context.Context, changeset key.Changeset, deployment key.Deployment, resource schema.Provisioned, module *schema.Module) (*schema.RuntimeElement, error) {
 		logger := log.FromContext(ctx)
 
+		var repo oci.Repository
+		if module.GetRuntime().Image != nil && module.GetRuntime().Image.Image != "" {
+			ref, err := name.ParseReference(module.GetRuntime().Image.Image)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse image reference %s", module.GetRuntime().Image.Image)
+			}
+			repo = oci.Repository(ref.Context().String())
+		} else {
+			images := slices.FilterVariants[*schema.MetadataImage](module.Metadata)
+			for img := range images {
+				ref, err := name.ParseReference(img.Image)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse image reference %s", module.GetRuntime().Image.Image)
+				}
+				repo = oci.Repository(ref.Context().String())
+				break
+			}
+		}
+
 		db, ok := resource.(*schema.Database)
 		if !ok {
 			return nil, errors.Errorf("expected database, got %T", resource)
@@ -48,7 +68,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to parse diges")
 			}
-			download, err := storage.Download(ctx, parseSHA256)
+			download, err := storage.DownloadFromRepository(ctx, repo, parseSHA256)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to download migration")
 			}
@@ -56,6 +76,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to extract tar")
 			}
+			defer os.RemoveAll(dir) //nolint:errcheck
 			d := ""
 
 			switch db.Type {
@@ -102,7 +123,7 @@ func provisionSQLMigration(storage *oci.ArtefactService) InMemResourceProvisione
 			dbm := dbmate.New(u)
 			dbm.AutoDumpSchema = false
 			dbm.Log = log.FromContext(ctx).Scope("migrate").WriterAt(log.Info)
-			dbm.MigrationsDir = []string{dir}
+			dbm.MigrationsDir = []string{filepath.Join(dir, "migrations", db.Name)}
 			err = dbm.CreateAndMigrate()
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create and migrate database")
@@ -170,6 +191,10 @@ func extractTarToTempDir(tarReader io.Reader) (tempDir string, err error) {
 
 		// Construct the full path for the file
 		targetPath := filepath.Join(tempDir, filepath.Clean(header.Name))
+		err = os.MkdirAll(filepath.Join(targetPath, ".."), 0744) //nolint: gosec
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to create temp directory for: %s", targetPath)
+		}
 
 		// Create the file
 		file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))

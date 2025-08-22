@@ -59,13 +59,13 @@ func main() {
 	artefactService, err := oci.NewArtefactService(ctx, cli.ArtefactConfig)
 	kctx.FatalIfErrorf(err, "failed to create OCI registry storage")
 
-	imageService, err := oci.NewImageService(ctx, &cli.ImageConfig)
+	imageService, err := oci.NewImageService(ctx)
 	kctx.FatalIfErrorf(err, "failed to create image service")
 
-	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, cli.KubeConfig.RouteTemplate(), cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount)
+	scaling := k8sscaling.NewK8sScaling(false, cli.Realm, mapper, cli.KubeConfig.RouteTemplate(), cli.CronServiceAccount, cli.AdminServiceAccount, cli.ConsoleServiceAccount, cli.HTTPServiceAccount, imageService)
 	err = scaling.Start(ctx)
 	kctx.FatalIfErrorf(err, "error starting k8s scaling")
-	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService, artefactService)
+	registry, err := provisioner.RegistryFromConfigFile(ctx, cli.ProvisionerConfig.WorkingDir, cli.ProvisionerConfig.PluginConfigFile, scaling, adminClient, imageService, artefactService, cli.ImageConfig)
 	kctx.FatalIfErrorf(err, "failed to create provisioner registry")
 
 	// Use in mem sql-migration provisioner as fallback for sql-migration provisioning if no other provisioner is registered
@@ -82,7 +82,7 @@ func main() {
 	if _, ok := slices.Find(registry.Bindings, func(binding *provisioner.ProvisionerBinding) bool {
 		return slices.Contains(binding.Types, schema.ResourceTypeImage)
 	}); !ok {
-		ociProvisioner := provisioner.NewOCIImageProvisioner(imageService, artefactService, cli.DefaultRunnerImage, provisioner.OCIImageProvisionerConfig{})
+		ociProvisioner := provisioner.NewOCIImageProvisioner(imageService, artefactService, cli.DefaultRunnerImage, cli.ImageConfig, provisioner.OCIImageProvisionerConfig{})
 		runnerBinding := registry.Register("oci-image", ociProvisioner, schema.ResourceTypeImage)
 		logger.Debugf("Registered provisioner %s as fallback for image", runnerBinding)
 	}

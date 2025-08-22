@@ -72,7 +72,7 @@ func (reg *ProvisionerRegistry) listBindings() []*ProvisionerBinding {
 
 type pluginProcesses map[string]Plugin
 
-func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, md *toml.MetaData, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService) (*ProvisionerRegistry, error) {
+func registryFromConfig(ctx context.Context, workingDir string, cfg *provisionerPluginConfig, md *toml.MetaData, runnerScaling scaling.RunnerScaling, adminClient adminpbconnect.AdminServiceClient, imageService *oci.ImageService, artifactService *oci.ArtefactService, imageConfig oci.ImageConfig) (*ProvisionerRegistry, error) {
 	logger := log.FromContext(ctx)
 	result := &ProvisionerRegistry{}
 	if err := cfg.Validate(); err != nil {
@@ -80,7 +80,7 @@ func registryFromConfig(ctx context.Context, workingDir string, cfg *provisioner
 	}
 	processes := pluginProcesses{}
 	for _, plugin := range cfg.Plugins {
-		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, plugin.Config, md, workingDir, runnerScaling, adminClient, imageService, artifactService, processes)
+		provisioner, err := provisionerIDToProvisioner(ctx, plugin.ID, plugin.Config, md, workingDir, runnerScaling, adminClient, imageService, artifactService, imageConfig, processes)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -100,6 +100,7 @@ func provisionerIDToProvisioner(
 	adminClient adminpbconnect.AdminServiceClient,
 	imageService *oci.ImageService,
 	artifactService *oci.ArtefactService,
+	imageConfig oci.ImageConfig,
 	processes pluginProcesses,
 ) (Plugin, error) {
 	switch id {
@@ -119,7 +120,7 @@ func provisionerIDToProvisioner(
 			}
 		}
 
-		return NewOCIImageProvisioner(imageService, artifactService, "ftl0/ftl-runner", cfg), nil
+		return NewOCIImageProvisioner(imageService, artifactService, "ftl0/ftl-runner", imageConfig, cfg), nil
 	default:
 		if _, ok := processes[id]; ok {
 			return processes[id], nil

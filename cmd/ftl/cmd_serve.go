@@ -272,14 +272,14 @@ func (s *serveCommonConfig) run(
 		},
 	}
 
-	imageService, err := oci.NewImageService(ctx, &s.ImageConfig)
+	imageService, err := oci.NewImageService(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to create image service")
 	}
 
 	// read provisioners from a config file if provided
 	if s.PluginConfigFile != nil {
-		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, imageService, artefactService)
+		r, err := provisioner.RegistryFromConfigFile(provisionerCtx, s.WorkingDir, s.PluginConfigFile, runnerScaling, adminClient, imageService, artefactService, s.ImageConfig)
 		if err != nil {
 			return errors.Wrap(err, "failed to create provisioner registry")
 		}
@@ -324,7 +324,7 @@ func (s *serveCommonConfig) run(
 	})
 	services = append(services, lease.New(ctx))
 	// Start Admin
-	adminService := admin.NewAdminService(s.Admin, cm, sm, schemaClient, schemaEventSource, artefactService, router, timelineClient, s.WaitFor)
+	adminService := admin.NewAdminService(s.Admin, cm, sm, schemaClient, schemaEventSource, artefactService, router, timelineClient, imageService, s.WaitFor)
 	services = append(services, adminService)
 
 	// Start the common server
