@@ -1,14 +1,7 @@
 
-ftl:
+ftl-system:
   istio:
     enabled: true
-  ingress:
-    enabled: true
-    urlPrefix: "/ingress/"
-    ports:
-      - name: http
-        port: 8892
-        targetPort: 8892
   registry:
     repository: "k3d-ftl-registry.localhost:5000/ftl-artefacts"
     allowInsecure: "true"
@@ -29,3 +22,11 @@ ftl:
             - "topic"
             - "subscription"
             - "mysql"
+ftl-services:
+  ingress:
+    enabled: true
+    urlPrefix: "/ingress/"
+    ports:
+      - name: http
+        port: 8892
+        targetPort: 8892
