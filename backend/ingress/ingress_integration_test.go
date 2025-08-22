@@ -16,7 +16,7 @@ import (
 
 func TestHttpIngress(t *testing.T) {
 	in.Run(t,
-		in.WithLanguages("go", "java"),
+		in.WithLanguages("go", "java", "kotlin"),
 		in.CopyModule("httpingress"),
 		in.Deploy("httpingress"),
 		in.SubTests(
@@ -132,7 +132,7 @@ func TestHttpIngress(t *testing.T) {
 				assert.Equal(t, nil, resp.Headers["Access-Control-Allow-Headers"])
 			})},
 		),
-		in.IfLanguage("go", in.SubTests(
+		in.IfLanguages(in.SubTests(
 			// Double, Int etc work in java with JSON encoding, but test/plain is not implemented yet
 			in.SubTest{Name: "PostInt", Action: in.HttpCall(http.MethodPost, "/int", nil, []byte("1234"), func(t testing.TB, resp *in.HTTPResponse) {
 				assert.Equal(t, 200, resp.Status)
@@ -172,10 +172,10 @@ func TestHttpIngress(t *testing.T) {
 			in.SubTest{Name: "TestExtraFieldLenient", Action: in.HttpCall(http.MethodPost, "/lenient", nil, in.JsonData(t, in.Obj{"user_id": 123, "postId": 345, "extra": "blah"}), func(t testing.TB, resp *in.HTTPResponse) {
 				assert.Equal(t, 201, resp.Status)
 			})},
-		)),
+		), "go", "kotlin"),
 
 		in.IfLanguage("java", in.SubTests(
-			// Double, Int etc work in java with JSON encoding, but test/plain is not implemented yet
+			// Double, Int etc work in java with JSON encoding, but text/plain is not implemented yet
 			in.SubTest{Name: "JavaVerbClient", Action: in.HttpCall(http.MethodGet, "/client", nil, nil, func(t testing.TB, resp *in.HTTPResponse) {
 				assert.Equal(t, 200, resp.Status)
 				assert.Equal(t, []byte("Hello"), resp.BodyBytes)
